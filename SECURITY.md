@@ -12,7 +12,7 @@ As principais ameaças consideradas são traversal de caminho, exclusão acident
 
 A fundação usa APIs de arquivo diretamente, sem montar comandos shell. Destinos são validados antes de operações, a sobrescrita é recusada por padrão, a raiz não é aceita para exclusão e diretórios não vazios não são removidos pela API limitada da primeira fatia. A cópia usa arquivo temporário, sincronização e validação antes da publicação. Links simbólicos são identificados por `symlink_metadata` e não são seguidos durante a listagem.
 
-A UI envia o trabalho de listagem a um worker e atualiza o modelo Slint somente pelo event loop. Cada carregamento recebe uma geração; quando uma navegação mais recente ocorre, o resultado anterior é descartado antes de alterar caminho, status ou linhas. O filtro local não varre subpastas: usa snapshots compartilhados e uma fila latest-only com um worker dedicado, descartando resultados obsoletos por geração. Falhas ao iniciar workers e falhas internas de atualização viram mensagens controladas, não panic.
+A UI envia o trabalho de listagem a um worker e atualiza o modelo Slint somente pelo event loop. Cada carregamento recebe uma geração; quando uma navegação mais recente ocorre, o resultado anterior é descartado antes de alterar caminho, status ou linhas. O filtro local não varre subpastas: usa snapshots compartilhados e uma fila latest-only com um worker dedicado, descartando resultados obsoletos por geração. O histórico armazena somente caminhos escolhidos pelo usuário e a seleção armazena somente chaves da listagem atual; nenhum dos dois dispara operação de filesystem. Falhas ao iniciar workers e falhas internas de atualização viram mensagens controladas, não panic.
 
 ## Dependências
 
@@ -30,4 +30,4 @@ Vulnerabilidades devem ser reportadas de forma privada aos mantenedores antes de
 
 ## Limitações conhecidas
 
-A primeira interface ainda não contém pesquisa, abas, thumbnails, seleção avançada, drag and drop, operações de arquivo disparadas pela UI, integração com shell, conversores, OCR, instalador, assinatura ou atualização automática. A exclusão recursiva não está disponível de propósito. O build Windows foi validado de forma cruzada e a CI remota deve continuar sendo executada antes de qualquer declaração de compatibilidade final em Windows 10/11.
+A primeira interface ainda não contém pesquisa global, abas, thumbnails, drag and drop, operações de arquivo disparadas pela UI, integração com shell, conversores, OCR, instalador, assinatura ou atualização automática. A seleção múltipla local e o histórico voltar/avançar já existem, mas não executam operações por si mesmos. A exclusão recursiva não está disponível de propósito. O build Windows foi validado de forma cruzada e a CI remota deve continuar sendo executada antes de qualquer declaração de compatibilidade final em Windows 10/11.

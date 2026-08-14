@@ -6,7 +6,7 @@ O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, 
 
 ## Estado atual
 
-O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento em workers, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e apresenta navegação visual funcional. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla.
+O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento em workers, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e apresenta navegação visual funcional. O histórico mantém pilhas reais de voltar/avançar, e a seleção local suporta clique, Ctrl-clique, Shift-clique e Ctrl+A. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla.
 
 | Área | Estado |
 |---|---|
@@ -20,7 +20,9 @@ O núcleo implementa listagem real de diretórios, classificação de arquivos, 
 | Lista visual, atualização e ativação de diretórios | Implementadas |
 | Workers e descarte de resultados obsoletos | Implementados |
 | Filtro local sem varredura global | Implementado com fila limitada |
-| Pesquisa, abas, thumbnails, seleção e drag and drop | Planejados |
+| Histórico voltar/avançar | Implementado e testado |
+| Seleção múltipla local | Implementada e testada com clique, Ctrl/Shift e Ctrl+A |
+| Pesquisa global, abas, thumbnails e drag and drop | Planejados |
 | Conversores multimídia/PDF/OCR | Fora da primeira fatia; não simulados |
 | Instalador, assinatura e atualização | Planejados para a fase de distribuição |
 
@@ -51,7 +53,7 @@ O modo CLI permanece disponível para ambientes sem display e para diagnóstico 
 cargo run -- --cli .
 ```
 
-A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, navegação real e captura de screenshot. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows.
+A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, filtro local, seleção múltipla, histórico de navegação e captura de screenshots. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows.
 
 ## Documentação
 
@@ -59,7 +61,7 @@ A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md),
 
 ## Segurança e dependências
 
-O Rovex não executa arquivos durante a navegação, não usa shell para operações de arquivo e não envia conteúdo local para serviços externos. A UI não executa filesystem no thread visual. O filtro local não varre subpastas e seu worker processa no máximo a consulta pendente mais recente. Destinos são normalizados antes de operações sensíveis e resultados atrasados de workers são descartados por geração.
+O Rovex não executa arquivos durante a navegação, não usa shell para operações de arquivo e não envia conteúdo local para serviços externos. A UI não executa filesystem no thread visual. O filtro local não varre subpastas e seu worker processa no máximo a consulta pendente mais recente. Destinos são normalizados antes de operações sensíveis, resultados atrasados de workers são descartados por geração e a seleção visual não dispara operações de filesystem por si só.
 
 A política `cargo-deny` permite somente as licenças observadas e revisadas na árvore atual, incluindo as referências customizadas declaradas pelo Slint. `cargo audit` não encontrou vulnerabilidades, mas reporta quatro advisories de manutenção transitivos do toolkit: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Não há upgrade seguro informado pela base RustSec para essa cadeia; eles permanecem visíveis como warnings e estão registrados em [`docs/slint-research.md`](docs/slint-research.md).
 
