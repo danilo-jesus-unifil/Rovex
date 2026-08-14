@@ -23,7 +23,7 @@ A exclusão continua deliberadamente limitada a arquivos, links e diretórios va
 
 Os diretórios temporários dos testes deixaram de depender apenas de nanossegundos do relógio e passaram a usar contador atômico combinado com PID, reduzindo a possibilidade de colisões em testes concorrentes. A política `cargo-deny` foi reduzida às licenças realmente presentes no estado atual, eliminando warnings de permissões não utilizadas.
 
-A primeira execução da CI após o hardening revelou uma falha específica do Windows: `fs::canonicalize` retornou o caminho estendido `\\?\\C:\\...`, enquanto o teste comparava com a forma curta `C:\\...`. O código estava correto, mas o teste era frágil. A expectativa foi corrigida para canonicalizar também a raiz esperada; os testes locais e o build Windows passaram novamente.
+A primeira execução da CI após o hardening revelou uma falha específica do Windows: `fs::canonicalize` retornou o caminho estendido `\\?\\C:\\...`, enquanto o teste comparava com a forma curta `C:\\...`. O código estava correto, mas o teste era frágil. A expectativa foi corrigida para canonicalizar também a raiz esperada; os testes locais e o build Windows passaram novamente. A segunda execução da CI, no commit `588da2e`, passou em Linux, Windows e auditoria de dependências. O warning do `actions/checkout` foi tratado com a atualização para `checkout@v5`.
 
 O toolchain foi fixado em `rust-toolchain.toml` com Rust 1.97.1, rustfmt, Clippy e alvo Windows x64. A CI foi alinhada à mesma versão para evitar divergência entre verificação local e pipeline.
 
