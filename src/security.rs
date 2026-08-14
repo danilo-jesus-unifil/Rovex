@@ -12,6 +12,10 @@ pub struct DestinationPolicy {
 #[derive(Debug)]
 pub enum ValidationError {
     EmptyPath,
+    InvalidPath {
+        path: PathBuf,
+        reason: &'static str,
+    },
     RootOperationDenied {
         path: PathBuf,
     },
@@ -41,6 +45,14 @@ impl fmt::Display for ValidationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyPath => write!(formatter, "o caminho não pode ser vazio"),
+            Self::InvalidPath { path, reason } => {
+                write!(
+                    formatter,
+                    "caminho inválido ({}): {}",
+                    reason,
+                    path.display()
+                )
+            }
             Self::RootOperationDenied { path } => {
                 write!(
                     formatter,
@@ -88,6 +100,16 @@ impl fmt::Display for ValidationError {
 
 impl std::error::Error for ValidationError {}
 
+fn is_root_path(path: &Path) -> bool {
+    path.parent().map(|parent| parent == path).unwrap_or(true)
+}
+
+fn destination_parent(path: &Path) -> &Path {
+    path.parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
+}
+
 pub fn validate_destination(
     source: Option<&Path>,
     destination: &Path,
@@ -97,22 +119,13 @@ pub fn validate_destination(
         return Err(ValidationError::EmptyPath);
     }
 
-    let destination = destination.to_path_buf();
-    if !policy.allow_root && destination.parent().is_none() {
-        return Err(ValidationError::RootOperationDenied { path: destination });
+    if !policy.allow_root && is_root_path(destination) {
+        return Err(ValidationError::RootOperationDenied {
+            path: destination.to_path_buf(),
+        });
     }
 
-    if let Some(source) = source {
-        if source == destination {
-            return Err(ValidationError::SameSourceAndDestination { path: destination });
-        }
-    }
-
-    let parent = destination
-        .parent()
-        .ok_or_else(|| ValidationError::RootOperationDenied {
-            path: destination.clone(),
-        })?;
+    let parent = destination_parent(destination);
     let parent_metadata = fs::symlink_metadata(parent).map_err(|error| ValidationError::Io {
         operation: "validar diretório pai",
         path: parent.to_path_buf(),
@@ -124,11 +137,42 @@ pub fn validate_destination(
         });
     }
 
-    if !policy.allow_existing_file && fs::symlink_metadata(&destination).is_ok() {
-        return Err(ValidationError::ExistingDestination { path: destination });
+    let file_name = destination
+        .file_name()
+        .ok_or_else(|| ValidationError::InvalidPath {
+            path: destination.to_path_buf(),
+            reason: "sem nome de arquivo",
+        })?;
+    if file_name == "." || file_name == ".." {
+        return Err(ValidationError::InvalidPath {
+            path: destination.to_path_buf(),
+            reason: "componente final ambíguo",
+        });
     }
 
-    Ok(destination)
+    let canonical_parent = fs::canonicalize(parent).map_err(|error| ValidationError::Io {
+        operation: "normalizar diretório pai",
+        path: parent.to_path_buf(),
+        kind: error.kind(),
+    })?;
+    let normalized = canonical_parent.join(file_name);
+
+    if let Some(source) = source {
+        let canonical_source = fs::canonicalize(source).map_err(|error| ValidationError::Io {
+            operation: "normalizar origem",
+            path: source.to_path_buf(),
+            kind: error.kind(),
+        })?;
+        if canonical_source == normalized {
+            return Err(ValidationError::SameSourceAndDestination { path: normalized });
+        }
+    }
+
+    if !policy.allow_existing_file && fs::symlink_metadata(&normalized).is_ok() {
+        return Err(ValidationError::ExistingDestination { path: normalized });
+    }
+
+    Ok(normalized)
 }
 
 pub fn validate_source(path: &Path) -> Result<fs::FileType, ValidationError> {
@@ -158,7 +202,7 @@ pub fn validate_source(path: &Path) -> Result<fs::FileType, ValidationError> {
 }
 
 pub fn ensure_not_root(path: &Path) -> Result<(), ValidationError> {
-    if path.as_os_str().is_empty() || path.parent().is_none() {
+    if path.as_os_str().is_empty() || is_root_path(path) {
         return Err(ValidationError::RootOperationDenied {
             path: path.to_path_buf(),
         });
@@ -170,14 +214,16 @@ pub fn ensure_not_root(path: &Path) -> Result<(), ValidationError> {
 mod tests {
     use super::{ensure_not_root, validate_destination, DestinationPolicy, ValidationError};
     use std::fs;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
     fn temporary_directory() -> std::path::PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("o relógio deve estar disponível")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("rovex-security-test-{unique}"));
+        let unique = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "rovex-security-test-{}-{unique}",
+            std::process::id()
+        ));
         fs::create_dir(&path).expect("o diretório deve ser criado");
         path
     }
@@ -203,5 +249,47 @@ mod tests {
             result,
             Err(ValidationError::RootOperationDenied { .. })
         ));
+    }
+
+    #[test]
+    fn normaliza_parent_no_diretorio_pai() {
+        let root = temporary_directory();
+        let nested = root.join("nested");
+        fs::create_dir(&nested).expect("a pasta aninhada deve ser criada");
+        let destination = nested.join("..").join("destino.txt");
+
+        let normalized = validate_destination(None, &destination, DestinationPolicy::default())
+            .expect("o destino deve ser normalizado");
+        assert_eq!(normalized, root.join("destino.txt"));
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn detecta_mesma_origem_mesmo_com_caminho_equivalente() {
+        let root = temporary_directory();
+        let nested = root.join("nested");
+        let source = root.join("origem.txt");
+        fs::create_dir(&nested).expect("a pasta aninhada deve ser criada");
+        fs::write(&source, b"conteudo").expect("a origem deve ser criada");
+        let equivalent_destination = nested.join("..").join("origem.txt");
+
+        let result = validate_destination(
+            Some(&source),
+            &equivalent_destination,
+            DestinationPolicy::default(),
+        );
+        assert!(matches!(
+            result,
+            Err(ValidationError::SameSourceAndDestination { .. })
+        ));
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn recusa_componente_final_ambiguo() {
+        let root = temporary_directory();
+        let result = validate_destination(None, &root.join(".."), DestinationPolicy::default());
+        assert!(matches!(result, Err(ValidationError::InvalidPath { .. })));
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
     }
 }

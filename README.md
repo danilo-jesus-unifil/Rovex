@@ -6,7 +6,7 @@ O Rovex é a base de um explorador de arquivos local, seguro e leve para Windows
 
 ## Estado atual
 
-A primeira fatia implementa um núcleo compilável com listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios, além de cópia atômica para um destino que não exista. A cópia utiliza arquivo temporário, sincronização, validação do tamanho e publicação por renomeação; o arquivo original permanece preservado.
+A primeira fatia implementa um núcleo compilável com listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios, além de cópia atômica para um destino que não exista. A cópia utiliza arquivo temporário, sincronização, validação do tamanho e publicação por renomeação; o arquivo original permanece preservado.
 
 | Área | Estado |
 |---|---|
@@ -22,13 +22,21 @@ A primeira fatia implementa um núcleo compilável com listagem real de diretór
 
 ## Verificação local
 
-Com Rust e Cargo instalados, execute:
+O toolchain de desenvolvimento está fixado em `rust-toolchain.toml`. Execute:
 
 ```text
-cargo fmt --check
-cargo test --all-targets
+cargo fmt --all -- --check
+cargo test --all-targets --all-features
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --release
+cargo audit
+cargo deny check
+```
+
+O núcleo também foi verificado com build release cruzado para Windows x64:
+
+```text
+cargo build --release --target x86_64-pc-windows-gnu
 ```
 
 O binário de desenvolvimento lista um diretório real e pode ser executado com:

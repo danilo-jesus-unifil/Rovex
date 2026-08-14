@@ -1,61 +1,58 @@
-# Relatório de implementação — Rovex
+# Relatório de implementação e hardening — Rovex
 
-## Resultado
+## Resultado atual
 
-O prompt master foi analisado e convertido em uma primeira fundação Rust real para o repositório `danilo-jesus-unifil/Rovex`. O projeto não ficou limitado a uma tela demonstrativa: o núcleo agora lista diretórios reais, classifica entradas sem seguir links automaticamente, executa operações básicas de arquivo e trata falhas por tipos estruturados.
+O Rovex foi revisado de forma incremental sobre a fundação Rust existente. Foram criados backups remotos antes das alterações, os testes foram ampliados, uma falha real de normalização de destinos foi encontrada e corrigida, o toolchain foi atualizado para Rust 1.97.1 e a bateria de qualidade passou novamente.
 
-A implementação foi publicada no branch `main` no commit [`e8d4a2a`](https://github.com/danilo-jesus-unifil/Rovex/commit/e8d4a2a), cujo estado remoto foi confirmado após o push.
+O branch principal está sincronizado com o repositório remoto. O projeto continua sendo uma **fundação funcional de desenvolvimento**, não um Explorer desktop completo: a interface Slint, abas, pesquisa, thumbnails, conversores, instalador e integração com o shell ainda não foram implementados e permanecem explicitamente documentados como pendências.
 
-## Entregas
+## Backups criados
 
-| Área | Resultado |
+| Branch | Ponto protegido |
 |---|---|
-| Manifesto Cargo | Crate Rust `rovex`, licença MIT e perfil release otimizado |
-| Filesystem | Listagem real, metadados por `symlink_metadata`, diretórios, arquivos e links |
-| Segurança | Recusa de raiz, validação de origem/destino e prevenção de sobrescrita por padrão |
-| Operações | Cópia atômica com temporário, criação, renomeação e exclusão limitada |
-| Erros | Tipos estruturados para filesystem, validação e operações |
-| Documentação | Arquitetura, compatibilidade, testes, plano incremental, limitações e segurança |
-| CI | Workflow Linux/Windows com fmt, test, Clippy, build e auditoria de dependências |
-| Política de dependências | `deny.toml` com advisories, licenças e fontes restritas |
+| [`backup/pre-hardening-2026-08-14`](https://github.com/danilo-jesus-unifil/Rovex/tree/backup/pre-hardening-2026-08-14) | Estado anterior ao ciclo de hardening |
+| [`backup/stable-d431ba7`](https://github.com/danilo-jesus-unifil/Rovex/tree/backup/stable-d431ba7) | Commit estável anterior às correções |
 
-A exclusão recursiva não foi implementada de propósito. A primeira fatia só remove arquivos, links e diretórios vazios; isso reduz o risco de transformar uma API incompleta em uma operação destrutiva ampla. Conversores, OCR, thumbnails, abas, pesquisa, instalador e integração silenciosa com o shell continuam fora do escopo imediato e não foram simulados.
+Ambos foram publicados no GitHub antes das alterações. O commit que contém o hardening está no branch `main` e será identificado no momento da publicação desta etapa.
 
-## Verificações executadas
+## Correções realizadas
 
-A cadeia final executada no ambiente foi:
+A validação de destinos agora normaliza o diretório pai por canonicalização, rejeita raiz e componentes finais ambíguos, compara origem e destino depois da normalização e mantém a recusa de sobrescrita por padrão. Isso corrige o caso em que caminhos equivalentes, como `nested/../arquivo`, poderiam ser tratados como diferentes por uma comparação textual simples.
 
-```text
-cargo fmt --check
-cargo test --all-targets
-cargo clippy --all-targets --all-features -- -D warnings
-cargo build --release
-cargo run -- .
-```
+A exclusão continua deliberadamente limitada a arquivos, links e diretórios vazios. Um teste de regressão confirma que um diretório não vazio produz erro controlado e permanece intacto. A listagem passou a ter teste específico para links simbólicos, verificando que o link é identificado sem seguir seu destino.
 
-O resultado foi **sete testes aprovados, zero falhas**, Clippy sem diagnósticos com avisos tratados como erros, build release concluído e execução do binário com listagem real do repositório. `cargo audit` e `cargo deny` foram configurados na CI, mas não foram executados localmente porque os executáveis não estavam instalados no ambiente; esse ponto permanece como critério de aceite da pipeline.
+Os diretórios temporários dos testes deixaram de depender apenas de nanossegundos do relógio e passaram a usar contador atômico combinado com PID, reduzindo a possibilidade de colisões em testes concorrentes. A política `cargo-deny` foi reduzida às licenças realmente presentes no estado atual, eliminando warnings de permissões não utilizadas.
 
-## Decisões técnicas
+O toolchain foi fixado em `rust-toolchain.toml` com Rust 1.97.1, rustfmt, Clippy e alvo Windows x64. A CI foi alinhada à mesma versão para evitar divergência entre verificação local e pipeline.
 
-A escolha provisória para a interface é Slint, por sua integração com Rust e modelo de UI compilada [1]. A documentação do framework recomenda declarar papel, rótulo e ações de acessibilidade nos componentes personalizados [2]. O documento arquitetural registra essa escolha como provisória até que o protótipo seja validado em Windows 10 com teclado, leitor de tela, DPI e múltiplos monitores.
+## Verificações concluídas
 
-A configuração de DPI deverá ser feita no manifesto do processo. A documentação da Microsoft recomenda o manifesto e descreve `<dpiAwareness>` com fallback para versões compatíveis, evitando depender de configuração tardia por API [3]. A compatibilidade efetiva com Windows 10/11 ainda não foi testada neste ambiente Linux e permanece explicitamente pendente.
+| Verificação | Resultado |
+|---|---|
+| `cargo fmt --all -- --check` | Aprovado |
+| `cargo test --all-targets --all-features` | **12 testes aprovados, 0 falhas** |
+| `cargo clippy --all-targets --all-features -- -D warnings` | Aprovado |
+| `cargo build --release` | Aprovado |
+| `cargo audit` 0.22.2 | Aprovado; nenhum advisory para as dependências atuais |
+| `cargo deny check` 0.20.2 | Aprovado; advisories, bans, licenças e fontes OK |
+| `cargo check --target x86_64-pc-windows-gnu --all-targets --all-features` | Aprovado |
+| `cargo build --release --target x86_64-pc-windows-gnu` | Aprovado |
+| Execução do binário Linux | Aprovada; listagem real do repositório |
+| Artefato Windows | Validado como PE32+ x86-64 |
 
-## Próximo passo recomendado
+O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui a execução em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador.
 
-A próxima etapa deve implementar a camada de aplicação e um protótipo desktop funcional que conecte a listagem do núcleo a uma interface Slint. O protótipo deverá navegar por um diretório real, exibir erros estruturados e manter operações fora do thread da UI. Só depois de validar essa fundação em Windows 10/11 será prudente adicionar pesquisa, abas, thumbnails e conversores isolados.
+## Auditoria manual
 
-## Arquivos principais
+A busca por `unsafe`, `TODO`, `FIXME`, `panic!`, `unwrap` e `expect` encontrou apenas `expect` em auxiliares de teste. Não há `unsafe` nem caminhos de produção dependentes de `panic`. O crate não possui dependências de runtime além da biblioteca padrão; `Cargo.lock` permanece auditável.
 
-- [`src/filesystem.rs`](src/filesystem.rs): listagem e metadados.
-- [`src/security.rs`](src/security.rs): política de destinos e validações.
-- [`src/operations.rs`](src/operations.rs): cópia atômica e operações básicas.
-- [`docs/architecture.md`](docs/architecture.md): decisões e camadas.
-- [`docs/implementation-plan.md`](docs/implementation-plan.md): roadmap incremental.
-- [`SECURITY.md`](SECURITY.md): modelo de ameaça e política inicial.
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml): pipeline de qualidade.
+## Próxima etapa
 
-## Referências
+A próxima etapa técnica deve conectar o núcleo a uma interface desktop real, mantendo os contratos atuais. A UI deverá navegar por diretórios reais, executar comandos fora do thread visual, exibir erros estruturados e declarar acessibilidade. A validação em Windows 10 e 11 precisa ocorrer antes de anunciar compatibilidade final.
+
+## Referências técnicas
+
+A escolha provisória do Slint permanece registrada porque o toolkit se apresenta como uma solução declarativa para Rust e desktop compilado [1]. A documentação do Slint recomenda declarar papel, rótulo e ações de acessibilidade em componentes personalizados [2]. A Microsoft recomenda definir DPI awareness no manifesto do processo, com `<dpiAwareness>` e fallback quando necessário [3].
 
 [1]: https://slint.dev/ "Slint — página oficial"
 [2]: https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/ "Slint Docs — Best Practices"

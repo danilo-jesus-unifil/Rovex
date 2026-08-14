@@ -170,14 +170,16 @@ impl FileSystem {
 mod tests {
     use super::{EntryKind, FileSystem};
     use std::fs;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
     fn temporary_directory() -> std::path::PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("o relógio do sistema deve estar depois da época Unix")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("rovex-filesystem-test-{unique}"));
+        let unique = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "rovex-filesystem-test-{}-{unique}",
+            std::process::id()
+        ));
         fs::create_dir(&path).expect("o diretório temporário deve ser criado");
         path
     }
@@ -209,6 +211,29 @@ mod tests {
             result,
             Err(super::FileSystemError::NotDirectory { .. })
         ));
+        fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn identifica_link_sem_seguir_destino() {
+        use std::os::unix::fs::symlink;
+
+        let root = temporary_directory();
+        let target = root.join("destino.txt");
+        let link = root.join("atalho.txt");
+        fs::write(&target, b"conteudo").expect("o destino deve ser criado");
+        symlink(&target, &link).expect("o link deve ser criado");
+
+        let entries = FileSystem
+            .list_directory(&root)
+            .expect("a listagem deve funcionar");
+        let link_entry = entries
+            .iter()
+            .find(|entry| entry.path == link)
+            .expect("o link deve aparecer na listagem");
+        assert_eq!(link_entry.kind, EntryKind::Symlink);
+        assert_eq!(link_entry.size, None);
         fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
     }
 }

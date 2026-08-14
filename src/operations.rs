@@ -214,14 +214,16 @@ pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
 mod tests {
     use super::{copy_file_atomic, create_directory, delete_entry, rename_entry, OperationError};
     use std::fs;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
     fn temporary_directory() -> std::path::PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("o relógio deve estar disponível")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("rovex-operation-test-{unique}"));
+        let unique = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "rovex-operation-test-{}-{unique}",
+            std::process::id()
+        ));
         fs::create_dir(&path).expect("o diretório deve ser criado");
         path
     }
@@ -271,6 +273,23 @@ mod tests {
         rename_entry(&source, &destination).expect("a entrada deve ser renomeada");
         delete_entry(&destination).expect("o arquivo deve ser excluído");
         delete_entry(&directory).expect("a pasta vazia deve ser excluída");
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn nao_exclui_diretorio_nao_vazio() {
+        let root = temporary_directory();
+        let directory = root.join("com-arquivo");
+        create_directory(&directory).expect("a pasta deve ser criada");
+        fs::write(directory.join("arquivo.txt"), b"conteudo")
+            .expect("o arquivo interno deve ser criado");
+
+        let result = delete_entry(&directory);
+        assert!(matches!(
+            result,
+            Err(OperationError::DirectoryNotEmpty { .. })
+        ));
+        assert!(directory.exists());
         fs::remove_dir_all(root).expect("o diretório deve ser removido");
     }
 }
