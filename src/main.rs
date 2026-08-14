@@ -1,14 +1,9 @@
 use rovex_core::{EntryKind, FileSystem};
 use std::env;
+use std::ffi::OsString;
 use std::path::PathBuf;
 
-fn main() {
-    let path = env::args_os()
-        .nth(1)
-        .map(PathBuf::from)
-        .or_else(|| env::current_dir().ok())
-        .unwrap_or_else(|| PathBuf::from("."));
-
+fn run_cli(path: PathBuf) -> i32 {
     println!(
         "Rovex core — listagem de desenvolvimento: {}",
         path.display()
@@ -24,10 +19,30 @@ fn main() {
                 };
                 println!("{marker:>6} {}", entry.display_name());
             }
+            0
         }
         Err(error) => {
             eprintln!("erro: {error}");
-            std::process::exit(1);
+            1
         }
+    }
+}
+
+fn main() {
+    let mut args = env::args_os();
+    let first = args.nth(1);
+
+    if first.as_deref() == Some(OsString::from("--cli").as_os_str()) {
+        let path = args
+            .next()
+            .map(PathBuf::from)
+            .or_else(|| env::current_dir().ok())
+            .unwrap_or_else(|| PathBuf::from("."));
+        std::process::exit(run_cli(path));
+    }
+
+    if let Err(error) = rovex_core::desktop::run() {
+        eprintln!("falha ao iniciar a interface: {error}");
+        std::process::exit(1);
     }
 }

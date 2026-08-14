@@ -4,6 +4,7 @@
 //! binário de desenvolvimento usa esses contratos sem executar arquivos do
 //! usuário ou depender de um shell.
 
+pub mod desktop;
 pub mod filesystem;
 pub mod operations;
 pub mod security;

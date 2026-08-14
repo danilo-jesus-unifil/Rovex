@@ -1,17 +1,23 @@
-# Problemas e limitações conhecidas
+# Limitações e problemas conhecidos
 
-## Fundação
+## Estado funcional atual
 
-O repositório ainda não contém a interface desktop com Slint nem o manifesto Windows. O binário atual é um exercitador de desenvolvimento do núcleo e lista um diretório real no terminal. Não há abas, pesquisa, thumbnails, seleção visual, drag and drop, tema ou integração com o Explorer do Windows.
+O Rovex já abre uma janela desktop Slint, carrega um diretório real em worker, mostra linhas de arquivos e diretórios, navega pelo endereço, sobe para a pasta pai, atualiza a listagem e exibe erro controlado para caminhos inválidos. O modo `--cli` permanece disponível para diagnóstico sem display.
 
 ## Operações
 
-A exclusão é intencionalmente limitada a arquivos, links e diretórios vazios. Não há exclusão recursiva, fila visual, pausa ou cancelamento porque essas operações ainda precisam de uma política de confirmação, detecção de links e relatório parcial. A cópia atual recusa destinos existentes; a resolução de conflitos será adicionada em uma camada de operações de maior nível.
+A exclusão é intencionalmente limitada a arquivos, links e diretórios vazios. Não há exclusão recursiva, fila visual, pausa, cancelamento ou resolução de conflitos porque essas operações ainda precisam de uma política de confirmação, detecção de links e relatório parcial. A cópia atual recusa destinos existentes; a resolução de conflitos será adicionada em uma camada de operações de maior nível.
 
-## Windows
+## Interface
 
-A compatibilidade efetiva com Windows 10/11 ainda não foi executada neste ambiente. Permanecem pendentes a validação de códigos Win32, paths longos, junctions, UNC/SMB, DPI por monitor, acessibilidade, arquivos em uso, manifesto, instalador, assinatura e desinstalação.
+Ainda não há pesquisa incremental, abas, histórico visual, seleção múltipla, thumbnails, pré-visualização, drag and drop, menu contextual, tema configurável, atalhos completos, integração com o Explorer do Windows ou operações de arquivo disparadas pela UI. Esses recursos não são simulados e permanecem fora da primeira fatia.
 
-## Dependências e segurança
+## Dependências
 
-O núcleo atual não tem dependências externas de runtime, mas `cargo audit` e `cargo deny` ainda precisam ser executados em CI. Não há conversores, codecs, OCR ou parsers multimídia para auditar nesta fase. Nenhuma release estável deve ser publicada enquanto essas limitações forem relevantes para o escopo anunciado.
+`cargo audit` não encontrou vulnerabilidades, mas reporta quatro avisos de crates sem manutenção (`bincode`, `paste`, `rustybuzz` e `ttf-parser`) introduzidos transitivamente por Slint 1.17.1. A base RustSec não indica atualização segura para essa cadeia durante esta verificação. O alerta permanece visível e está documentado em [`docs/slint-research.md`](slint-research.md); trocar o toolkit ou aguardar uma cadeia upstream atualizada é uma decisão futura, não um problema ocultado por ignore.
+
+## Windows 10/11
+
+O projeto já produz um executável PE32+ x86-64 em build cruzado e a CI deve validar compilação e testes em `windows-latest`. Ainda permanecem pendentes a execução manual em Windows 10/11, paths longos, junctions e demais reparse points, UNC/SMB, permissões negadas, arquivos em uso, DPI por monitor, acessibilidade nativa, manifesto, instalador, assinatura e desinstalação.
+
+Nenhuma release estável deve ser publicada enquanto essas limitações forem relevantes para o escopo anunciado.

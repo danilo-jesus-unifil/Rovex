@@ -1,10 +1,26 @@
 [advisories]
 version = 2
+unmaintained = "workspace"
 ignore = []
 
 [licenses]
 confidence-threshold = 0.8
-allow = ["MIT"]
+allow = [
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "NCSA",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+    "LicenseRef-Slint-Royalty-free-2.0",
+    "LicenseRef-Slint-Software-3.0",
+]
 
 [bans]
 multiple-versions = "warn"

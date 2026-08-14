@@ -2,11 +2,18 @@
 name = "rovex"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.92"
 license = "MIT"
 description = "Explorador de arquivos local, seguro e leve para Windows 10/11"
 repository = "https://github.com/danilo-jesus-unifil/Rovex"
 readme = "README.md"
+build = "build.rs"
+
+[dependencies]
+slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
+
+[build-dependencies]
+slint-build = "=1.17.1"
 
 [lib]
 name = "rovex_core"

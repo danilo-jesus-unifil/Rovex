@@ -8,11 +8,11 @@ O prompt master mistura um produto de exploração de arquivos com um conjunto a
 
 ## 2. Decisão provisória de interface
 
-A opção inicial é **Slint**, por ser um toolkit orientado a Rust para interfaces desktop compiladas, com integração a APIs do sistema e uma proposta de runtime compacto [1]. Essa escolha é provisória até que um protótipo seja validado em Windows 10 com teclado, leitor de tela, escalas de 100% a 200%, múltiplos monitores e modo escuro/claro. A documentação do Slint recomenda declarar explicitamente papel, rótulo e ações de acessibilidade em componentes personalizados [2].
+A decisão atual é **Slint**, por ser um toolkit orientado a Rust para interfaces desktop compiladas, com integração a APIs do sistema e uma proposta de runtime compacto [1]. A primeira janela foi implementada com backend Winit, renderer software, acessibilidade, barra de endereço, lista real e carregamento em workers. A escolha ainda precisa ser validada em Windows 10/11 com teclado, leitor de tela, escalas de 100% a 200%, múltiplos monitores e modo escuro/claro. A documentação do Slint recomenda declarar explicitamente papel, rótulo e ações de acessibilidade em componentes personalizados [2].
 
 | Alternativa | Vantagem principal | Risco para este projeto | Decisão |
 |---|---|---|---|
-| Slint | Integração Rust, UI declarativa compilada e baixo acoplamento entre UI e domínio | Controles não são automaticamente equivalentes a controles Win32; acessibilidade deve ser validada | **Escolhida para o protótipo** |
+| Slint | Integração Rust, UI declarativa compilada e baixo acoplamento entre UI e domínio | Controles não são automaticamente equivalentes a controles Win32; acessibilidade deve ser validada | **Escolhida para a primeira UI** |
 | Iced | Ecossistema Rust e arquitetura declarativa | Renderização e acessibilidade precisam ser avaliadas contra o requisito do Explorer | Reserva |
 | egui | Prototipagem rápida e baixo custo inicial | Menor adequação para uma experiência de explorador acessível e refinada | Não escolhida |
 | Win32 direto via `windows-rs` | Integração máxima com Windows e controles nativos | Complexidade, maior custo de manutenção e UI moderna mais trabalhosa | Reserva para componentes específicos |
@@ -22,7 +22,7 @@ A Microsoft recomenda declarar o DPI padrão no manifesto do processo, preferenc
 
 ## 3. Limites da primeira entrega
 
-A primeira entrega funcional terá navegação por unidades e diretórios, listagem real de arquivos, ordenação básica, navegação para trás e para frente, seleção, renomeação, criação de pasta, cópia, movimentação, exclusão com confirmação, tratamento estruturado de erros e cancelamento das operações longas quando aplicável. A interface não executará arquivos automaticamente nem carregará parsers multimídia dentro do processo principal.
+A primeira fatia funcional entregue nesta etapa tem janela única, navegação por caminho e pasta pai, listagem real de arquivos, ativação de diretórios, atualização, status e erros controlados. O núcleo também possui criação de pasta, renomeação, cópia atômica e exclusão limitada, ainda sem comandos visuais na UI. A interface não executará arquivos automaticamente nem carregará parsers multimídia dentro do processo principal.
 
 Pesquisa indexada, thumbnails, abas, conversão em lote e integrações de shell serão adicionadas em etapas separadas. O suporte a PDF, OCR, áudio e vídeo não será simulado: cada recurso somente aparecerá como concluído quando houver backend verificável, worker isolado, testes adversariais e validação do arquivo gerado.
 
@@ -72,15 +72,18 @@ Os logs serão locais, com níveis configuráveis e redação de informações s
 
 A matriz de testes começará por testes unitários de validação de caminhos, seleção, conflitos e transições de estado. Em seguida serão adicionados testes de filesystem em diretórios temporários, testes de interrupção, permissões simuladas quando possível, nomes Unicode, paths longos, links e erros de disco. O ambiente Linux não substitui a validação final: o CI deverá incluir Windows x64, debug e release.
 
-O ciclo de aceite da primeira entrega será:
+O ciclo de aceite da primeira fatia é:
 
 ```text
-cargo fmt --check
+cargo fmt --all -- --check
+cargo check --all-targets --all-features
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets
+cargo test --all-targets --all-features
 cargo audit
 cargo deny check
 cargo build --release
+cargo build --release --target x86_64-pc-windows-gnu
+Smoke UI em display virtual
 Windows: execução manual, DPI, teclado, operações e instalação
 ```
 

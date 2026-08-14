@@ -1,24 +1,27 @@
 # Rovex
 
-O Rovex é a base de um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto segue uma evolução incremental: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
+O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é uma fundação de desenvolvimento. A interface desktop ainda não foi incorporada; portanto, o repositório não deve ser tratado como um Explorer final nem como uma demonstração visual pronta.
+> O estado atual é um protótipo desktop funcional de navegação local. Ele já abre uma janela Slint, lista diretórios reais, navega para pastas e exibe erros controlados, mas ainda não é um Explorer completo nem uma release de distribuição.
 
 ## Estado atual
 
-A primeira fatia implementa um núcleo compilável com listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios, além de cópia atômica para um destino que não exista. A cópia utiliza arquivo temporário, sincronização, validação do tamanho e publicação por renomeação; o arquivo original permanece preservado.
+O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento em workers, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e apresenta a primeira navegação visual funcional.
 
 | Área | Estado |
 |---|---|
-| Núcleo Rust | Implementado |
+| Núcleo Rust | Implementado e testado |
 | Listagem real de diretório | Implementada |
 | Cópia sem sobrescrita por padrão | Implementada e testada |
 | Criação e renomeação | Implementadas e testadas |
 | Exclusão segura limitada | Implementada para arquivos, links e diretórios vazios |
-| Interface desktop | Próxima etapa |
-| Pesquisa, abas e thumbnails | Planejadas |
+| Janela desktop Slint | Implementada |
+| Barra de endereço e pasta pai | Implementadas |
+| Lista visual, atualização e ativação de diretórios | Implementadas |
+| Workers e descarte de resultados obsoletos | Implementados |
+| Pesquisa, abas, thumbnails, seleção e drag and drop | Planejados |
 | Conversores multimídia/PDF/OCR | Fora da primeira fatia; não simulados |
-| Instalador e assinatura | Planejados para a fase de distribuição |
+| Instalador, assinatura e atualização | Planejados para a fase de distribuição |
 
 ## Verificação local
 
@@ -26,33 +29,39 @@ O toolchain de desenvolvimento está fixado em `rust-toolchain.toml`. Execute:
 
 ```text
 cargo fmt --all -- --check
+cargo check --all-targets --all-features
 cargo test --all-targets --all-features
 cargo clippy --all-targets --all-features -- -D warnings
 cargo build --release
+cargo build --release --target x86_64-pc-windows-gnu
 cargo audit
 cargo deny check
 ```
 
-O núcleo também foi verificado com build release cruzado para Windows x64:
-
-```text
-cargo build --release --target x86_64-pc-windows-gnu
-```
-
-O binário de desenvolvimento lista um diretório real e pode ser executado com:
+O modo desktop abre a janela com um diretório inicial opcional:
 
 ```text
 cargo run -- .
 ```
 
+O modo CLI permanece disponível para ambientes sem display e para diagnóstico headless:
+
+```text
+cargo run -- --cli .
+```
+
+A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, navegação real e captura de screenshot. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows.
+
 ## Documentação
 
-A decisão arquitetural inicial está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md) e as notas das fontes consultadas estão em [`docs_research_notes.md`](docs_research_notes.md).
+A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md) e as notas das fontes anteriores estão em [`docs_research_notes.md`](docs_research_notes.md).
 
-## Segurança
+## Segurança e dependências
 
-O Rovex não executa arquivos durante a navegação, não usa shell para operações de arquivo, não baixa codecs arbitrários e não deve exigir administrador para tarefas comuns. As operações de maior risco serão isoladas em workers somente quando houver backend e política de limites definidos. As limitações atuais, incluindo a exclusão sem recursão, são deliberadas para evitar que uma API incompleta produza exclusões perigosas.
+O Rovex não executa arquivos durante a navegação, não usa shell para operações de arquivo e não envia conteúdo local para serviços externos. A UI não executa filesystem no thread visual. Destinos são normalizados antes de operações sensíveis e resultados atrasados de workers são descartados por geração.
+
+A política `cargo-deny` permite somente as licenças observadas e revisadas na árvore atual, incluindo as referências customizadas declaradas pelo Slint. `cargo audit` não encontrou vulnerabilidades, mas reporta quatro advisories de manutenção transitivos do toolkit: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Não há upgrade seguro informado pela base RustSec para essa cadeia; eles permanecem visíveis como warnings e estão registrados em [`docs/slint-research.md`](docs/slint-research.md).
 
 ## Licença
 
-Este projeto é distribuído sob a licença MIT. Dependências e backends futuros deverão ser auditados quanto a manutenção, vulnerabilidades e compatibilidade de licença antes de serem adicionados.
+Este projeto é distribuído sob a licença MIT. A dependência Slint possui sua própria expressão de licenciamento e deve permanecer coberta pelas referências oficiais do crate antes de qualquer distribuição comercial. Dependências e backends futuros deverão ser auditados quanto a manutenção, vulnerabilidades e compatibilidade de licença antes de serem adicionados.
