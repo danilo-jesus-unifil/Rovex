@@ -53,7 +53,7 @@ A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt
 
 A listagem CLI foi validada com 100.000 arquivos sem crash; a UI foi validada com 10.000 arquivos e filtro local para um resultado. Os smoke tests release também confirmaram quatro linhas selecionadas e as transições voltar/avançar. O carregamento atual materializa metadados da pasta, enquanto a representação visual usa `ListView`; carregamento incremental de metadados permanece como melhoria futura para diretórios extremos.
 
-O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador. A CI do commit `4ef38a6` concluiu com sucesso em Linux, Windows e auditoria de dependências depois que o job Ubuntu passou a instalar `pkg-config` e `libfontconfig1-dev`, exigidos pelo backend de fontes do Slint.
+O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador. A CI do commit `613b41d` concluiu com sucesso em Linux, Windows e auditoria de dependências na execução `31851551574`; o job Ubuntu instala `pkg-config` e `libfontconfig1-dev`, exigidos pelo backend de fontes do Slint.
 
 ## Auditoria manual
 
