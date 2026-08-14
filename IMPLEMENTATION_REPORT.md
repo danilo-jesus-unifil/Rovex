@@ -23,6 +23,8 @@ A exclusão continua deliberadamente limitada a arquivos, links e diretórios va
 
 Os diretórios temporários dos testes deixaram de depender apenas de nanossegundos do relógio e passaram a usar contador atômico combinado com PID, reduzindo a possibilidade de colisões em testes concorrentes. A política `cargo-deny` foi reduzida às licenças realmente presentes no estado atual, eliminando warnings de permissões não utilizadas.
 
+A primeira execução da CI após o hardening revelou uma falha específica do Windows: `fs::canonicalize` retornou o caminho estendido `\\?\\C:\\...`, enquanto o teste comparava com a forma curta `C:\\...`. O código estava correto, mas o teste era frágil. A expectativa foi corrigida para canonicalizar também a raiz esperada; os testes locais e o build Windows passaram novamente.
+
 O toolchain foi fixado em `rust-toolchain.toml` com Rust 1.97.1, rustfmt, Clippy e alvo Windows x64. A CI foi alinhada à mesma versão para evitar divergência entre verificação local e pipeline.
 
 ## Verificações concluídas
@@ -39,6 +41,7 @@ O toolchain foi fixado em `rust-toolchain.toml` com Rust 1.97.1, rustfmt, Clippy
 | `cargo build --release --target x86_64-pc-windows-gnu` | Aprovado |
 | Execução do binário Linux | Aprovada; listagem real do repositório |
 | Artefato Windows | Validado como PE32+ x86-64 |
+| CI inicial no Windows | Falhou em um teste de caminho; causa corrigida |
 
 O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui a execução em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador.
 

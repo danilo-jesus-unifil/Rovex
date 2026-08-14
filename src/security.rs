@@ -260,7 +260,10 @@ mod tests {
 
         let normalized = validate_destination(None, &destination, DestinationPolicy::default())
             .expect("o destino deve ser normalizado");
-        assert_eq!(normalized, root.join("destino.txt"));
+        let expected = fs::canonicalize(&root)
+            .expect("a raiz do teste deve ser normalizável")
+            .join("destino.txt");
+        assert_eq!(normalized, expected);
         fs::remove_dir_all(root).expect("o diretório deve ser removido");
     }
 
