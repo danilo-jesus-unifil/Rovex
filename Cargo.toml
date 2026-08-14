@@ -1,0 +1,27 @@
+[package]
+name = "rovex"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+description = "Explorador de arquivos local, seguro e leve para Windows 10/11"
+repository = "https://github.com/danilo-jesus-unifil/Rovex"
+readme = "README.md"
+
+[lib]
+name = "rovex_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rovex"
+path = "src/main.rs"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = "symbols"
+panic = "abort"
+
+[workspace]
+members = ["."]
+resolver = "2"
