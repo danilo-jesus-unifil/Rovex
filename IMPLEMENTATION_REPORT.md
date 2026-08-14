@@ -46,7 +46,7 @@ A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt
 | Modo CLI `cargo run -- --cli .` | Aprovado; listagem real |
 | Smoke UI em Xvfb | Aprovado; janela, caminho `/tmp`, listagem e screenshot 1100×720 |
 
-O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador.
+O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador. A CI do commit `4ef38a6` concluiu com sucesso em Linux, Windows e auditoria de dependências depois que o job Ubuntu passou a instalar `pkg-config` e `libfontconfig1-dev`, exigidos pelo backend de fontes do Slint.
 
 ## Auditoria manual
 
@@ -54,7 +54,7 @@ A busca por `unsafe`, `TODO`, `FIXME`, `panic!`, `unwrap` e `expect` encontrou `
 
 ## Próximo gate
 
-Antes de anunciar compatibilidade final, a CI deve validar o commit desta etapa em Linux e Windows, e a execução manual em Windows deve cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos e arquivos em uso. A próxima fatia de produto pode adicionar histórico, seleção e operações visuais somente depois de contratos de cancelamento, confirmação e progresso estarem definidos.
+A CI remota desta etapa já passou em Linux, Windows e auditoria de dependências. Antes de anunciar compatibilidade final, a execução manual em Windows deve cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos e arquivos em uso. A próxima fatia de produto pode adicionar histórico, seleção e operações visuais somente depois de contratos de cancelamento, confirmação e progresso estarem definidos.
 
 ## Referências técnicas
 
