@@ -9,12 +9,14 @@ export struct FileRow {
 
 export component MainWindow inherits Window {
     in-out property <string> current-path;
+    in-out property <string> filter-text;
     in-out property <[FileRow]> entries;
     in-out property <string> status-text;
 
     callback refresh-requested();
     callback navigate-up();
     callback navigate-to(string);
+    callback filter-changed(string);
     callback activate(int);
 
     title: "Rovex";
@@ -42,6 +44,14 @@ export component MainWindow inherits Window {
                 text <=> root.current-path;
                 placeholder-text: "Caminho da pasta";
                 accepted => { root.navigate-to(self.text); }
+            }
+
+            LineEdit {
+                width: 260px;
+                text <=> root.filter-text;
+                placeholder-text: "Filtrar nesta pasta";
+                accessible-label: "Filtrar itens da pasta atual";
+                edited => { root.filter-changed(self.text); }
             }
 
             Button {

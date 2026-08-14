@@ -6,7 +6,7 @@ O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, 
 
 ## Estado atual
 
-O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento em workers, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e apresenta a primeira navegação visual funcional.
+O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento em workers, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e apresenta navegação visual funcional. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla.
 
 | Área | Estado |
 |---|---|
@@ -19,6 +19,7 @@ O núcleo implementa listagem real de diretórios, classificação de arquivos, 
 | Barra de endereço e pasta pai | Implementadas |
 | Lista visual, atualização e ativação de diretórios | Implementadas |
 | Workers e descarte de resultados obsoletos | Implementados |
+| Filtro local sem varredura global | Implementado com fila limitada |
 | Pesquisa, abas, thumbnails, seleção e drag and drop | Planejados |
 | Conversores multimídia/PDF/OCR | Fora da primeira fatia; não simulados |
 | Instalador, assinatura e atualização | Planejados para a fase de distribuição |
@@ -58,7 +59,7 @@ A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md),
 
 ## Segurança e dependências
 
-O Rovex não executa arquivos durante a navegação, não usa shell para operações de arquivo e não envia conteúdo local para serviços externos. A UI não executa filesystem no thread visual. Destinos são normalizados antes de operações sensíveis e resultados atrasados de workers são descartados por geração.
+O Rovex não executa arquivos durante a navegação, não usa shell para operações de arquivo e não envia conteúdo local para serviços externos. A UI não executa filesystem no thread visual. O filtro local não varre subpastas e seu worker processa no máximo a consulta pendente mais recente. Destinos são normalizados antes de operações sensíveis e resultados atrasados de workers são descartados por geração.
 
 A política `cargo-deny` permite somente as licenças observadas e revisadas na árvore atual, incluindo as referências customizadas declaradas pelo Slint. `cargo audit` não encontrou vulnerabilidades, mas reporta quatro advisories de manutenção transitivos do toolkit: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Não há upgrade seguro informado pela base RustSec para essa cadeia; eles permanecem visíveis como warnings e estão registrados em [`docs/slint-research.md`](docs/slint-research.md).
 

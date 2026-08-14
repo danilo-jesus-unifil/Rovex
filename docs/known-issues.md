@@ -10,7 +10,7 @@ A exclusão é intencionalmente limitada a arquivos, links e diretórios vazios.
 
 ## Interface
 
-Ainda não há pesquisa incremental, abas, histórico visual, seleção múltipla, thumbnails, pré-visualização, drag and drop, menu contextual, tema configurável, atalhos completos, integração com o Explorer do Windows ou operações de arquivo disparadas pela UI. Esses recursos não são simulados e permanecem fora da primeira fatia.
+Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pesquisa recursiva. Ainda não há pesquisa global incremental, abas, histórico visual, seleção múltipla, thumbnails, pré-visualização, drag and drop, menu contextual, tema configurável, atalhos completos, integração com o Explorer do Windows ou operações de arquivo disparadas pela UI. Esses recursos não são simulados e permanecem fora da primeira fatia.
 
 ## Dependências
 

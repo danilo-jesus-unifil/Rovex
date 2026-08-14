@@ -18,9 +18,9 @@ Os três branches foram publicados no GitHub antes das respectivas alterações 
 
 ## Implementação e correções
 
-O núcleo mantém listagem por APIs de filesystem, classificação sem seguir links automaticamente, normalização de destinos, validação contra raiz e sobrescrita, cópia atômica, criação, renomeação e exclusão limitada a arquivos, links e diretórios vazios. Os testes de segurança incluem caminhos equivalentes, `..`, componentes finais ambíguos, links simbólicos e diretórios não vazios.
+O núcleo mantém listagem por APIs de filesystem, classificação sem seguir links automaticamente, normalização de destinos, validação contra raiz e sobrescrita, cópia atômica, criação, renomeação e exclusão limitada a arquivos, links e diretórios vazios. Os testes de segurança incluem caminhos equivalentes, `..`, componentes finais ambíguos, links simbólicos e diretórios não vazios. A primeira melhoria do prompt Rustora adiciona filtro local por nome, sem pesquisa recursiva.
 
-A UI Slint 1.17.1 usa backend Winit, renderer software, acessibilidade e recursos mínimos, evitando renderizadores não utilizados. A barra de endereço dispara navegação somente ao confirmar, e não a cada tecla. O modelo visual usa `VecModel<FileRow>` apenas no thread principal, conforme a API do Slint.
+A UI Slint 1.17.1 usa backend Winit, renderer software, acessibilidade e recursos mínimos, evitando renderizadores não utilizados. A barra de endereço dispara navegação somente ao confirmar, e não a cada tecla. O filtro opera sobre a pasta atual, usa fila latest-only com um worker dedicado e não cria uma thread por tecla. As linhas carregadas ficam em snapshots `Arc<[LoadedRow]>`, liberando o mutex antes da filtragem. O modelo visual usa `VecModel<FileRow>` apenas no thread principal, conforme a API do Slint.
 
 Durante a revisão foram encontrados e corrigidos erros reais: sintaxe de módulo no Slint, inferência de tipos do `VecModel`, conversão de `Cow<str>` para `SharedString`, acesso incorreto ao modelo, warning do Clippy por alocação desnecessária, testes temporários frágeis, comparação Windows entre caminho estendido e caminho curto e risco de resultados obsoletos sobrescreverem navegação recente. O carregamento agora usa geração atômica e descarta resultados antigos; falhas do worker e do modelo viram status controlado em vez de panic.
 
@@ -36,7 +36,7 @@ A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt
 |---|---|
 | `cargo fmt --all -- --check` | Aprovado |
 | `cargo check --all-targets --all-features` | Aprovado |
-| `cargo test --all-targets --all-features` | **16 testes aprovados, 0 falhas** |
+| `cargo test --all-targets --all-features` | **18 testes aprovados, 0 falhas** |
 | `cargo clippy --all-targets --all-features -- -D warnings` | Aprovado |
 | `cargo build --release` | Aprovado |
 | `cargo build --release --target x86_64-pc-windows-gnu` | Aprovado |
@@ -44,7 +44,11 @@ A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt
 | `cargo deny check` | Aprovado; advisories, bans, licenças e fontes OK |
 | `cargo audit` | Código 0; quatro warnings transitivos de manutenção documentados |
 | Modo CLI `cargo run -- --cli .` | Aprovado; listagem real |
-| Smoke UI em Xvfb | Aprovado; janela, caminho `/tmp`, listagem e screenshot 1100×720 |
+| Smoke UI em Xvfb | Aprovado; janela, `/tmp`, filtro `cargo`, cinco resultados, status e screenshot 1100×720 |
+| Estresse CLI | Aprovado com 10.000, 50.000 e 100.000 arquivos temporários |
+| Estresse UI | Aprovado com 10.000 arquivos e filtro para um resultado |
+
+A listagem CLI foi validada com 100.000 arquivos sem crash; a UI foi validada com 10.000 arquivos e filtro local para um resultado. O carregamento atual materializa metadados da pasta, enquanto a representação visual usa `ListView`; carregamento incremental de metadados permanece como melhoria futura para diretórios extremos.
 
 O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador. A CI do commit `4ef38a6` concluiu com sucesso em Linux, Windows e auditoria de dependências depois que o job Ubuntu passou a instalar `pkg-config` e `libfontconfig1-dev`, exigidos pelo backend de fontes do Slint.
 
@@ -54,7 +58,7 @@ A busca por `unsafe`, `TODO`, `FIXME`, `panic!`, `unwrap` e `expect` encontrou `
 
 ## Próximo gate
 
-A CI remota desta etapa já passou em Linux, Windows e auditoria de dependências. Antes de anunciar compatibilidade final, a execução manual em Windows deve cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos e arquivos em uso. A próxima fatia de produto pode adicionar histórico, seleção e operações visuais somente depois de contratos de cancelamento, confirmação e progresso estarem definidos.
+A CI remota desta etapa já passou em Linux, Windows e auditoria de dependências. Antes de anunciar compatibilidade final, a execução manual em Windows deve cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos e arquivos em uso. A próxima fatia de produto pode adicionar histórico, abas ou seleção somente depois de contratos de cancelamento, confirmação e progresso estarem definidos. Pesquisa global, thumbnails e análise de espaço continuam explicitamente sob demanda, nunca no startup.
 
 ## Referências técnicas
 
