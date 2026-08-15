@@ -15,8 +15,9 @@ A interface não é apresentada como um Explorer completo. Pesquisa global, abas
 | [`backup/before-desktop-ui-2026-08-14`](https://github.com/danilo-jesus-unifil/Rovex/tree/backup/before-desktop-ui-2026-08-14) | Estado estável imediatamente anterior à integração Slint |
 | `backup/before-history-selection-2026-08-14` | Checkpoint publicado antes de histórico e seleção múltipla |
 | `backup/before-sidebar-2026-08-14` | Checkpoint publicado antes da barra lateral de locais |
+| `backup/before-performance-refactor-2026-08-15` | Checkpoint publicado antes da refatoração de performance |
 
-Os checkpoints `backup/before-history-selection-2026-08-14` e `backup/before-sidebar-2026-08-14`, além dos branches históricos anteriores, foram publicados no GitHub antes das respectivas alterações arriscadas.
+Os checkpoints `backup/before-history-selection-2026-08-14`, `backup/before-sidebar-2026-08-14` e `backup/before-performance-refactor-2026-08-15`, além dos branches históricos anteriores, foram publicados no GitHub antes das respectivas alterações arriscadas.
 
 ## Implementação e correções
 
@@ -57,7 +58,7 @@ A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt
 
 A listagem CLI foi validada com 100.000 arquivos sem crash; a UI foi validada com 10.000 arquivos e filtro local para um resultado. Os smoke tests release também confirmaram quatro linhas selecionadas, as transições voltar/avançar, a navegação pela barra lateral até `/home/ubuntu` e os estados visuais do Design System. A linha de base do CLI foi `0,332518 s` e `30.356 KiB` de pico RSS; após o worker único, foi `0,348735 s` e `30.104 KiB`. O filtro manual sobre 100.000 linhas mediu `9,732455 ms` antes de qualquer mudança de normalização. A troca do loader é tratada como redução de concorrência e encerramento correto, não como ganho de tempo, pois a amostra isolada variou. O carregamento atual materializa metadados da pasta, enquanto a representação visual usa `ListView`; carregamento incremental de metadados permanece como melhoria futura para diretórios extremos.
 
-O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador. A CI do commit `03cbc6a` concluiu com sucesso em Linux, Windows e auditoria de dependências na execução `31853217473`; o job Ubuntu instala `pkg-config` e `libfontconfig1-dev`, exigidos pelo backend de fontes do Slint.
+O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador. A CI do commit `7860313` concluiu com sucesso em Linux, Windows e auditoria de dependências na execução `31855925427`; o job Ubuntu instala `pkg-config` e `libfontconfig1-dev`, exigidos pelo backend de fontes do Slint.
 
 ## Auditoria manual
 
