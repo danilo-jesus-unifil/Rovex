@@ -14,6 +14,7 @@ slint::include_modules!();
 #[derive(Clone)]
 struct LoadedRow {
     key: String,
+    path: PathBuf,
     name: String,
     kind: String,
     details: String,
@@ -24,6 +25,7 @@ struct LoadedDirectory {
     path: PathBuf,
     rows: Vec<LoadedRow>,
     status: String,
+    is_error: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -182,6 +184,16 @@ fn filter_rows(rows: &[LoadedRow], query: &str) -> Vec<LoadedRow> {
         .collect()
 }
 
+fn empty_state_text(total: usize, visible: usize, query: &str) -> &'static str {
+    if total == 0 {
+        "Esta pasta está vazia."
+    } else if visible == 0 && !query.trim().is_empty() {
+        "Nenhum item corresponde ao filtro."
+    } else {
+        ""
+    }
+}
+
 fn filter_status(total: usize, visible: usize, query: &str) -> String {
     if query.trim().is_empty() {
         return format!("{total} itens");
@@ -195,7 +207,7 @@ fn filter_status(total: usize, visible: usize, query: &str) -> String {
     format!("{visible} de {total} itens")
 }
 
-fn row_from_entry(entry: &DirectoryEntry) -> LoadedRow {
+fn row_from_entry(entry: &DirectoryEntry, index: usize) -> LoadedRow {
     let (kind, is_directory) = match entry.kind {
         EntryKind::Directory => ("[DIR]", true),
         EntryKind::File => ("[FILE]", false),
@@ -209,7 +221,8 @@ fn row_from_entry(entry: &DirectoryEntry) -> LoadedRow {
         .unwrap_or_else(|| "—".to_owned());
 
     LoadedRow {
-        key: entry.path.to_string_lossy().into_owned(),
+        key: format!("{}#{index}", entry.path.to_string_lossy()),
+        path: entry.path.clone(),
         name: entry.display_name(),
         kind: kind.to_owned(),
         details,
@@ -237,13 +250,19 @@ fn load_directory(path: PathBuf) -> LoadedDirectory {
     match FileSystem.list_directory(&path) {
         Ok(entries) => LoadedDirectory {
             path,
-            rows: entries.iter().map(row_from_entry).collect(),
+            rows: entries
+                .iter()
+                .enumerate()
+                .map(|(index, entry)| row_from_entry(entry, index))
+                .collect(),
             status: format!("{} itens", entries.len()),
+            is_error: false,
         },
         Err(error) => LoadedDirectory {
             path,
             rows: Vec::new(),
             status: format!("Não foi possível listar a pasta: {error}"),
+            is_error: true,
         },
     }
 }
@@ -354,9 +373,11 @@ impl FilterScheduler {
                     Some(rows) => {
                         let filtered = filter_rows(rows.as_ref(), &request.query);
                         let status = filter_status(rows.len(), filtered.len(), &request.query);
-                        (Some(filtered), status)
+                        let empty_state =
+                            empty_state_text(rows.len(), filtered.len(), &request.query);
+                        (Some(filtered), status, empty_state)
                     }
-                    None => (None, "Falha interna ao ler a listagem".to_owned()),
+                    None => (None, "Falha interna ao ler a listagem".to_owned(), ""),
                 };
                 let ui_filter_generation = Arc::clone(&filter_generation);
                 let ui_selection = Arc::clone(&selection);
@@ -364,11 +385,12 @@ impl FilterScheduler {
                     if ui_filter_generation.load(Ordering::Acquire) != request.generation {
                         return;
                     }
-                    let (filtered, status) = result;
+                    let (filtered, status, empty_state) = result;
                     let Ok(selection) = ui_selection.lock() else {
                         ui.set_status_text("Falha interna ao ler a seleção".into());
                         return;
                     };
+                    ui.set_empty_state_text(SharedString::from(empty_state));
                     ui.set_status_text(SharedString::from(status));
                     if let Some(filtered) = filtered {
                         if !set_rows(&ui, filtered, &selection) {
@@ -466,6 +488,12 @@ impl LoadScheduler {
                     ));
                     ui_filter_generation.fetch_add(1, Ordering::AcqRel);
                     ui.set_filter_text(SharedString::default());
+                    let empty_state = if loaded.is_error {
+                        ""
+                    } else {
+                        empty_state_text(loaded.rows.len(), loaded.rows.len(), "")
+                    };
+                    ui.set_empty_state_text(SharedString::from(empty_state));
                     let Ok(mut selection_state) = ui_selection.lock() else {
                         ui.set_status_text("Falha interna ao limpar a seleção".into());
                         return;
@@ -678,6 +706,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let entries = entries.clone();
         let history = history.clone();
         let load_scheduler = load_scheduler.clone();
+        let directory_rows = Arc::clone(&directory_rows);
         ui.on_activate(move |index| {
             if index < 0 {
                 return;
@@ -688,7 +717,16 @@ pub fn run() -> Result<(), slint::PlatformError> {
             if !row.is_directory {
                 return;
             }
-            let next = history.borrow().current.join(row.name.as_str());
+            let Ok(rows) = directory_rows.lock() else {
+                return;
+            };
+            let Some(next) = rows
+                .iter()
+                .find(|loaded_row| loaded_row.key == row.key.as_str())
+                .map(|loaded_row| loaded_row.path.clone())
+            else {
+                return;
+            };
             history.borrow_mut().visit(next.clone());
             update_history_controls(&ui_weak, &history.borrow());
             start_load(&ui_weak, next, load_scheduler.as_ref());
@@ -776,10 +814,10 @@ pub fn run() -> Result<(), slint::PlatformError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        default_locations, filter_rows, filter_status, format_size, load_directory,
-        parent_directory, LoadedRow, NavigationHistory, SelectionState,
+        default_locations, empty_state_text, filter_rows, filter_status, format_size,
+        load_directory, parent_directory, LoadedRow, NavigationHistory, SelectionState,
     };
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn selecao_ctrl_shift_e_ctrl_a_mantem_intervalos_reais() {
@@ -845,6 +883,7 @@ mod tests {
         let rows = vec![
             LoadedRow {
                 key: "foto".to_owned(),
+                path: PathBuf::from("foto"),
                 name: "Foto.JPG".to_owned(),
                 kind: "[FILE]".to_owned(),
                 details: "4 KB".to_owned(),
@@ -852,6 +891,7 @@ mod tests {
             },
             LoadedRow {
                 key: "projetos".to_owned(),
+                path: PathBuf::from("projetos"),
                 name: "Projetos".to_owned(),
                 kind: "[DIR]".to_owned(),
                 details: "—".to_owned(),
@@ -874,6 +914,7 @@ mod tests {
         let rows = (0..100_000)
             .map(|index| LoadedRow {
                 key: format!("/tmp/file-{index:05}.txt"),
+                path: PathBuf::from(format!("/tmp/file-{index:05}.txt")),
                 name: format!("file-{index:05}.txt"),
                 kind: "[FILE]".to_owned(),
                 details: "1 B".to_owned(),
@@ -889,6 +930,16 @@ mod tests {
             filtered.len()
         );
         assert_eq!(filtered.len(), 1);
+    }
+
+    #[test]
+    fn estados_vazios_diferenciam_pasta_e_filtro() {
+        assert_eq!(empty_state_text(0, 0, ""), "Esta pasta está vazia.");
+        assert_eq!(
+            empty_state_text(4, 0, "pdf"),
+            "Nenhum item corresponde ao filtro."
+        );
+        assert_eq!(empty_state_text(4, 4, "pdf"), "");
     }
 
     #[test]
@@ -921,11 +972,35 @@ mod tests {
         assert!(loaded.status.ends_with("itens"));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn preserva_caminhos_de_nomes_invalidos_sem_colidir_chaves() {
+        use std::ffi::OsString;
+        use std::fs;
+        use std::os::unix::ffi::OsStringExt;
+
+        let root =
+            std::env::temp_dir().join(format!("rovex-invalid-name-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir(&root).expect("a pasta de teste deve ser criada");
+        let first = root.join(OsString::from_vec(vec![0xff, b'.', b't', b'x', b't']));
+        let second = root.join(OsString::from_vec(vec![0xfe, b'.', b't', b'x', b't']));
+        fs::write(&first, b"a").expect("o primeiro arquivo deve ser criado");
+        fs::write(&second, b"b").expect("o segundo arquivo deve ser criado");
+
+        let loaded = load_directory(root.clone());
+        assert_eq!(loaded.rows.len(), 2);
+        assert_ne!(loaded.rows[0].key, loaded.rows[1].key);
+        assert_ne!(loaded.rows[0].path, loaded.rows[1].path);
+        fs::remove_dir_all(root).expect("a pasta de teste deve ser removida");
+    }
+
     #[test]
     fn erro_de_diretorio_inexistente_vira_status_controlado() {
         let path = std::env::temp_dir().join("rovex-path-that-does-not-exist");
         let loaded = load_directory(path);
         assert!(loaded.rows.is_empty());
+        assert!(loaded.is_error);
         assert!(loaded
             .status
             .starts_with("Não foi possível listar a pasta:"));

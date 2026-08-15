@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct DestinationPolicy {
@@ -119,6 +119,13 @@ pub fn validate_destination(
         return Err(ValidationError::EmptyPath);
     }
 
+    if destination.is_relative() {
+        return Err(ValidationError::InvalidPath {
+            path: destination.to_path_buf(),
+            reason: "caminho relativo ambíguo; use um caminho absoluto",
+        });
+    }
+
     if !policy.allow_root && is_root_path(destination) {
         return Err(ValidationError::RootOperationDenied {
             path: destination.to_path_buf(),
@@ -131,10 +138,40 @@ pub fn validate_destination(
         path: parent.to_path_buf(),
         kind: error.kind(),
     })?;
+    if parent_metadata.file_type().is_symlink() {
+        return Err(ValidationError::InvalidPath {
+            path: destination.to_path_buf(),
+            reason: "componente symlink no diretório pai",
+        });
+    }
     if !parent_metadata.is_dir() {
         return Err(ValidationError::ParentMissing {
             path: parent.to_path_buf(),
         });
+    }
+
+    let mut current = PathBuf::new();
+    let mut reached_root = false;
+    for component in parent.components() {
+        current.push(component.as_os_str());
+        if matches!(component, Component::RootDir) {
+            reached_root = true;
+            continue;
+        }
+        if !reached_root {
+            continue;
+        }
+        let metadata = fs::symlink_metadata(&current).map_err(|error| ValidationError::Io {
+            operation: "validar componente do diretório pai",
+            path: current.clone(),
+            kind: error.kind(),
+        })?;
+        if metadata.file_type().is_symlink() {
+            return Err(ValidationError::InvalidPath {
+                path: destination.to_path_buf(),
+                reason: "componente symlink no diretório pai",
+            });
+        }
     }
 
     let file_name = destination
@@ -286,6 +323,38 @@ mod tests {
             Err(ValidationError::SameSourceAndDestination { .. })
         ));
         fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn recusa_destino_relativo_com_mensagem_clara() {
+        let result = validate_destination(
+            None,
+            std::path::Path::new("destino.txt"),
+            DestinationPolicy::default(),
+        );
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidPath {
+                reason: "caminho relativo ambíguo; use um caminho absoluto",
+                ..
+            })
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recusa_componente_symlink_no_diretorio_pai() {
+        use std::os::unix::fs::symlink;
+
+        let root = temporary_directory();
+        let outside = temporary_directory();
+        let link = root.join("atalho");
+        symlink(&outside, &link).expect("o symlink deve ser criado");
+        let result =
+            validate_destination(None, &link.join("novo.txt"), DestinationPolicy::default());
+        assert!(matches!(result, Err(ValidationError::InvalidPath { .. })));
+        fs::remove_dir_all(root).expect("a raiz do teste deve ser removida");
+        fs::remove_dir_all(outside).expect("o destino externo deve ser removido");
     }
 
     #[test]

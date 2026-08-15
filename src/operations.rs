@@ -31,6 +31,17 @@ pub enum OperationError {
     },
 }
 
+fn human_io_reason(kind: io::ErrorKind) -> &'static str {
+    match kind {
+        io::ErrorKind::NotFound => "o caminho não foi encontrado",
+        io::ErrorKind::PermissionDenied => "o acesso foi negado",
+        io::ErrorKind::AlreadyExists => "o destino já existe",
+        io::ErrorKind::InvalidInput | io::ErrorKind::InvalidFilename => "o caminho não é válido",
+        io::ErrorKind::DirectoryNotEmpty => "o diretório não está vazio",
+        _ => "ocorreu um erro de sistema",
+    }
+}
+
 impl fmt::Display for OperationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -39,14 +50,13 @@ impl fmt::Display for OperationError {
                 operation,
                 path,
                 kind,
-                raw_os_error,
+                ..
             } => write!(
                 formatter,
-                "falha ao {} em {}: {:?} (código {:?})",
+                "não foi possível {} em {}: {}",
                 operation,
                 path.display(),
-                kind,
-                raw_os_error
+                human_io_reason(*kind)
             ),
             Self::DirectoryNotEmpty { path } => {
                 write!(formatter, "o diretório não está vazio: {}", path.display())
@@ -115,6 +125,58 @@ fn temporary_destination(destination: &Path) -> Result<PathBuf, OperationError> 
     })
 }
 
+fn copy_temporary_no_replace(temporary: &Path, destination: &Path) -> Result<(), OperationError> {
+    let mut input =
+        File::open(temporary).map_err(|error| from_io("abrir temporário", temporary, error))?;
+    let mut output = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(destination)
+        .map_err(|error| from_io("criar destino sem sobrescrita", destination, error))?;
+    let result = (|| {
+        let bytes_copied = io::copy(&mut input, &mut output)
+            .map_err(|error| from_io("publicar conteúdo", destination, error))?;
+        output
+            .flush()
+            .and_then(|_| output.sync_all())
+            .map_err(|error| from_io("sincronizar destino", destination, error))?;
+        drop(output);
+
+        let metadata = fs::metadata(temporary)
+            .map_err(|error| from_io("validar temporário", temporary, error))?;
+        if metadata.len() != bytes_copied {
+            return Err(OperationError::OutputValidationFailed {
+                path: destination.to_path_buf(),
+            });
+        }
+        fs::remove_file(temporary)
+            .map_err(|error| from_io("limpar arquivo temporário", temporary, error))?;
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(destination);
+    }
+    result
+}
+
+fn publish_file_no_replace(temporary: &Path, destination: &Path) -> Result<(), OperationError> {
+    match fs::hard_link(temporary, destination) {
+        Ok(()) => fs::remove_file(temporary)
+            .map_err(|error| from_io("limpar arquivo temporário", temporary, error)),
+        Err(error)
+            if error.kind() == io::ErrorKind::AlreadyExists
+                || fs::symlink_metadata(destination).is_ok() =>
+        {
+            Err(from_io(
+                "publicar arquivo sem sobrescrita",
+                destination,
+                error,
+            ))
+        }
+        Err(_) => copy_temporary_no_replace(temporary, destination),
+    }
+}
+
 pub fn copy_file_atomic(source: &Path, destination: &Path) -> Result<CopyReport, OperationError> {
     let source_type = validate_source(source)?;
     if !source_type.is_file() {
@@ -152,8 +214,7 @@ pub fn copy_file_atomic(source: &Path, destination: &Path) -> Result<CopyReport,
             });
         }
 
-        fs::rename(&temporary, &destination)
-            .map_err(|error| from_io("publicar arquivo", &destination, error))?;
+        publish_file_no_replace(&temporary, &destination)?;
         Ok(CopyReport {
             source: source.to_path_buf(),
             destination: destination.clone(),
@@ -180,7 +241,8 @@ pub fn rename_entry(source: &Path, destination: &Path) -> Result<(), OperationEr
 }
 
 fn is_directory_not_empty(error: &io::Error) -> bool {
-    matches!(error.raw_os_error(), Some(39) | Some(145))
+    error.kind() == io::ErrorKind::DirectoryNotEmpty
+        || matches!(error.raw_os_error(), Some(39) | Some(145))
 }
 
 pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
@@ -212,7 +274,10 @@ pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{copy_file_atomic, create_directory, delete_entry, rename_entry, OperationError};
+    use super::{
+        copy_file_atomic, create_directory, delete_entry, publish_file_no_replace, rename_entry,
+        OperationError,
+    };
     use std::fs;
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -226,6 +291,20 @@ mod tests {
         ));
         fs::create_dir(&path).expect("o diretório deve ser criado");
         path
+    }
+
+    #[test]
+    fn mensagem_de_operacao_negada_e_humanizada() {
+        let error = OperationError::FileSystem {
+            operation: "copiar arquivo",
+            path: std::path::PathBuf::from("/protegido.txt"),
+            kind: std::io::ErrorKind::PermissionDenied,
+            raw_os_error: Some(5),
+        };
+        assert_eq!(
+            error.to_string(),
+            "não foi possível copiar arquivo em /protegido.txt: o acesso foi negado"
+        );
     }
 
     #[test]
@@ -259,6 +338,24 @@ mod tests {
             fs::read(&destination).expect("o destino deve permanecer"),
             b"antigo"
         );
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn publicacao_atomica_nao_sobrescreve_destino_criado_depois_da_validacao() {
+        let root = temporary_directory();
+        let temporary = root.join(".destino.rovex-tmp");
+        let destination = root.join("destino.txt");
+        fs::write(&temporary, b"novo").expect("o temporário deve ser criado");
+        fs::write(&destination, b"antigo").expect("o destino deve ser criado");
+
+        let result = publish_file_no_replace(&temporary, &destination);
+        assert!(matches!(result, Err(OperationError::FileSystem { .. })));
+        assert_eq!(
+            fs::read(&destination).expect("o destino deve permanecer"),
+            b"antigo"
+        );
+        assert!(temporary.exists());
         fs::remove_dir_all(root).expect("o diretório deve ser removido");
     }
 

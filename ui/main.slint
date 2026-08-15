@@ -49,6 +49,8 @@ export component MainWindow inherits Window {
     in-out property <[FileRow]> entries;
     in-out property <[LocationRow]> locations;
     in-out property <string> status-text;
+    in-out property <string> empty-state-text;
+    in-out property <int> sidebar-focus-index: -1;
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
 
@@ -137,24 +139,52 @@ export component MainWindow inherits Window {
                         color: DesignTokens.text-primary;
                         height: DesignTokens.sidebar-title-height;
                     }
-                    ListView {
+                    sidebar-focus := FocusScope {
                         vertical-stretch: 1;
-                        for location[index] in root.locations: Rectangle {
-                            height: DesignTokens.sidebar-row-height;
-                            background: location.path == root.current-path ? DesignTokens.surface-selected : (sidebar-touch.has-hover ? DesignTokens.surface-secondary : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary));
-                            accessible-role: list-item;
-                            accessible-label: location.label;
-                            Text {
-                                x: DesignTokens.sidebar-text-inset;
-                                width: parent.width - 2 * DesignTokens.sidebar-text-inset;
-                                height: parent.height;
-                                text: location.label;
-                                color: location.path == root.current-path ? DesignTokens.accent : DesignTokens.text-primary;
-                                vertical-alignment: center;
-                                overflow: elide;
+                        focus-on-click: true;
+                        key-pressed(event) => {
+                            if (root.locations.length == 0) {
+                                reject
+                            } else if (event.text == Key.UpArrow) {
+                                root.sidebar-focus-index = root.sidebar-focus-index <= 0 ? 0 : root.sidebar-focus-index - 1;
+                                accept
+                            } else if (event.text == Key.DownArrow) {
+                                root.sidebar-focus-index = root.sidebar-focus-index >= root.locations.length - 1 ? root.locations.length - 1 : root.sidebar-focus-index + 1;
+                                accept
+                            } else if ((event.text == "\n" || event.text == Key.Space) && root.sidebar-focus-index >= 0) {
+                                root.navigate-to-location(root.sidebar-focus-index);
+                                accept
+                            } else {
+                                reject
                             }
-                            sidebar-touch := TouchArea {
-                                clicked => { root.navigate-to-location(index); }
+                        }
+                        ListView {
+                            width: 100%;
+                            height: 100%;
+                            for location[index] in root.locations: Rectangle {
+                                height: DesignTokens.sidebar-row-height;
+                                background: location.path == root.current-path ? DesignTokens.surface-selected : ((sidebar-focus.has-focus && root.sidebar-focus-index == index) ? DesignTokens.surface-secondary : (sidebar-touch.has-hover ? DesignTokens.surface-secondary : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary)));
+                                accessible-role: list-item;
+                                accessible-label: location.label;
+                                accessible-item-selectable: true;
+                                accessible-item-selected: location.path == root.current-path;
+                                accessible-item-index: index;
+                                Text {
+                                    x: DesignTokens.sidebar-text-inset;
+                                    width: parent.width - 2 * DesignTokens.sidebar-text-inset;
+                                    height: parent.height;
+                                    text: location.label;
+                                    color: location.path == root.current-path || (sidebar-focus.has-focus && root.sidebar-focus-index == index) ? DesignTokens.accent : DesignTokens.text-primary;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                }
+                                sidebar-touch := TouchArea {
+                                    clicked => {
+                                        sidebar-focus.focus();
+                                        root.sidebar-focus-index = index;
+                                        root.navigate-to-location(index);
+                                    }
+                                }
                             }
                         }
                     }
@@ -183,9 +213,9 @@ export component MainWindow inherits Window {
                     reject
                 }
 
-                ListView {
-                    width: 100%;
-                    height: 100%;
+                    ListView {
+                        width: 100%;
+                        height: 100%;
                     for entry[index] in root.entries: Rectangle {
                         height: DesignTokens.file-row-height;
                         background: entry.selected ? DesignTokens.surface-selected : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary);
@@ -231,6 +261,16 @@ export component MainWindow inherits Window {
                             }
                         }
                     }
+                    }
+                    Text {
+                        visible: root.empty-state-text != "";
+                        x: 24px;
+                        y: 24px;
+                        width: parent.width - 48px;
+                        text: root.empty-state-text;
+                        color: DesignTokens.text-secondary;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
                     }
                 }
             }

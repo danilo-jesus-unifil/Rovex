@@ -90,6 +90,17 @@ impl FileSystemError {
     }
 }
 
+fn human_io_reason(kind: io::ErrorKind) -> &'static str {
+    match kind {
+        io::ErrorKind::NotFound => "o caminho não foi encontrado",
+        io::ErrorKind::PermissionDenied => "o acesso foi negado",
+        io::ErrorKind::AlreadyExists => "o destino já existe",
+        io::ErrorKind::InvalidInput | io::ErrorKind::InvalidFilename => "o caminho não é válido",
+        io::ErrorKind::DirectoryNotEmpty => "o diretório não está vazio",
+        _ => "ocorreu um erro de sistema",
+    }
+}
+
 impl fmt::Display for FileSystemError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -112,14 +123,13 @@ impl fmt::Display for FileSystemError {
                 operation,
                 path,
                 kind,
-                raw_os_error,
+                ..
             } => write!(
                 formatter,
-                "falha ao {} em {}: {:?} (código {:?})",
+                "não foi possível {} em {}: {}",
                 operation,
                 path.display(),
-                kind,
-                raw_os_error
+                human_io_reason(*kind)
             ),
         }
     }
@@ -182,6 +192,20 @@ mod tests {
         ));
         fs::create_dir(&path).expect("o diretório temporário deve ser criado");
         path
+    }
+
+    #[test]
+    fn mensagem_de_acesso_negado_e_humanizada() {
+        let error = super::FileSystemError::Io {
+            operation: "ler diretório",
+            path: std::path::PathBuf::from("/protegido"),
+            kind: std::io::ErrorKind::PermissionDenied,
+            raw_os_error: Some(13),
+        };
+        assert_eq!(
+            error.to_string(),
+            "não foi possível ler diretório em /protegido: o acesso foi negado"
+        );
     }
 
     #[test]
