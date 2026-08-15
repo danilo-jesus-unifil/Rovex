@@ -1,3 +1,5 @@
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 use rovex_core::{EntryKind, FileSystem};
 use std::env;
 use std::ffi::OsString;

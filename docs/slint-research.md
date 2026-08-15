@@ -16,7 +16,7 @@ A primeira interface será deliberadamente pequena: janela única, barra de ende
 
 ## Risco identificado
 
-A versão atual do Slint exige Rust mínimo mais novo que o MSRV histórico do núcleo. O projeto já usa Rust 1.97.1 no `rust-toolchain.toml`, portanto a dependência é compatível com o toolchain fixado, mas o campo `rust-version` do pacote deverá ser atualizado para refletir a realidade quando o crate for adicionado.
+A versão atual do Slint exige Rust mínimo mais novo que o MSRV histórico do núcleo. O projeto usa Rust 1.97.1 no `rust-toolchain.toml` e agora declara `rust-version = "1.97"` no manifesto, alinhando o contrato do pacote à dependência e ao toolchain verificados.
 
 ## APIs de integração confirmadas
 

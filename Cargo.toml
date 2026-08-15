@@ -2,7 +2,7 @@
 name = "rovex"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.92"
+rust-version = "1.97"
 license = "MIT"
 description = "Explorador de arquivos local, seguro e leve para Windows 10/11"
 repository = "https://github.com/danilo-jesus-unifil/Rovex"
