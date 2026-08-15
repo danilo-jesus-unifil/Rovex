@@ -2,12 +2,12 @@
 
 **Pacote:** `rovex` 0.1.0  
 **Commit de código que gerou os binários:** `e7b285c`  
-**Tag planejada:** `v0.1.0`  
+**Tag planejada:** `v0.1.0` (será criada no commit final após este relatório)  
 **Data:** 15 de agosto de 2026  
 **Target Linux:** `x86_64-unknown-linux-gnu`  
 **Target Windows:** `x86_64-pc-windows-gnu`
 
-> Estado do relatório: os checks, builds, testes de artefato e hashes foram executados. A tag e a publicação final somente devem ocorrer depois que este relatório, a lista de hashes e o working tree estiverem commitados e o CI da ponta final estiver aprovado.
+> Estado do relatório: os checks, builds, testes de artefato e hashes foram executados. O commit documental desta ponta será marcado com `v0.1.0` após o registro deste CI final aprovado.
 
 ## Toolchain e versão
 
@@ -35,6 +35,7 @@
 | `cargo doc --all-features --no-deps` | **PASS** | Documentação gerada |
 | `cargo audit` | **PASS** | Nenhuma vulnerabilidade explorável; avisos transitivos de manutenção permanecem visíveis |
 | `cargo deny check` | **PASS** | Advisories, bans, licenças e fontes aprovados |
+| CI final `31867838388` | **PASS** | Linux, Windows, Windows GNU cross-build e auditoria concluídos com sucesso |
 | `cargo tree` | **PASS** | Árvore revisada; sem dependência direta inesperada |
 
 ## Builds e artefatos
