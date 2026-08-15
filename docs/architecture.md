@@ -22,7 +22,7 @@ A Microsoft recomenda declarar o DPI padrão no manifesto do processo, preferenc
 
 ## 3. Limites da primeira entrega
 
-A primeira fatia funcional entregue nesta etapa tem janela única, navegação por caminho e pasta pai, listagem real de arquivos, ativação de diretórios, atualização, status e erros controlados. O núcleo também possui criação de pasta, renomeação, cópia atômica e exclusão limitada, ainda sem comandos visuais na UI. A interface não executará arquivos automaticamente nem carregará parsers multimídia dentro do processo principal.
+A primeira fatia funcional entregue nesta etapa tem janela única, navegação por caminho e pasta pai, listagem real de arquivos, ativação de diretórios, atualização, status e erros controlados. O núcleo e a UI possuem criação de pasta, renomeação, cópia atômica, movimentação e exclusão limitada; os comandos visuais usam confirmação, worker único, progresso, cancelamento cooperativo, resultado parcial e recarga verificada. A interface não executará arquivos automaticamente nem carregará parsers multimídia dentro do processo principal.
 
 Pesquisa indexada, thumbnails, abas, conversão em lote e integrações de shell serão adicionadas em etapas separadas. O suporte a PDF, OCR, áudio e vídeo não será simulado: cada recurso somente aparecerá como concluído quando houver backend verificável, worker isolado, testes adversariais e validação do arquivo gerado.
 
@@ -91,7 +91,7 @@ Resultados que não possam ser verificados no ambiente atual serão registrados 
 
 ## 8. Riscos e decisões pendentes
 
-O maior risco técnico é a combinação entre UI moderna, acessibilidade consistente e compatibilidade com Windows 10. O protótipo precisa resolver esse risco antes de receber recursos de conversão. O segundo risco é a expectativa de “baixo consumo”: o número declarado para o runtime do framework não representa o consumo total de uma aplicação com thumbnails, cache, workers e listagens extensas. Por isso, o projeto terá benchmarks de inicialização, idle, 10 mil itens, cache e conversão antes de estabelecer metas.
+O maior risco técnico é a combinação entre UI moderna, acessibilidade consistente e compatibilidade com Windows 10. O protótipo agora possui comandos de filesystem reais, mas ainda precisa de validação manual em Windows 10/11 para paths longos, conflitos, cancelamento em arquivos grandes e reparse points. O segundo risco é a expectativa de “baixo consumo”: o número declarado para o runtime do framework não representa o consumo total de uma aplicação com thumbnails, cache, workers e listagens extensas. Por isso, o projeto terá benchmarks de inicialização, idle, 10 mil itens, cache e conversão antes de estabelecer metas.
 
 Também será necessário decidir, em uma etapa posterior, como distribuir codecs. Nenhum executável externo será baixado de URL arbitrária em tempo de execução. Qualquer backend como FFmpeg precisará de versão, origem, hash, arquitetura, licença, processo de atualização e verificação de integridade documentados.
 
