@@ -3,7 +3,7 @@
 **Data da auditoria:** 15 de agosto de 2026  
 **Baseline auditado:** commit `d464851`  
 **Checkpoint de rollback:** `backup/before-final-stabilization-2026-08-15`  
-**Estado:** correções locais concluídas; publicação e CI final ainda são gates desta rodada.
+**Estado:** correções publicadas no commit `c07cff8`; CI final `31866482594` aprovado em todos os jobs.
 
 > Conclusão responsável: nenhum problema conhecido relevante foi deixado sem correção dentro do escopo executável nesta sessão. Permanecem limitações de plataforma e funcionalidades fora da primeira fatia, documentadas neste relatório; elas não são apresentadas como cobertura concluída.
 
@@ -82,7 +82,7 @@ Nenhuma regressão foi encontrada na suíte final depois das correções. O novo
 
 ## Performance e consumo
 
-O caminho de cópia usa streaming em blocos e não lê o arquivo integral para a RAM. O filtro e o carregador são latest-only. A auditoria histórica mediu 100.000 entradas e documentou que a lista visual usa `ListView`, embora os metadados completos ainda sejam materializados em memória. O stress atual confirmou responsividade e descarte de resultados obsoletos, mas não substitui benchmark prolongado de 100.000+ entradas em hardware Windows modesto.
+O caminho de cópia usa streaming em blocos e não lê o arquivo integral para a RAM. O filtro e o carregador são latest-only. A auditoria histórica mediu 100.000 entradas e documentou que a lista visual usa `ListView`, embora os metadados completos ainda sejam materializados em memória. O stress atual confirmou responsividade e descarte de resultados obsoletos, mas não substitui benchmark prolongado de 100.000+ entradas em hardware Windows modesto. A CI final `31866482594` aprovou a compilação release Linux e Windows, além do cross-build GNU.
 
 Não foram identificados loops de polling, timers, thumbnails, previews, hashes ou conversores no startup. Não foi declarado ganho artificial de CPU/RAM; as métricas de baseline permanecem no relatório de performance para comparação futura.
 
