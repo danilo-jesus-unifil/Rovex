@@ -4,7 +4,7 @@
 
 O núcleo e a primeira camada desktop são verificados com `cargo fmt --all -- --check`, `cargo check --all-targets --all-features`, `cargo test --all-targets --all-features`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo build --release`, build release cruzado para Windows x64, `cargo audit` e `cargo deny check`.
 
-O resultado atual deste incremento é de **20 testes aprovados, zero falhas**, Clippy sem diagnósticos e cargo-deny aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
+O resultado atual deste incremento é de **21 testes aprovados, zero falhas**, Clippy sem diagnósticos e cargo-deny aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
 
 ## Cobertura do núcleo
 
@@ -16,7 +16,7 @@ A camada desktop tem testes para formatação de tamanhos, descoberta segura da 
 
 Um smoke test executável em Xvfb abre a janela release, localiza o título `Rovex`, edita a barra de endereço para `/tmp`, preenche o filtro com `cargo`, confirma a redução para cinco itens, captura uma imagem de 1100×720 e encerra o processo. O screenshot validado mostra o caminho `/tmp`, o filtro preenchido e a listagem reduzida.
 
-Um segundo smoke test cria quatro arquivos temporários e executa clique normal, Ctrl-clique, Shift-clique e Ctrl+A. O screenshot `/tmp/rovex-selection-smoke.png` mostra as quatro linhas selecionadas e o status `4 itens selecionados`. Um terceiro smoke test cria uma raiz e uma subpasta, navega para dentro e confirma voltar/avançar por screenshots com caminhos reais em `/tmp/rovex-history-back.png` e `/tmp/rovex-history-forward.png`.
+Um segundo smoke test cria quatro arquivos temporários e executa clique normal, Ctrl-clique, Shift-clique e Ctrl+A. O screenshot `/tmp/rovex-selection-smoke.png` mostra as quatro linhas selecionadas e o status `4 itens selecionados`. Um terceiro smoke test cria uma raiz e uma subpasta, navega para dentro e confirma voltar/avançar por screenshots com caminhos reais em `/tmp/rovex-history-back.png` e `/tmp/rovex-history-forward.png`. Um quarto smoke test inicia em `/tmp`, clica no local `Início` e confirma o carregamento real de `/home/ubuntu`, sem análise de unidades ou espaço.
 
 ## Estresse e próximos testes do filesystem
 

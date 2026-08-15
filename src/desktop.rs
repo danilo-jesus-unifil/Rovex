@@ -26,6 +26,39 @@ struct LoadedDirectory {
     status: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct LocationEntry {
+    label: String,
+    path: PathBuf,
+}
+
+fn add_location(locations: &mut Vec<LocationEntry>, label: &str, path: PathBuf) {
+    if !path.is_dir() || locations.iter().any(|location| location.path == path) {
+        return;
+    }
+    locations.push(LocationEntry {
+        label: label.to_owned(),
+        path,
+    });
+}
+
+fn default_locations(initial_path: &Path) -> Vec<LocationEntry> {
+    let mut locations = Vec::new();
+    if let Some(home) = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+    {
+        add_location(&mut locations, "Início", home.clone());
+        add_location(&mut locations, "Área de Trabalho", home.join("Desktop"));
+        add_location(&mut locations, "Documentos", home.join("Documents"));
+        add_location(&mut locations, "Downloads", home.join("Downloads"));
+    }
+    add_location(&mut locations, "Pasta atual", initial_path.to_path_buf());
+    #[cfg(unix)]
+    add_location(&mut locations, "Sistema", PathBuf::from("/"));
+    locations
+}
+
 type SharedRows = Arc<Mutex<Arc<[LoadedRow]>>>;
 type SharedSelection = Arc<Mutex<SelectionState>>;
 
@@ -417,12 +450,23 @@ pub fn run() -> Result<(), slint::PlatformError> {
     let ui = MainWindow::new()?;
     let entries = Rc::new(VecModel::<FileRow>::default());
     ui.set_entries(ModelRc::from(entries.clone()));
+    let locations = Rc::new(VecModel::<LocationRow>::default());
+    ui.set_locations(ModelRc::from(locations.clone()));
 
     let initial_path = std::env::args_os()
         .nth(1)
         .map(PathBuf::from)
         .or_else(|| std::env::current_dir().ok())
         .unwrap_or_else(|| PathBuf::from("."));
+    locations.set_vec(
+        default_locations(&initial_path)
+            .into_iter()
+            .map(|location| LocationRow {
+                label: SharedString::from(location.label),
+                path: SharedString::from(location.path.to_string_lossy().to_string()),
+            })
+            .collect::<Vec<_>>(),
+    );
     ui.set_current_path(SharedString::from(
         initial_path.to_string_lossy().to_string(),
     ));
@@ -478,6 +522,35 @@ pub fn run() -> Result<(), slint::PlatformError> {
             if changed {
                 update_history_controls(&ui_weak, &history.borrow());
             }
+            start_load(
+                ui_weak.clone(),
+                path,
+                &load_generation,
+                &filter_generation,
+                &directory_rows,
+                &selection,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let locations = locations.clone();
+        let history = history.clone();
+        let load_generation = Arc::clone(&load_generation);
+        let filter_generation = Arc::clone(&filter_generation);
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        ui.on_navigate_to_location(move |index| {
+            if index < 0 {
+                return;
+            }
+            let Some(location) = locations.row_data(index as usize) else {
+                return;
+            };
+            let path = PathBuf::from(location.path.to_string());
+            history.borrow_mut().visit(path.clone());
+            update_history_controls(&ui_weak, &history.borrow());
             start_load(
                 ui_weak.clone(),
                 path,
@@ -680,8 +753,8 @@ pub fn run() -> Result<(), slint::PlatformError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        filter_rows, filter_status, format_size, load_directory, parent_directory, LoadedRow,
-        NavigationHistory, SelectionState,
+        default_locations, filter_rows, filter_status, format_size, load_directory,
+        parent_directory, LoadedRow, NavigationHistory, SelectionState,
     };
     use std::path::Path;
 
@@ -732,6 +805,16 @@ mod tests {
 
         assert!(history.visit(Path::new("/documentos").to_path_buf()));
         assert!(!history.can_go_forward());
+    }
+
+    #[test]
+    fn locais_padrao_so_incluem_diretorios_existentes() {
+        let locations = default_locations(Path::new("."));
+        assert!(locations
+            .iter()
+            .any(|location| location.path == Path::new(".")));
+        assert!(locations.iter().all(|location| !location.label.is_empty()));
+        assert!(locations.iter().all(|location| location.path.is_dir()));
     }
 
     #[test]

@@ -9,7 +9,7 @@ Cada etapa precisa produzir uma fatia real, compilável e testável. O projeto n
 | 0. Fundação | Cargo workspace, toolchain, linting, CI e documentação | Build limpo, format check, testes mínimos e licença registrada |
 | 1. Domínio | Tipos de caminho, item de arquivo, seleção, erros e navegação | Testes unitários cobrindo estados válidos e inválidos; seleção e histórico aprovados |
 | 2. Filesystem | Listagem, drives, diretórios, operações básicas e conflitos | Testes com temporários, Unicode, arquivos grandes e erros controlados |
-| 3. UI | Janela Slint, barra de endereço, lista, atualização, pasta pai, filtro local, histórico e seleção múltipla | Navegação, filtro, voltar/avançar e seleção funcionais sem bloquear a UI; smoke tests visuais |
+| 3. UI | Janela Slint, barra de endereço, lista, atualização, pasta pai, filtro local, histórico, seleção múltipla e locais laterais | Navegação, filtro, voltar/avançar, seleção e locais funcionais sem bloquear a UI; smoke tests visuais |
 | 4. Segurança operacional | Validação de destino, links, cancelamento, atomicidade e logs | Testes adversariais e ausência de sucesso falso |
 | 5. Pesquisa e cache | Filtro local latest-only concluído; pesquisa global cancelável e cache limitado ainda pendentes | Stress test com grandes diretórios e limites de recursos |
 | 6. Thumbnails | Workers limitados, cache e fallback genérico | Arquivo malformado não derruba o processo principal |
@@ -20,11 +20,11 @@ Cada etapa precisa produzir uma fatia real, compilável e testável. O projeto n
 
 ## Escopo imediato
 
-A próxima alteração de código deve continuar a partir da seleção e do histórico já funcionais, conectando operações reais de arquivo somente com contratos de confirmação, cancelamento, progresso e erros parciais. Pesquisa global, thumbnails, análise de espaço e conversores permanecem sob demanda, em workers limitados, com testes de estresse e falha.
+A próxima alteração de código deve continuar a partir da seleção, do histórico e dos locais laterais já funcionais, conectando operações reais de arquivo somente com contratos de confirmação, cancelamento, progresso e erros parciais. Favoritos persistentes, pesquisa global, thumbnails, análise de espaço e conversores permanecem sob demanda, em workers limitados, com testes de estresse e falha.
 
 ## Definição de pronto da primeira versão de desenvolvimento
 
-A primeira versão de desenvolvimento atual lista um diretório real, permite navegar para um subdiretório, retorna erros estruturados, filtra a pasta atual sem pesquisa recursiva, mantém o event loop livre durante o filtro, oferece histórico voltar/avançar e permite seleção múltipla local. Operações de arquivo reais já existem no núcleo, mas ainda não estão expostas por comandos visuais.
+A primeira versão de desenvolvimento atual lista um diretório real, permite navegar para um subdiretório, retorna erros estruturados, filtra a pasta atual sem pesquisa recursiva, mantém o event loop livre durante o filtro, oferece histórico voltar/avançar, seleção múltipla local e locais laterais existentes. Operações de arquivo reais já existem no núcleo, mas ainda não estão expostas por comandos visuais.
 
 ## Itens explicitamente fora da primeira fatia
 

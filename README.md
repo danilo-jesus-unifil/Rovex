@@ -6,7 +6,7 @@ O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, 
 
 ## Estado atual
 
-O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento em workers, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e apresenta navegação visual funcional. O histórico mantém pilhas reais de voltar/avançar, e a seleção local suporta clique, Ctrl-clique, Shift-clique e Ctrl+A. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla.
+O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento em workers, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e apresenta navegação visual funcional. A barra lateral mostra somente locais conhecidos que existem, sem análise de espaço ou varredura de unidades. O histórico mantém pilhas reais de voltar/avançar, e a seleção local suporta clique, Ctrl-clique, Shift-clique e Ctrl+A. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla.
 
 | Área | Estado |
 |---|---|
@@ -22,6 +22,7 @@ O núcleo implementa listagem real de diretórios, classificação de arquivos, 
 | Filtro local sem varredura global | Implementado com fila limitada |
 | Histórico voltar/avançar | Implementado e testado |
 | Seleção múltipla local | Implementada e testada com clique, Ctrl/Shift e Ctrl+A |
+| Barra lateral com locais existentes | Implementada sem análise de discos |
 | Pesquisa global, abas, thumbnails e drag and drop | Planejados |
 | Conversores multimídia/PDF/OCR | Fora da primeira fatia; não simulados |
 | Instalador, assinatura e atualização | Planejados para a fase de distribuição |

@@ -10,7 +10,7 @@ A exclusão é intencionalmente limitada a arquivos, links e diretórios vazios.
 
 ## Interface
 
-Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pesquisa recursiva. O histórico voltar/avançar e a seleção múltipla local por clique, Ctrl-clique, Shift-clique e Ctrl+A já são funcionais e testados. Ainda não há pesquisa global incremental, abas, thumbnails, pré-visualização, drag and drop, menu contextual, tema configurável, atalhos completos, integração com o Explorer do Windows ou operações de arquivo disparadas pela UI. Esses recursos não são simulados e permanecem fora da primeira fatia.
+Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pesquisa recursiva. O histórico voltar/avançar, a seleção múltipla local por clique, Ctrl-clique, Shift-clique e Ctrl+A e uma barra lateral com locais existentes já são funcionais e testados. A barra lateral não analisa espaço, não enumera unidades inteiras e não cria favoritos persistentes. Ainda não há pesquisa global incremental, abas, thumbnails, pré-visualização, drag and drop, menu contextual, tema configurável, atalhos completos, integração com o Explorer do Windows ou operações de arquivo disparadas pela UI. Esses recursos não são simulados e permanecem fora da primeira fatia.
 
 ## Dependências
 

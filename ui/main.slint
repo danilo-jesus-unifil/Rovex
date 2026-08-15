@@ -1,5 +1,10 @@
 import { Button, LineEdit, ListView } from "std-widgets.slint";
 
+export struct LocationRow {
+    label: string,
+    path: string,
+}
+
 export struct FileRow {
     key: string,
     name: string,
@@ -13,6 +18,7 @@ export component MainWindow inherits Window {
     in-out property <string> current-path;
     in-out property <string> filter-text;
     in-out property <[FileRow]> entries;
+    in-out property <[LocationRow]> locations;
     in-out property <string> status-text;
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
@@ -20,6 +26,7 @@ export component MainWindow inherits Window {
     callback back-requested();
     callback forward-requested();
     callback refresh-requested();
+    callback navigate-to-location(int);
     callback navigate-up();
     callback navigate-to(string);
     callback filter-changed(string);
@@ -83,13 +90,59 @@ export component MainWindow inherits Window {
             }
         }
 
-        Rectangle {
-            background: #ffffff;
-            border-width: 1px;
-            border-color: #d9dde3;
-            border-radius: 4px;
+        HorizontalLayout {
+            spacing: 10px;
+            vertical-stretch: 1;
 
-            focus-scope := FocusScope {
+            Rectangle {
+                width: 190px;
+                background: #ffffff;
+                border-width: 1px;
+                border-color: #d9dde3;
+                border-radius: 4px;
+                VerticalLayout {
+                    padding: 10px;
+                    spacing: 6px;
+                    Text {
+                        text: "Locais";
+                        color: #1f2937;
+                        height: 24px;
+                    }
+                    ListView {
+                        vertical-stretch: 1;
+                        for location[index] in root.locations: Rectangle {
+                            height: 34px;
+                            background: Math.mod(index, 2) == 0 ? #ffffff : #f7f8fa;
+                            accessible-role: list-item;
+                            accessible-label: location.label;
+                            Text {
+                                x: 10px;
+                                width: parent.width - 20px;
+                                height: parent.height;
+                                text: location.label;
+                                color: #374151;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+                            TouchArea {
+                                clicked => { root.navigate-to-location(index); }
+                            }
+                        }
+                    }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 10px;
+                horizontal-stretch: 1;
+                Rectangle {
+                    background: #ffffff;
+                    border-width: 1px;
+                    border-color: #d9dde3;
+                    border-radius: 4px;
+                    vertical-stretch: 1;
+
+                    focus-scope := FocusScope {
                 width: 100%;
                 height: 100%;
                 focus-on-click: true;
@@ -149,15 +202,16 @@ export component MainWindow inherits Window {
                             }
                         }
                     }
+                    }
                 }
             }
-        }
-
-        Text {
-            text: root.status-text;
-            color: #4b5563;
-            height: 22px;
-            overflow: elide;
+            Text {
+                text: root.status-text;
+                    color: #4b5563;
+                    height: 22px;
+                    overflow: elide;
+                }
+            }
         }
     }
 }
