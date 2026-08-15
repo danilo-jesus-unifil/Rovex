@@ -5,11 +5,14 @@ export global DesignTokens {
     out property <color> surface: #ffffff;
     out property <color> surface-secondary: #f7f8fa;
     out property <color> surface-selected: #dbeafe;
+    out property <color> surface-dialog: #ffffff;
+    out property <color> surface-danger: #fef2f2;
     out property <color> border: #d9dde3;
     out property <color> text-primary: #1f2937;
     out property <color> text-secondary: #6b7280;
     out property <color> text-muted: #697386;
     out property <color> accent: #2563eb;
+    out property <color> danger: #b91c1c;
     out property <length> page-padding: 12px;
     out property <length> layout-gap: 10px;
     out property <length> control-gap: 8px;
@@ -23,6 +26,7 @@ export global DesignTokens {
     out property <length> sidebar-width: 190px;
     out property <length> sidebar-padding: 10px;
     out property <length> sidebar-row-height: 34px;
+    out property <length> operation-toolbar-height: 34px;
     out property <length> file-row-height: 38px;
     out property <length> file-row-padding: 12px;
     out property <length> file-column-gap: 12px;
@@ -53,6 +57,16 @@ export component MainWindow inherits Window {
     in-out property <int> sidebar-focus-index: -1;
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
+    in-out property <int> selection-count: 0;
+    in-out property <bool> operation-dialog-visible: false;
+    in-out property <bool> operation-busy: false;
+    in-out property <bool> operation-close-only: false;
+    in-out property <bool> operation-needs-input: false;
+    in-out property <string> operation-dialog-title;
+    in-out property <string> operation-dialog-message;
+    in-out property <string> operation-dialog-input;
+    in-out property <int> operation-progress: 0;
+    in-out property <string> operation-progress-text;
 
     callback back-requested();
     callback forward-requested();
@@ -64,6 +78,13 @@ export component MainWindow inherits Window {
     callback select-row(int, bool, bool);
     callback select-all();
     callback activate(int);
+    callback copy-requested();
+    callback move-requested();
+    callback rename-requested();
+    callback delete-requested();
+    callback operation-confirmed();
+    callback operation-cancelled();
+    callback operation-dismissed();
 
     title: "Rovex";
     preferred-width: 1100px;
@@ -76,9 +97,9 @@ export component MainWindow inherits Window {
         padding: DesignTokens.page-padding;
         spacing: DesignTokens.layout-gap;
 
-        HorizontalLayout {
-            spacing: DesignTokens.control-gap;
-            height: DesignTokens.toolbar-height;
+            HorizontalLayout {
+                spacing: DesignTokens.control-gap;
+                height: DesignTokens.toolbar-height;
 
             Button {
                 text: "←";
@@ -118,6 +139,40 @@ export component MainWindow inherits Window {
                 text: "Atualizar";
                 accessible-label: "Atualizar listagem";
                 clicked => { root.refresh-requested(); }
+            }
+
+        }
+
+        HorizontalLayout {
+            spacing: DesignTokens.control-gap;
+            height: DesignTokens.operation-toolbar-height;
+
+            Button {
+                text: "Copiar";
+                enabled: root.selection-count > 0 && !root.operation-busy;
+                accessible-label: "Copiar itens selecionados";
+                clicked => { root.copy-requested(); }
+            }
+
+            Button {
+                text: "Mover";
+                enabled: root.selection-count > 0 && !root.operation-busy;
+                accessible-label: "Mover itens selecionados";
+                clicked => { root.move-requested(); }
+            }
+
+            Button {
+                text: "Renomear";
+                enabled: root.selection-count == 1 && !root.operation-busy;
+                accessible-label: "Renomear item selecionado";
+                clicked => { root.rename-requested(); }
+            }
+
+            Button {
+                text: "Excluir";
+                enabled: root.selection-count > 0 && !root.operation-busy;
+                accessible-label: "Excluir itens selecionados";
+                clicked => { root.delete-requested(); }
             }
         }
 
@@ -279,6 +334,105 @@ export component MainWindow inherits Window {
                     color: DesignTokens.text-secondary;
                     height: DesignTokens.status-height;
                     overflow: elide;
+                }
+            }
+        }
+    }
+
+    if root.operation-dialog-visible: Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        background: #00000066;
+        TouchArea {
+            width: 100%;
+            height: 100%;
+        }
+
+        Rectangle {
+            x: (parent.width - min(parent.width - 32px, 560px)) / 2;
+            y: (parent.height - min(parent.height - 32px, 330px)) / 2;
+            width: min(parent.width - 32px, 560px);
+            height: min(parent.height - 32px, 330px);
+            background: DesignTokens.surface-dialog;
+            border-width: 1px;
+            border-color: DesignTokens.border;
+            border-radius: DesignTokens.radius-small;
+
+            VerticalLayout {
+                padding: 20px;
+                spacing: 12px;
+
+                Text {
+                    text: root.operation-dialog-title;
+                    color: DesignTokens.text-primary;
+                    font-size: 18px;
+                    height: 26px;
+                }
+
+                Text {
+                    text: root.operation-dialog-message;
+                    color: DesignTokens.text-secondary;
+                    wrap: word-wrap;
+                    vertical-stretch: 1;
+                    overflow: elide;
+                }
+
+                LineEdit {
+                    visible: root.operation-needs-input && !root.operation-busy && !root.operation-close-only;
+                    text <=> root.operation-dialog-input;
+                    placeholder-text: "Caminho ou novo nome";
+                    accessible-label: "Entrada da operação";
+                }
+
+                Rectangle {
+                    visible: root.operation-busy;
+                    height: 54px;
+                    background: DesignTokens.surface-secondary;
+                    VerticalLayout {
+                        padding: 8px;
+                        spacing: 5px;
+                        Text {
+                            text: root.operation-progress-text;
+                            color: DesignTokens.text-secondary;
+                            height: 18px;
+                            overflow: elide;
+                        }
+                        Rectangle {
+                            height: 8px;
+                            background: DesignTokens.border;
+                            Rectangle {
+                                width: parent.width * root.operation-progress / 100;
+                                height: parent.height;
+                                background: DesignTokens.accent;
+                            }
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    height: 36px;
+                    spacing: DesignTokens.control-gap;
+                    horizontal-stretch: 1;
+                    Button {
+                        text: root.operation-busy ? "Cancelar" : (root.operation-close-only ? "Fechar" : "Confirmar");
+                        accessible-label: root.operation-busy ? "Cancelar operação" : (root.operation-close-only ? "Fechar resultado" : "Confirmar operação");
+                        clicked => {
+                            if (root.operation-busy) {
+                                root.operation-cancelled();
+                            } else if (root.operation-close-only) {
+                                root.operation-dismissed();
+                            } else {
+                                root.operation-confirmed();
+                            }
+                        }
+                    }
+                    Button {
+                        visible: !root.operation-busy && !root.operation-close-only;
+                        text: "Voltar";
+                        clicked => { root.operation-dismissed(); }
+                    }
                 }
             }
         }

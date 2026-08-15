@@ -20,11 +20,11 @@ Cada etapa precisa produzir uma fatia real, compilável e testável. O projeto n
 
 ## Escopo imediato
 
-A próxima alteração de código deve continuar a partir da seleção, do histórico, dos locais laterais e do Design System já funcionais, conectando operações reais de arquivo somente com contratos de confirmação, cancelamento, progresso e erros parciais. Favoritos persistentes, pesquisa global, thumbnails, análise de espaço e conversores permanecem sob demanda, em workers limitados, com testes de estresse e falha.
+A próxima alteração de código deve continuar a partir das operações visuais já funcionais, fortalecendo testes de Windows 10/11, paths longos, cancelamento durante arquivos grandes e conflitos antes de ampliar o escopo. Favoritos persistentes, pesquisa global, thumbnails, análise de espaço e conversores permanecem sob demanda, em workers limitados, com testes de estresse e falha.
 
 ## Definição de pronto da primeira versão de desenvolvimento
 
-A primeira versão de desenvolvimento atual lista um diretório real, permite navegar para um subdiretório, retorna erros estruturados, filtra a pasta atual sem pesquisa recursiva, mantém o event loop livre durante o filtro, oferece histórico voltar/avançar, seleção múltipla local e locais laterais existentes. Operações de arquivo reais já existem no núcleo, mas ainda não estão expostas por comandos visuais.
+A primeira versão de desenvolvimento atual lista um diretório real, permite navegar para um subdiretório, retorna erros estruturados, filtra a pasta atual sem pesquisa recursiva, mantém o event loop livre durante o filtro, oferece histórico voltar/avançar, seleção múltipla local e locais laterais existentes. Operações de arquivo reais estão expostas por comandos visuais de copiar, mover, renomear e excluir, com confirmação, worker único, progresso, cancelamento cooperativo, resultado parcial e recarga verificada da pasta.
 
 ## Itens explicitamente fora da primeira fatia
 

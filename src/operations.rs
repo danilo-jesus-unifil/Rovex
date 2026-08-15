@@ -3,8 +3,9 @@ use crate::security::{
 };
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,6 +13,12 @@ pub struct CopyReport {
     pub source: PathBuf,
     pub destination: PathBuf,
     pub bytes_copied: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CopyProgress {
+    pub bytes_copied: u64,
+    pub total_bytes: u64,
 }
 
 #[derive(Debug)]
@@ -29,6 +36,7 @@ pub enum OperationError {
     OutputValidationFailed {
         path: PathBuf,
     },
+    Cancelled,
 }
 
 fn human_io_reason(kind: io::ErrorKind) -> &'static str {
@@ -68,7 +76,23 @@ impl fmt::Display for OperationError {
                     path.display()
                 )
             }
+            Self::Cancelled => write!(formatter, "operação cancelada pelo usuário"),
         }
+    }
+}
+
+impl OperationError {
+    pub fn is_cross_device(&self) -> bool {
+        matches!(
+            self,
+            Self::FileSystem {
+                kind: io::ErrorKind::CrossesDevices,
+                ..
+            } | Self::FileSystem {
+                raw_os_error: Some(17 | 18),
+                ..
+            }
+        )
     }
 }
 
@@ -178,6 +202,19 @@ fn publish_file_no_replace(temporary: &Path, destination: &Path) -> Result<(), O
 }
 
 pub fn copy_file_atomic(source: &Path, destination: &Path) -> Result<CopyReport, OperationError> {
+    let cancel = AtomicBool::new(false);
+    copy_file_atomic_with_progress(source, destination, &cancel, |_| {})
+}
+
+pub fn copy_file_atomic_with_progress<F>(
+    source: &Path,
+    destination: &Path,
+    cancel: &AtomicBool,
+    mut progress: F,
+) -> Result<CopyReport, OperationError>
+where
+    F: FnMut(CopyProgress),
+{
     let source_type = validate_source(source)?;
     if !source_type.is_file() {
         return Err(OperationError::Validation(
@@ -186,7 +223,13 @@ pub fn copy_file_atomic(source: &Path, destination: &Path) -> Result<CopyReport,
             },
         ));
     }
+    if cancel.load(Ordering::Acquire) {
+        return Err(OperationError::Cancelled);
+    }
 
+    let total_bytes = fs::metadata(source)
+        .map_err(|error| from_io("ler tamanho da origem", source, error))?
+        .len();
     let destination =
         validate_destination(Some(source), destination, DestinationPolicy::default())?;
     let temporary = temporary_destination(&destination)?;
@@ -198,8 +241,27 @@ pub fn copy_file_atomic(source: &Path, destination: &Path) -> Result<CopyReport,
             .create_new(true)
             .open(&temporary)
             .map_err(|error| from_io("criar arquivo temporário", &temporary, error))?;
-        let bytes_copied = io::copy(&mut input, &mut output)
-            .map_err(|error| from_io("copiar arquivo", &temporary, error))?;
+        let mut buffer = [0_u8; 64 * 1024];
+        let mut bytes_copied = 0_u64;
+        loop {
+            if cancel.load(Ordering::Acquire) {
+                return Err(OperationError::Cancelled);
+            }
+            let read = input
+                .read(&mut buffer)
+                .map_err(|error| from_io("ler origem", source, error))?;
+            if read == 0 {
+                break;
+            }
+            output
+                .write_all(&buffer[..read])
+                .map_err(|error| from_io("copiar arquivo", &temporary, error))?;
+            bytes_copied += read as u64;
+            progress(CopyProgress {
+                bytes_copied,
+                total_bytes,
+            });
+        }
         output
             .flush()
             .and_then(|_| output.sync_all())
@@ -212,6 +274,9 @@ pub fn copy_file_atomic(source: &Path, destination: &Path) -> Result<CopyReport,
             return Err(OperationError::OutputValidationFailed {
                 path: temporary.clone(),
             });
+        }
+        if cancel.load(Ordering::Acquire) {
+            return Err(OperationError::Cancelled);
         }
 
         publish_file_no_replace(&temporary, &destination)?;
@@ -275,11 +340,11 @@ pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        copy_file_atomic, create_directory, delete_entry, publish_file_no_replace, rename_entry,
-        OperationError,
+        copy_file_atomic, copy_file_atomic_with_progress, create_directory, delete_entry,
+        publish_file_no_replace, rename_entry, OperationError,
     };
     use std::fs;
-    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
     static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -321,6 +386,50 @@ mod tests {
             b"dados locais"
         );
         assert!(!root.join(".destino.txt.rovex-tmp").exists());
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn copia_reporta_progresso_e_publica_ate_o_fim() {
+        let root = temporary_directory();
+        let source = root.join("origem-grande.bin");
+        let destination = root.join("destino-grande.bin");
+        let contents = vec![0x5a; 128 * 1024];
+        fs::write(&source, &contents).expect("a origem deve ser criada");
+        let cancel = AtomicBool::new(false);
+        let mut updates = Vec::new();
+
+        let report = copy_file_atomic_with_progress(&source, &destination, &cancel, |progress| {
+            updates.push(progress);
+        })
+        .expect("a cópia com progresso deve funcionar");
+
+        assert_eq!(report.bytes_copied, contents.len() as u64);
+        assert!(!updates.is_empty());
+        assert_eq!(updates.last().unwrap().bytes_copied, contents.len() as u64);
+        assert_eq!(fs::read(&destination).unwrap(), contents);
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn cancelamento_nao_publica_destino_parcial() {
+        let root = temporary_directory();
+        let source = root.join("origem-cancelada.bin");
+        let destination = root.join("destino-cancelado.bin");
+        fs::write(&source, vec![0x33; 128 * 1024]).expect("a origem deve ser criada");
+        let cancel = AtomicBool::new(false);
+
+        let result = copy_file_atomic_with_progress(&source, &destination, &cancel, |_| {
+            cancel.store(true, Ordering::Release);
+        });
+
+        assert!(matches!(result, Err(OperationError::Cancelled)));
+        assert!(!destination.exists());
+        assert!(!fs::read_dir(&root).unwrap().any(|entry| entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .contains("rovex-tmp")));
         fs::remove_dir_all(root).expect("o diretório deve ser removido");
     }
 

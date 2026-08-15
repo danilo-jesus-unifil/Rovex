@@ -5,9 +5,14 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
+    mpsc::{self, Sender},
     Arc, Mutex,
 };
 use std::thread;
+
+use crate::operations::{
+    copy_file_atomic_with_progress, delete_entry, rename_entry, CopyProgress, OperationError,
+};
 
 slint::include_modules!();
 
@@ -120,6 +125,383 @@ impl SelectionState {
 
     fn count(&self) -> usize {
         self.selected.len()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OperationKind {
+    Copy,
+    Move,
+    Rename,
+    Delete,
+}
+
+#[derive(Debug, Clone)]
+struct OperationRequest {
+    kind: OperationKind,
+    sources: Vec<PathBuf>,
+    destination_directory: Option<PathBuf>,
+    rename_name: Option<String>,
+    refresh_path: PathBuf,
+}
+
+#[derive(Debug)]
+struct OperationOutcome {
+    kind: OperationKind,
+    completed: usize,
+    failed: Vec<String>,
+    cancelled: bool,
+}
+
+impl OperationOutcome {
+    fn message(&self) -> String {
+        let action = match self.kind {
+            OperationKind::Copy => "cópia",
+            OperationKind::Move => "movimentação",
+            OperationKind::Rename => "renomeação",
+            OperationKind::Delete => "exclusão",
+        };
+        let mut message = if self.cancelled {
+            format!(
+                "Operação cancelada: {} item(ns) concluído(s), {} falha(s).",
+                self.completed,
+                self.failed.len()
+            )
+        } else if self.failed.is_empty() {
+            format!("{} concluída: {} item(ns).", action, self.completed)
+        } else {
+            format!(
+                "{} concluída parcialmente: {} item(ns) concluído(s), {} falha(s).",
+                action,
+                self.completed,
+                self.failed.len()
+            )
+        };
+        for failure in self.failed.iter().take(3) {
+            message.push('\n');
+            message.push_str(failure);
+        }
+        if self.failed.len() > 3 {
+            message.push_str(&format!("\n… e mais {} falha(s).", self.failed.len() - 3));
+        }
+        message
+    }
+
+    fn status(&self) -> String {
+        if self.cancelled {
+            "Operação cancelada; a pasta será atualizada.".to_owned()
+        } else if self.failed.is_empty() {
+            "Operação concluída; a pasta será atualizada.".to_owned()
+        } else {
+            "Operação concluída parcialmente; verifique o resultado.".to_owned()
+        }
+    }
+}
+
+#[derive(Debug)]
+struct OperationUpdate {
+    completed_items: usize,
+    total_items: usize,
+    current_bytes: u64,
+    current_total_bytes: u64,
+    label: String,
+}
+
+fn operation_label(source: &Path) -> String {
+    source
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| source.display().to_string())
+}
+
+fn operation_destination(
+    request: &OperationRequest,
+    source: &Path,
+) -> Result<PathBuf, OperationError> {
+    let directory = request
+        .destination_directory
+        .as_ref()
+        .ok_or(OperationError::Validation(
+            crate::security::ValidationError::EmptyPath,
+        ))?;
+    let file_name = source.file_name().ok_or(OperationError::Validation(
+        crate::security::ValidationError::EmptyPath,
+    ))?;
+    Ok(directory.join(file_name))
+}
+
+fn emit_item_progress<F>(
+    emit: &mut F,
+    index: usize,
+    total_items: usize,
+    label: &str,
+    current_bytes: u64,
+    current_total_bytes: u64,
+) where
+    F: FnMut(OperationUpdate),
+{
+    emit(OperationUpdate {
+        completed_items: index,
+        total_items,
+        current_bytes,
+        current_total_bytes,
+        label: label.to_owned(),
+    });
+}
+
+fn execute_operation<F>(
+    request: &OperationRequest,
+    cancel: &AtomicBool,
+    mut emit: F,
+) -> OperationOutcome
+where
+    F: FnMut(OperationUpdate),
+{
+    let total_items = request.sources.len();
+    let mut completed = 0;
+    let mut failed = Vec::new();
+
+    for (index, source) in request.sources.iter().enumerate() {
+        if cancel.load(Ordering::Acquire) {
+            return OperationOutcome {
+                kind: request.kind,
+                completed,
+                failed,
+                cancelled: true,
+            };
+        }
+        let label = operation_label(source);
+        let result = match request.kind {
+            OperationKind::Copy => {
+                let destination = operation_destination(request, source);
+                match destination {
+                    Ok(destination) => copy_file_atomic_with_progress(
+                        source,
+                        &destination,
+                        cancel,
+                        |CopyProgress {
+                             bytes_copied,
+                             total_bytes,
+                         }| {
+                            emit_item_progress(
+                                &mut emit,
+                                index,
+                                total_items,
+                                &label,
+                                bytes_copied,
+                                total_bytes,
+                            );
+                        },
+                    )
+                    .map(|_| ()),
+                    Err(error) => Err(error),
+                }
+            }
+            OperationKind::Move => {
+                let destination = operation_destination(request, source);
+                match destination {
+                    Ok(destination) => match rename_entry(source, &destination) {
+                        Ok(()) => Ok(()),
+                        Err(error) if error.is_cross_device() => {
+                            let copy_result = copy_file_atomic_with_progress(
+                                source,
+                                &destination,
+                                cancel,
+                                |CopyProgress {
+                                     bytes_copied,
+                                     total_bytes,
+                                 }| {
+                                    emit_item_progress(
+                                        &mut emit,
+                                        index,
+                                        total_items,
+                                        &label,
+                                        bytes_copied,
+                                        total_bytes,
+                                    );
+                                },
+                            );
+                            match copy_result {
+                                Ok(_) if cancel.load(Ordering::Acquire) => {
+                                    return OperationOutcome {
+                                        kind: request.kind,
+                                        completed,
+                                        failed: vec![format!(
+                                            "{label}: cópia concluída, origem preservada porque o cancelamento foi solicitado"
+                                        )],
+                                        cancelled: true,
+                                    };
+                                }
+                                Ok(_) => delete_entry(source),
+                                Err(error) => Err(error),
+                            }
+                        }
+                        Err(error) => Err(error),
+                    },
+                    Err(error) => Err(error),
+                }
+            }
+            OperationKind::Rename => {
+                let Some(name) = request.rename_name.as_deref() else {
+                    return OperationOutcome {
+                        kind: request.kind,
+                        completed,
+                        failed: vec![format!("{label}: novo nome ausente")],
+                        cancelled: false,
+                    };
+                };
+                let Some(parent) = source.parent() else {
+                    return OperationOutcome {
+                        kind: request.kind,
+                        completed,
+                        failed: vec![format!("{label}: diretório pai ausente")],
+                        cancelled: false,
+                    };
+                };
+                rename_entry(source, &parent.join(name))
+            }
+            OperationKind::Delete => delete_entry(source),
+        };
+
+        match result {
+            Ok(()) => {
+                completed += 1;
+                emit_item_progress(&mut emit, index + 1, total_items, &label, 0, 0);
+            }
+            Err(OperationError::Cancelled) => {
+                return OperationOutcome {
+                    kind: request.kind,
+                    completed,
+                    failed,
+                    cancelled: true,
+                };
+            }
+            Err(error) => failed.push(format!("{label}: {error}")),
+        }
+    }
+
+    OperationOutcome {
+        kind: request.kind,
+        completed,
+        failed,
+        cancelled: false,
+    }
+}
+
+#[derive(Debug)]
+enum OperationMessage {
+    Run(OperationRequest, Arc<AtomicBool>),
+    Shutdown,
+}
+
+struct OperationScheduler {
+    sender: Sender<OperationMessage>,
+    cancel: Arc<AtomicBool>,
+    busy: Arc<AtomicBool>,
+}
+
+impl OperationScheduler {
+    fn new(
+        ui_weak: slint::Weak<MainWindow>,
+        load_scheduler: Option<Arc<LoadScheduler>>,
+    ) -> Result<Self, ()> {
+        let (sender, receiver) = mpsc::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let busy = Arc::new(AtomicBool::new(false));
+        let worker_busy = Arc::clone(&busy);
+        let worker_ui = ui_weak.clone();
+        thread::Builder::new()
+            .name("rovex-operation-worker".to_owned())
+            .spawn(move || {
+                while let Ok(message) = receiver.recv() {
+                    let OperationMessage::Run(request, request_cancel) = message else {
+                        break;
+                    };
+                    let progress_ui = worker_ui.clone();
+                    let mut last_percentage = -1_i32;
+                    let outcome = execute_operation(&request, &request_cancel, |update| {
+                        let total = update.total_items.max(1) as f64;
+                        let item_fraction = if update.current_total_bytes > 0 {
+                            update.current_bytes as f64 / update.current_total_bytes as f64
+                        } else {
+                            0.0
+                        };
+                        let percentage = (((update.completed_items as f64 + item_fraction) / total)
+                            * 100.0)
+                            .round()
+                            .clamp(0.0, 100.0) as i32;
+                        if percentage == last_percentage {
+                            return;
+                        }
+                        last_percentage = percentage;
+                        let text = format!("{} — {}%", update.label, percentage);
+                        let _ = progress_ui.upgrade_in_event_loop(move |ui| {
+                            if ui.get_operation_busy() {
+                                ui.set_operation_progress(percentage);
+                                ui.set_operation_progress_text(SharedString::from(text));
+                            }
+                        });
+                    });
+                    worker_busy.store(false, Ordering::Release);
+                    if let Some(load_scheduler) = load_scheduler.as_ref() {
+                        let _ = load_scheduler.schedule(request.refresh_path.clone());
+                    }
+                    let message = outcome.message();
+                    let status = outcome.status();
+                    let progress = if outcome.cancelled || !outcome.failed.is_empty() {
+                        0
+                    } else {
+                        100
+                    };
+                    let _ = worker_ui.upgrade_in_event_loop(move |ui| {
+                        ui.set_operation_busy(false);
+                        ui.set_operation_close_only(true);
+                        ui.set_operation_needs_input(false);
+                        ui.set_operation_progress(progress);
+                        ui.set_operation_progress_text(SharedString::from("Resultado"));
+                        ui.set_operation_dialog_message(SharedString::from(message));
+                        ui.set_status_text(SharedString::from(status));
+                    });
+                }
+            })
+            .map_err(|_| ())?;
+
+        Ok(Self {
+            sender,
+            cancel,
+            busy,
+        })
+    }
+
+    fn start(&self, request: OperationRequest) -> Result<(), OperationRequest> {
+        if self.busy.swap(true, Ordering::AcqRel) {
+            return Err(request);
+        }
+        self.cancel.store(false, Ordering::Release);
+        let message = OperationMessage::Run(request, Arc::clone(&self.cancel));
+        match self.sender.send(message) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.busy.store(false, Ordering::Release);
+                match error.0 {
+                    OperationMessage::Run(request, _) => Err(request),
+                    OperationMessage::Shutdown => unreachable!("shutdown não é enviado por start"),
+                }
+            }
+        }
+    }
+
+    fn cancel(&self) {
+        if self.busy.load(Ordering::Acquire) {
+            self.cancel.store(true, Ordering::Release);
+        }
+    }
+}
+
+impl Drop for OperationScheduler {
+    fn drop(&mut self) {
+        self.cancel.store(true, Ordering::Release);
+        let _ = self.sender.send(OperationMessage::Shutdown);
     }
 }
 
@@ -499,6 +881,7 @@ impl LoadScheduler {
                         return;
                     };
                     selection_state.clear();
+                    ui.set_selection_count(0);
                     let snapshot: Arc<[LoadedRow]> = Arc::from(loaded.rows);
                     let Ok(mut rows) = ui_directory_rows.lock() else {
                         ui.set_status_text("Falha interna ao armazenar a listagem".into());
@@ -560,6 +943,58 @@ fn start_load(
     }
 }
 
+fn selected_paths(rows: &SharedRows, selection: &SharedSelection) -> Vec<PathBuf> {
+    let Ok(selection) = selection.lock() else {
+        return Vec::new();
+    };
+    let Ok(rows) = rows.lock() else {
+        return Vec::new();
+    };
+    rows.iter()
+        .filter(|row| selection.selected.contains(&row.key))
+        .map(|row| row.path.clone())
+        .collect()
+}
+
+fn validate_rename_name(name: &str) -> Result<String, &'static str> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("o novo nome não pode ser vazio");
+    }
+    if trimmed == "."
+        || trimmed == ".."
+        || trimmed.contains('/')
+        || trimmed.contains('\\')
+        || trimmed.contains('\0')
+    {
+        return Err("o novo nome deve ser um único nome de arquivo");
+    }
+    Ok(trimmed.to_owned())
+}
+
+fn show_operation_dialog(
+    ui_weak: &slint::Weak<MainWindow>,
+    pending: &Rc<std::cell::RefCell<Option<OperationRequest>>>,
+    request: OperationRequest,
+    title: &str,
+    message: &str,
+    input: &str,
+    needs_input: bool,
+) {
+    *pending.borrow_mut() = Some(request);
+    if let Some(ui) = ui_weak.upgrade() {
+        ui.set_operation_dialog_title(SharedString::from(title));
+        ui.set_operation_dialog_message(SharedString::from(message));
+        ui.set_operation_dialog_input(SharedString::from(input));
+        ui.set_operation_needs_input(needs_input);
+        ui.set_operation_close_only(false);
+        ui.set_operation_busy(false);
+        ui.set_operation_progress(0);
+        ui.set_operation_progress_text(SharedString::default());
+        ui.set_operation_dialog_visible(true);
+    }
+}
+
 fn update_history_controls(ui_weak: &slint::Weak<MainWindow>, history: &NavigationHistory) {
     if let Some(ui) = ui_weak.upgrade() {
         ui.set_can_go_back(history.can_go_back());
@@ -616,6 +1051,10 @@ pub fn run() -> Result<(), slint::PlatformError> {
     )
     .map(Arc::new)
     .ok();
+    let pending_operation = Rc::new(std::cell::RefCell::new(None::<OperationRequest>));
+    let operation_scheduler = OperationScheduler::new(ui_weak.clone(), load_scheduler.clone())
+        .map(Arc::new)
+        .ok();
 
     {
         let ui_weak = ui_weak.clone();
@@ -756,6 +1195,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 if !update_selection_visuals(&ui, &state) {
                     ui.set_status_text("Falha interna ao atualizar a seleção".into());
                 } else {
+                    ui.set_selection_count(state.count() as i32);
                     ui.set_status_text(SharedString::from(selection_status(&state)));
                 }
             }
@@ -779,7 +1219,223 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 if !update_selection_visuals(&ui, &state) {
                     ui.set_status_text("Falha interna ao atualizar a seleção".into());
                 } else {
+                    ui.set_selection_count(state.count() as i32);
                     ui.set_status_text(SharedString::from(selection_status(&state)));
+                }
+            }
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_copy_requested(move || {
+            let sources = selected_paths(&directory_rows, &selection);
+            if sources.is_empty() {
+                return;
+            }
+            let request = OperationRequest {
+                kind: OperationKind::Copy,
+                sources: sources.clone(),
+                destination_directory: None,
+                rename_name: None,
+                refresh_path: history.borrow().current.clone(),
+            };
+            show_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                request,
+                "Copiar itens",
+                &format!(
+                    "Confirme a cópia de {} item(ns). Informe um diretório de destino absoluto. Destinos existentes não serão sobrescritos.",
+                    sources.len()
+                ),
+                "",
+                true,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_move_requested(move || {
+            let sources = selected_paths(&directory_rows, &selection);
+            if sources.is_empty() {
+                return;
+            }
+            let request = OperationRequest {
+                kind: OperationKind::Move,
+                sources: sources.clone(),
+                destination_directory: None,
+                rename_name: None,
+                refresh_path: history.borrow().current.clone(),
+            };
+            show_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                request,
+                "Mover itens",
+                &format!(
+                    "Confirme a movimentação de {} item(ns). Informe um diretório de destino absoluto. Destinos existentes não serão sobrescritos.",
+                    sources.len()
+                ),
+                "",
+                true,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_rename_requested(move || {
+            let sources = selected_paths(&directory_rows, &selection);
+            let Some(source) = sources.first() else {
+                return;
+            };
+            let name = operation_label(source);
+            let request = OperationRequest {
+                kind: OperationKind::Rename,
+                sources: vec![source.clone()],
+                destination_directory: None,
+                rename_name: Some(name.clone()),
+                refresh_path: history.borrow().current.clone(),
+            };
+            show_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                request,
+                "Renomear item",
+                "Informe um único nome novo. Separadores de caminho, ponto e ponto-ponto não são permitidos.",
+                &name,
+                true,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_delete_requested(move || {
+            let sources = selected_paths(&directory_rows, &selection);
+            if sources.is_empty() {
+                return;
+            }
+            let request = OperationRequest {
+                kind: OperationKind::Delete,
+                sources: sources.clone(),
+                destination_directory: None,
+                rename_name: None,
+                refresh_path: history.borrow().current.clone(),
+            };
+            show_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                request,
+                "Excluir itens",
+                &format!(
+                    "Confirme a exclusão de {} item(ns). A operação não é recursiva: diretórios não vazios serão preservados.",
+                    sources.len()
+                ),
+                "",
+                false,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let operation_scheduler = operation_scheduler.clone();
+        ui.on_operation_confirmed(move || {
+            let Some(mut request) = pending_operation.borrow_mut().take() else {
+                return;
+            };
+            let Some(ui) = ui_weak.upgrade() else {
+                return;
+            };
+            match request.kind {
+                OperationKind::Copy | OperationKind::Move => {
+                    let input = ui.get_operation_dialog_input().to_string();
+                    let trimmed = input.trim();
+                    if trimmed.is_empty() {
+                        ui.set_operation_dialog_message("Informe um diretório de destino.".into());
+                        *pending_operation.borrow_mut() = Some(request);
+                        return;
+                    }
+                    request.destination_directory = Some(PathBuf::from(trimmed));
+                }
+                OperationKind::Rename => {
+                    let input = ui.get_operation_dialog_input().to_string();
+                    match validate_rename_name(&input) {
+                        Ok(name) => request.rename_name = Some(name),
+                        Err(error) => {
+                            ui.set_operation_dialog_message(SharedString::from(error));
+                            *pending_operation.borrow_mut() = Some(request);
+                            return;
+                        }
+                    }
+                }
+                OperationKind::Delete => {}
+            }
+            let Some(scheduler) = operation_scheduler.as_ref() else {
+                ui.set_operation_dialog_message("O worker de operações está indisponível.".into());
+                *pending_operation.borrow_mut() = Some(request);
+                return;
+            };
+            if let Err(request) = scheduler.start(request) {
+                ui.set_operation_dialog_message(
+                    "Já existe uma operação em andamento; aguarde o resultado.".into(),
+                );
+                *pending_operation.borrow_mut() = Some(request);
+                return;
+            }
+            ui.set_operation_busy(true);
+            ui.set_operation_close_only(false);
+            ui.set_operation_needs_input(false);
+            ui.set_operation_progress(0);
+            ui.set_operation_progress_text("Preparando…".into());
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let operation_scheduler = operation_scheduler.clone();
+        ui.on_operation_cancelled(move || {
+            let Some(scheduler) = operation_scheduler.as_ref() else {
+                return;
+            };
+            scheduler.cancel();
+            if let Some(ui) = ui_weak.upgrade() {
+                ui.set_operation_progress_text("Cancelamento solicitado…".into());
+                ui.set_operation_dialog_message(
+                    "A operação será interrompida no próximo ponto seguro; o resultado parcial será verificado.".into(),
+                );
+            }
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        ui.on_operation_dismissed(move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                if !ui.get_operation_busy() {
+                    ui.set_operation_dialog_visible(false);
+                    *pending_operation.borrow_mut() = None;
                 }
             }
         });
@@ -789,7 +1445,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let ui_weak = ui_weak.clone();
         let filter_generation = Arc::clone(&filter_generation);
         let filter_scheduler = filter_scheduler.clone();
+        let selection = Arc::clone(&selection);
         ui.on_filter_changed(move |text| {
+            if let Ok(mut state) = selection.lock() {
+                state.clear();
+                if let Some(ui) = ui_weak.upgrade() {
+                    ui.set_selection_count(0);
+                }
+            }
             let generation = filter_generation.fetch_add(1, Ordering::AcqRel) + 1;
             let query = text.to_string();
             let Some(scheduler) = filter_scheduler.as_ref() else {
@@ -815,7 +1478,8 @@ pub fn run() -> Result<(), slint::PlatformError> {
 mod tests {
     use super::{
         default_locations, empty_state_text, filter_rows, filter_status, format_size,
-        load_directory, parent_directory, LoadedRow, NavigationHistory, SelectionState,
+        load_directory, parent_directory, validate_rename_name, LoadedRow, NavigationHistory,
+        SelectionState,
     };
     use std::path::{Path, PathBuf};
 
@@ -847,6 +1511,18 @@ mod tests {
 
         selection.select_all(keys.clone());
         assert_eq!(selection.count(), keys.len());
+    }
+
+    #[test]
+    fn renomear_recusa_traversal_e_preserva_nome_unicode() {
+        assert!(validate_rename_name("").is_err());
+        assert!(validate_rename_name("..").is_err());
+        assert!(validate_rename_name("pasta/arquivo.txt").is_err());
+        assert!(validate_rename_name("pasta\\arquivo.txt").is_err());
+        assert_eq!(
+            validate_rename_name(" relatório final.txt"),
+            Ok("relatório final.txt".to_owned())
+        );
     }
 
     #[test]
