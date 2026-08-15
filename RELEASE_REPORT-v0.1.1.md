@@ -20,7 +20,7 @@ O módulo `src/converters.rs` executa FFmpeg por `std::process::Command`, sem sh
 | Formatos de imagem reconhecidos | PNG (`.png`) | FFmpeg com codec PNG; ffprobe espera `png`. |
 | Formatos de áudio reconhecidos | FLAC (`.flac`) | FFmpeg com codec FLAC; ffprobe espera `flac`. |
 
-O backend foi testado com **FFmpeg/ffprobe 6.1.1 no Ubuntu 24.04**. Em Windows, o usuário precisa instalar uma distribuição confiável que forneça `ffmpeg.exe` e `ffprobe.exe` no `PATH`. O Rovex não baixa nem atualiza executáveis em runtime.
+O backend foi testado com **FFmpeg/ffprobe 6.1.1 no Ubuntu 24.04**. Em Windows, o usuário precisa instalar uma distribuição confiável que forneça `ffmpeg.exe` e `ffprobe.exe`. O Rovex tenta o `PATH`, o diretório do executável, o diretório de trabalho e locais seguros de instalações comuns; os overrides absolutos `ROVEX_FFMPEG_PATH` e `ROVEX_FFPROBE_PATH` ficam disponíveis para diagnóstico. O Rovex não baixa nem atualiza executáveis em runtime.
 
 ## Validação executada
 

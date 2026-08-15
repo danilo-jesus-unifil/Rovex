@@ -20,6 +20,8 @@ slint = { version = "=1.17.1", default-features = false, features = ["backend-wi
 [target.'cfg(windows)'.dependencies]
 # Windows 10/11 continua com X11/Wayland desativados pelo próprio target e backend Winit nativo.
 slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
+# SHGetKnownFolderPath oferece os caminhos redirecionados pelo Windows sem depender de nomes localizados.
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_UI_Shell"] }
 
 [build-dependencies]
 slint-build = "=1.17.1"

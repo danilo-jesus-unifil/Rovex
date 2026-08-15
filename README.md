@@ -61,7 +61,7 @@ O modo CLI permanece disponível para ambientes sem display e para diagnóstico 
 cargo run -- --cli .
 ```
 
-A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, filtro local, seleção múltipla, histórico de navegação, clique direito, confirmação de conversão e captura de screenshots. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows. As conversões exigem `ffmpeg.exe` e `ffprobe.exe` instalados no `PATH`; o Rovex não baixa executáveis em runtime.
+A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, filtro local, seleção múltipla, histórico de navegação, clique direito, confirmação de conversão e captura de screenshots. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows. As conversões exigem `ffmpeg.exe` e `ffprobe.exe`. O Rovex tenta o `PATH`, o diretório do próprio executável e diretórios seguros de instalações comuns; para diagnóstico controlado, também aceita `ROVEX_FFMPEG_PATH` e `ROVEX_FFPROBE_PATH` com caminhos absolutos. O Rovex não baixa executáveis em runtime.
 
 ## Documentação
 

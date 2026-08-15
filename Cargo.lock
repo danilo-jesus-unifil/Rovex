@@ -3916,6 +3916,7 @@ version = "0.1.1"
 dependencies = [
  "slint",
  "slint-build",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

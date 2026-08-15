@@ -122,6 +122,7 @@ pub struct ConversionReport {
 pub enum ConversionError {
     BackendUnavailable {
         executable: &'static str,
+        attempts: usize,
     },
     InvalidInput {
         path: PathBuf,
@@ -151,10 +152,14 @@ pub enum ConversionError {
 impl fmt::Display for ConversionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::BackendUnavailable { executable } => {
+            Self::BackendUnavailable {
+                executable,
+                attempts,
+            } => {
                 write!(
                     formatter,
-                    "o conversor `{executable}` não foi encontrado no PATH"
+                    "o conversor `{executable}` não foi encontrado; foram tentadas {attempts} localizações seguras (PATH, diretório do Rovex e diretórios padrão). Defina ROVEX_{executable_upper}_PATH com o caminho absoluto do executável, se necessário",
+                    executable_upper = executable.to_ascii_uppercase(),
                 )
             }
             Self::InvalidInput { path, reason } => {
@@ -298,14 +303,159 @@ fn stderr_message(bytes: &[u8]) -> String {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct BackendResolution {
+    path: PathBuf,
+}
+
+fn backend_override_name(executable: &str) -> String {
+    format!("ROVEX_{}_PATH", executable.to_ascii_uppercase())
+}
+
+fn backend_names(executable: &str) -> [PathBuf; 2] {
+    [
+        PathBuf::from(executable),
+        PathBuf::from(format!("{executable}.exe")),
+    ]
+}
+
+fn push_candidate(candidates: &mut Vec<PathBuf>, candidate: PathBuf) {
+    if !candidate.as_os_str().is_empty() && !candidates.iter().any(|path| path == &candidate) {
+        candidates.push(candidate);
+    }
+}
+
+fn push_directory_candidates(candidates: &mut Vec<PathBuf>, directory: PathBuf, executable: &str) {
+    for name in backend_names(executable) {
+        push_candidate(candidates, directory.join(name));
+    }
+}
+
+fn backend_candidates(executable: &str) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Some(override_path) = std::env::var_os(backend_override_name(executable)) {
+        let override_path = PathBuf::from(override_path);
+        if override_path.is_absolute() {
+            push_candidate(&mut candidates, override_path.clone());
+            if override_path.extension().is_none() {
+                push_candidate(&mut candidates, override_path.with_extension("exe"));
+            }
+        }
+    }
+
+    if let Some(path) = std::env::var_os("PATH") {
+        for directory in std::env::split_paths(&path) {
+            push_directory_candidates(&mut candidates, directory, executable);
+        }
+    }
+
+    if let Ok(current_exe) = std::env::current_exe()
+        && let Some(directory) = current_exe.parent()
+    {
+        push_directory_candidates(&mut candidates, directory.to_path_buf(), executable);
+    }
+    if let Some(home) = std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(PathBuf::from)
+    {
+        push_directory_candidates(&mut candidates, home.join(".local").join("bin"), executable);
+        push_directory_candidates(&mut candidates, home.join("bin"), executable);
+        push_directory_candidates(
+            &mut candidates,
+            home.join("scoop")
+                .join("apps")
+                .join("ffmpeg")
+                .join("current")
+                .join("bin"),
+            executable,
+        );
+        push_directory_candidates(
+            &mut candidates,
+            home.join("AppData")
+                .join("Local")
+                .join("Programs")
+                .join("ffmpeg")
+                .join("bin"),
+            executable,
+        );
+    }
+
+    for variable in [
+        "ProgramFiles",
+        "ProgramFiles(x86)",
+        "LOCALAPPDATA",
+        "ChocolateyToolsLocation",
+        "ChocolateyInstall",
+    ] {
+        if let Some(root) = std::env::var_os(variable).map(PathBuf::from) {
+            push_directory_candidates(&mut candidates, root.join("ffmpeg").join("bin"), executable);
+            push_directory_candidates(&mut candidates, root.join("FFmpeg").join("bin"), executable);
+            push_directory_candidates(
+                &mut candidates,
+                root.join("ffmpeg").join("current").join("bin"),
+                executable,
+            );
+            push_directory_candidates(
+                &mut candidates,
+                root.join("Microsoft").join("WinGet").join("Links"),
+                executable,
+            );
+        }
+    }
+
+    for directory in [
+        "/usr/bin",
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+        "/snap/bin",
+        "/var/lib/flatpak/exports/bin",
+        "C:\\ffmpeg\\bin",
+        "C:\\ProgramData\\chocolatey\\bin",
+    ] {
+        push_directory_candidates(&mut candidates, PathBuf::from(directory), executable);
+    }
+
+    candidates
+}
+
+fn is_regular_non_symlink(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .map(|metadata| metadata.file_type().is_file())
+        .unwrap_or(false)
+}
+
+fn resolve_backend_from_candidates(
+    executable: &'static str,
+    candidates: &[PathBuf],
+) -> Result<BackendResolution, ConversionError> {
+    for candidate in candidates {
+        if is_regular_non_symlink(candidate) {
+            return Ok(BackendResolution {
+                path: candidate.clone(),
+            });
+        }
+    }
+    Err(ConversionError::BackendUnavailable {
+        executable,
+        attempts: candidates.len(),
+    })
+}
+
+fn resolve_backend(executable: &'static str) -> Result<BackendResolution, ConversionError> {
+    let candidates = backend_candidates(executable);
+    resolve_backend_from_candidates(executable, &candidates)
+}
+
 fn spawn_ffmpeg(
+    backend: &Path,
     source: &Path,
     temporary: &Path,
     kind: ConversionKind,
     cancel: &AtomicBool,
     stage: &mut impl FnMut(ConversionStage),
 ) -> Result<(), ConversionError> {
-    let mut command = Command::new("ffmpeg");
+    let mut command = Command::new(backend);
     command
         .arg("-hide_banner")
         .arg("-loglevel")
@@ -345,18 +495,10 @@ fn spawn_ffmpeg(
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|error| {
-            if error.kind() == io::ErrorKind::NotFound {
-                ConversionError::BackendUnavailable {
-                    executable: "ffmpeg",
-                }
-            } else {
-                ConversionError::Process {
-                    executable: "ffmpeg",
-                    path: source.to_path_buf(),
-                    message: error.to_string(),
-                }
-            }
+        .map_err(|error| ConversionError::Process {
+            executable: "ffmpeg",
+            path: source.to_path_buf(),
+            message: format!("o executável resolvido não pôde ser iniciado: {error}"),
         })?;
     let deadline = Instant::now() + MAX_CONVERSION_DURATION;
     loop {
@@ -408,11 +550,12 @@ fn spawn_ffmpeg(
 }
 
 fn run_ffprobe(
+    backend: &Path,
     destination: &Path,
     stream: &str,
     cancel: &AtomicBool,
 ) -> Result<std::process::Output, ConversionError> {
-    let mut child = Command::new("ffprobe")
+    let mut child = Command::new(backend)
         .arg("-hide_banner")
         .arg("-v")
         .arg("error")
@@ -426,18 +569,10 @@ fn run_ffprobe(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|error| {
-            if error.kind() == io::ErrorKind::NotFound {
-                ConversionError::BackendUnavailable {
-                    executable: "ffprobe",
-                }
-            } else {
-                ConversionError::Process {
-                    executable: "ffprobe",
-                    path: destination.to_path_buf(),
-                    message: error.to_string(),
-                }
-            }
+        .map_err(|error| ConversionError::Process {
+            executable: "ffprobe",
+            path: destination.to_path_buf(),
+            message: format!("o executável resolvido não pôde ser iniciado: {error}"),
         })?;
     let deadline = Instant::now() + MAX_CONVERSION_DURATION;
     loop {
@@ -497,6 +632,7 @@ fn run_ffprobe(
 }
 
 fn validate_output(
+    ffprobe: &Path,
     destination: &Path,
     kind: ConversionKind,
     cancel: &AtomicBool,
@@ -521,7 +657,7 @@ fn validate_output(
         ConversionKind::JpegXl | ConversionKind::Png => "v:0",
         ConversionKind::Opus | ConversionKind::Flac => "a:0",
     };
-    let output = run_ffprobe(destination, stream, cancel)?;
+    let output = run_ffprobe(ffprobe, destination, stream, cancel)?;
     let detected = String::from_utf8_lossy(&output.stdout).trim().to_owned();
     if !output.status.success() || detected != kind.expected_codec() {
         return Err(ConversionError::OutputValidationFailed {
@@ -584,10 +720,12 @@ where
             |error| map_destination_error(OperationError::Validation(error), &destination),
         )?;
     let temporary = temporary_path(&destination)?;
+    let ffmpeg = resolve_backend("ffmpeg")?;
+    let ffprobe = resolve_backend("ffprobe")?;
     let result = (|| {
-        spawn_ffmpeg(&source, &temporary, kind, cancel, &mut stage)?;
+        spawn_ffmpeg(&ffmpeg.path, &source, &temporary, kind, cancel, &mut stage)?;
         stage(ConversionStage::Validating);
-        validate_output(&temporary, kind, cancel)?;
+        validate_output(&ffprobe.path, &temporary, kind, cancel)?;
         if cancel.load(Ordering::Acquire) {
             return Err(ConversionError::Cancelled);
         }
@@ -608,7 +746,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{ConversionKind, convert_file, output_path};
+    use super::{
+        ConversionError, ConversionKind, convert_file, output_path, resolve_backend_from_candidates,
+    };
     use std::fs;
     use std::path::Path;
     use std::process::Command;
@@ -629,6 +769,44 @@ mod tests {
         assert_eq!(jxl, root.join("foto.jxl"));
         let same = output_path(&root.join("foto.jxl"), ConversionKind::JpegXl).unwrap();
         assert_eq!(same, root.join("foto.converted.jxl"));
+    }
+
+    #[test]
+    fn resolvedor_tenta_candidatos_em_ordem_e_aceita_apenas_arquivo_regular() {
+        let root = std::env::temp_dir().join(format!(
+            "rovex-backend-resolver-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&root).expect("criar diretório do teste");
+        let missing = root.join("missing");
+        let backend = root.join("ffmpeg-real");
+        fs::write(&backend, b"backend de teste").expect("criar backend de teste");
+        let candidates = vec![missing, backend.clone(), backend.clone()];
+        let resolved = resolve_backend_from_candidates("ffmpeg", &candidates)
+            .expect("resolver deve avançar até o arquivo regular");
+        assert_eq!(resolved.path, backend);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn resolvedor_retorna_erro_estruturado_com_numero_de_tentativas() {
+        let candidates = vec![
+            std::env::temp_dir().join("rovex-missing-ffmpeg-a"),
+            std::env::temp_dir().join("rovex-missing-ffmpeg-b"),
+        ];
+        let error = resolve_backend_from_candidates("ffmpeg", &candidates)
+            .expect_err("nenhum candidato deve ser tratado como backend");
+        assert!(matches!(
+            error,
+            ConversionError::BackendUnavailable {
+                executable: "ffmpeg",
+                attempts: 2
+            }
+        ));
     }
 
     #[test]

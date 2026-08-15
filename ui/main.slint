@@ -29,6 +29,9 @@ export global DesignTokens {
     out property <length> control-gap: 8px;
     out property <length> content-gap: 10px;
     out property <length> toolbar-height: 34px;
+    out property <length> toolbar-gap: 10px;
+    out property <length> toolbar-button-width: 42px;
+    out property <length> toolbar-refresh-width: 92px;
     out property <length> sidebar-inner-gap: 6px;
     out property <length> sidebar-title-height: 24px;
     out property <length> sidebar-text-inset: 10px;
@@ -217,51 +220,55 @@ export component MainWindow inherits Window {
         spacing: DesignTokens.layout-gap;
 
             HorizontalLayout {
-                spacing: DesignTokens.control-gap;
+                spacing: DesignTokens.toolbar-gap;
                 height: DesignTokens.toolbar-height;
 
-            RovexButton {
-                text: "←";
-                enabled: root.can-go-back;
-                accessible-label: "Voltar no histórico";
-                clicked => { root.back-requested(); }
-            }
+                RovexButton {
+                    width: DesignTokens.toolbar-button-width;
+                    text: "←";
+                    enabled: root.can-go-back;
+                    accessible-label: "Voltar no histórico";
+                    clicked => { root.back-requested(); }
+                }
 
-            RovexButton {
-                text: "→";
-                enabled: root.can-go-forward;
-                accessible-label: "Avançar no histórico";
-                clicked => { root.forward-requested(); }
-            }
+                RovexButton {
+                    width: DesignTokens.toolbar-button-width;
+                    text: "→";
+                    enabled: root.can-go-forward;
+                    accessible-label: "Avançar no histórico";
+                    clicked => { root.forward-requested(); }
+                }
 
-            RovexButton {
-                text: "↑";
-                accessible-label: "Subir para a pasta pai";
-                clicked => { root.navigate-up(); }
-            }
+                RovexButton {
+                    width: DesignTokens.toolbar-button-width;
+                    text: "↑";
+                    accessible-label: "Subir para a pasta pai";
+                    clicked => { root.navigate-up(); }
+                }
 
-            RovexLineEdit {
-                text <=> root.current-path;
-                accessible-label: "Caminho da pasta";
-                placeholder-text: "Caminho da pasta";
-                accepted => { root.navigate-to(self.text); }
-            }
+                RovexLineEdit {
+                    horizontal-stretch: 1;
+                    text <=> root.current-path;
+                    accessible-label: "Caminho da pasta";
+                    placeholder-text: "Caminho da pasta";
+                    accepted => { root.navigate-to(self.text); }
+                }
 
-            RovexLineEdit {
-                width: DesignTokens.filter-width;
-                text <=> root.filter-text;
-                placeholder-text: "Filtrar nesta pasta";
-                accessible-label: "Filtrar itens da pasta atual";
-                edited => { root.filter-changed(self.text); }
-            }
+                RovexLineEdit {
+                    width: DesignTokens.filter-width;
+                    text <=> root.filter-text;
+                    placeholder-text: "Filtrar nesta pasta";
+                    accessible-label: "Filtrar itens da pasta atual";
+                    edited => { root.filter-changed(self.text); }
+                }
 
-            RovexButton {
-                text: "Atualizar";
-                accessible-label: "Atualizar listagem";
-                clicked => { root.refresh-requested(); }
+                RovexButton {
+                    width: DesignTokens.toolbar-refresh-width;
+                    text: "Atualizar";
+                    accessible-label: "Atualizar listagem";
+                    clicked => { root.refresh-requested(); }
+                }
             }
-
-        }
 
         HorizontalLayout {
             spacing: DesignTokens.control-gap;
