@@ -3,7 +3,7 @@
 **Data:** 15 de agosto de 2026  
 **Baseline:** commit `1433e28`  
 **Checkpoint:** `backup/before-modernization-2026-08-15`  
-**Estado do relatório:** modernização local concluída; validação CI da ponta publicada será registrada no histórico do repositório.
+**Estado do relatório:** modernização local e validação CI concluídas; o run `31864602133` aprovou auditoria, Linux, Windows e cross-build Windows GNU.
 
 ## Resumo executivo
 
@@ -72,7 +72,7 @@ Os builds clean foram medidos em cópias separadas com o mesmo toolchain, script
 | `cargo build --release --target x86_64-pc-windows-gnu` | Aprovado |
 | Smoke Xvfb de navegação e UI | Aprovado antes e depois das alterações de dependência |
 | Smoke de operações reais | Copiar, renomear e excluir aprovados no filesystem |
-| CI Linux/Windows | Ponta anterior aprovada; o CI da ponta modernizada deve ser o gate de publicação |
+| CI Linux/Windows/cross | Run `31864602133` aprovado: auditoria, Linux, Windows e Windows GNU cross-build |
 
 ## Compatibilidade Windows
 
