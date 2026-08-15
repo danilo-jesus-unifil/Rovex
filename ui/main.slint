@@ -1,5 +1,34 @@
 import { Button, LineEdit, ListView } from "std-widgets.slint";
 
+export global DesignTokens {
+    out property <color> window-background: #f4f5f7;
+    out property <color> surface: #ffffff;
+    out property <color> surface-secondary: #f7f8fa;
+    out property <color> surface-selected: #dbeafe;
+    out property <color> border: #d9dde3;
+    out property <color> text-primary: #1f2937;
+    out property <color> text-secondary: #6b7280;
+    out property <color> text-muted: #697386;
+    out property <color> accent: #2563eb;
+    out property <length> page-padding: 12px;
+    out property <length> layout-gap: 10px;
+    out property <length> control-gap: 8px;
+    out property <length> content-gap: 10px;
+    out property <length> toolbar-height: 34px;
+    out property <length> sidebar-inner-gap: 6px;
+    out property <length> sidebar-title-height: 24px;
+    out property <length> sidebar-text-inset: 10px;
+    out property <length> status-height: 22px;
+    out property <length> filter-width: 260px;
+    out property <length> sidebar-width: 190px;
+    out property <length> sidebar-padding: 10px;
+    out property <length> sidebar-row-height: 34px;
+    out property <length> file-row-height: 38px;
+    out property <length> file-row-padding: 12px;
+    out property <length> file-column-gap: 12px;
+    out property <length> radius-small: 4px;
+}
+
 export struct LocationRow {
     label: string,
     path: string,
@@ -39,15 +68,15 @@ export component MainWindow inherits Window {
     preferred-height: 720px;
     min-width: 720px;
     min-height: 480px;
-    background: #f4f5f7;
+    background: DesignTokens.window-background;
 
     VerticalLayout {
-        padding: 12px;
-        spacing: 10px;
+        padding: DesignTokens.page-padding;
+        spacing: DesignTokens.layout-gap;
 
         HorizontalLayout {
-            spacing: 8px;
-            height: 34px;
+            spacing: DesignTokens.control-gap;
+            height: DesignTokens.toolbar-height;
 
             Button {
                 text: "←";
@@ -76,7 +105,7 @@ export component MainWindow inherits Window {
             }
 
             LineEdit {
-                width: 260px;
+                width: DesignTokens.filter-width;
                 text <=> root.filter-text;
                 placeholder-text: "Filtrar nesta pasta";
                 accessible-label: "Filtrar itens da pasta atual";
@@ -91,40 +120,40 @@ export component MainWindow inherits Window {
         }
 
         HorizontalLayout {
-            spacing: 10px;
+            spacing: DesignTokens.content-gap;
             vertical-stretch: 1;
 
             Rectangle {
-                width: 190px;
-                background: #ffffff;
+                width: DesignTokens.sidebar-width;
+                background: DesignTokens.surface;
                 border-width: 1px;
-                border-color: #d9dde3;
-                border-radius: 4px;
+                border-color: DesignTokens.border;
+                border-radius: DesignTokens.radius-small;
                 VerticalLayout {
-                    padding: 10px;
-                    spacing: 6px;
+                    padding: DesignTokens.sidebar-padding;
+                    spacing: DesignTokens.sidebar-inner-gap;
                     Text {
                         text: "Locais";
-                        color: #1f2937;
-                        height: 24px;
+                        color: DesignTokens.text-primary;
+                        height: DesignTokens.sidebar-title-height;
                     }
                     ListView {
                         vertical-stretch: 1;
                         for location[index] in root.locations: Rectangle {
-                            height: 34px;
-                            background: Math.mod(index, 2) == 0 ? #ffffff : #f7f8fa;
+                            height: DesignTokens.sidebar-row-height;
+                            background: location.path == root.current-path ? DesignTokens.surface-selected : (sidebar-touch.has-hover ? DesignTokens.surface-secondary : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary));
                             accessible-role: list-item;
                             accessible-label: location.label;
                             Text {
-                                x: 10px;
-                                width: parent.width - 20px;
+                                x: DesignTokens.sidebar-text-inset;
+                                width: parent.width - 2 * DesignTokens.sidebar-text-inset;
                                 height: parent.height;
                                 text: location.label;
-                                color: #374151;
+                                color: location.path == root.current-path ? DesignTokens.accent : DesignTokens.text-primary;
                                 vertical-alignment: center;
                                 overflow: elide;
                             }
-                            TouchArea {
+                            sidebar-touch := TouchArea {
                                 clicked => { root.navigate-to-location(index); }
                             }
                         }
@@ -133,13 +162,13 @@ export component MainWindow inherits Window {
             }
 
             VerticalLayout {
-                spacing: 10px;
+                spacing: DesignTokens.content-gap;
                 horizontal-stretch: 1;
                 Rectangle {
-                    background: #ffffff;
+                    background: DesignTokens.surface;
                     border-width: 1px;
-                    border-color: #d9dde3;
-                    border-radius: 4px;
+                    border-color: DesignTokens.border;
+                    border-radius: DesignTokens.radius-small;
                     vertical-stretch: 1;
 
                     focus-scope := FocusScope {
@@ -158,26 +187,26 @@ export component MainWindow inherits Window {
                     width: 100%;
                     height: 100%;
                     for entry[index] in root.entries: Rectangle {
-                        height: 38px;
-                        background: entry.selected ? #dbeafe : (Math.mod(index, 2) == 0 ? #ffffff : #f7f8fa);
+                        height: DesignTokens.file-row-height;
+                        background: entry.selected ? DesignTokens.surface-selected : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary);
                         accessible-role: list-item;
                         accessible-label: entry.selected ? "Selecionado: " + entry.name : entry.name;
 
                         HorizontalLayout {
-                            padding-left: 12px;
-                            padding-right: 12px;
-                            spacing: 12px;
+                            padding-left: DesignTokens.file-row-padding;
+                            padding-right: DesignTokens.file-row-padding;
+                            spacing: DesignTokens.file-column-gap;
 
                             Text {
                                 width: 64px;
                                 text: entry.kind;
-                                color: entry.is-directory ? #2563eb : #697386;
+                                color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-muted;
                                 vertical-alignment: center;
                             }
 
                             Text {
                                 text: entry.name;
-                                color: #1f2937;
+                                color: DesignTokens.text-primary;
                                 vertical-alignment: center;
                                 horizontal-stretch: 1;
                                 overflow: elide;
@@ -185,7 +214,7 @@ export component MainWindow inherits Window {
 
                             Text {
                                 text: entry.details;
-                                color: #6b7280;
+                                color: DesignTokens.text-secondary;
                                 vertical-alignment: center;
                             }
                         }
@@ -207,8 +236,8 @@ export component MainWindow inherits Window {
             }
             Text {
                 text: root.status-text;
-                    color: #4b5563;
-                    height: 22px;
+                    color: DesignTokens.text-secondary;
+                    height: DesignTokens.status-height;
                     overflow: elide;
                 }
             }

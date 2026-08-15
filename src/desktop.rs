@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc, Mutex,
 };
 use std::thread;
@@ -309,6 +309,7 @@ struct FilterRequest {
 
 struct FilterScheduler {
     pending: Arc<(Mutex<Option<FilterRequest>>, std::sync::Condvar)>,
+    stop: Arc<AtomicBool>,
 }
 
 impl FilterScheduler {
@@ -319,7 +320,9 @@ impl FilterScheduler {
         filter_generation: Arc<AtomicU64>,
     ) -> Result<Self, ()> {
         let pending = Arc::new((Mutex::new(None::<FilterRequest>), std::sync::Condvar::new()));
+        let stop = Arc::new(AtomicBool::new(false));
         let worker_pending = Arc::clone(&pending);
+        let worker_stop = Arc::clone(&stop);
         thread::Builder::new()
             .name("rovex-filter-worker".to_owned())
             .spawn(move || loop {
@@ -328,11 +331,15 @@ impl FilterScheduler {
                     let Ok(pending) = lock.lock() else {
                         break;
                     };
-                    let mut pending =
-                        match condition.wait_while(pending, |request| request.is_none()) {
-                            Ok(pending) => pending,
-                            Err(_) => break,
-                        };
+                    let mut pending = match condition.wait_while(pending, |request| {
+                        request.is_none() && !worker_stop.load(Ordering::Acquire)
+                    }) {
+                        Ok(pending) => pending,
+                        Err(_) => break,
+                    };
+                    if pending.is_none() && worker_stop.load(Ordering::Acquire) {
+                        break;
+                    }
                     pending.take()
                 };
 
@@ -372,7 +379,7 @@ impl FilterScheduler {
             })
             .map_err(|_| ())?;
 
-        Ok(Self { pending })
+        Ok(Self { pending, stop })
     }
 
     fn schedule(&self, generation: u64, query: String) -> Result<(), ()> {
@@ -386,55 +393,141 @@ impl FilterScheduler {
     }
 }
 
-fn start_load(
-    ui_weak: slint::Weak<MainWindow>,
-    path: PathBuf,
-    load_generation: &Arc<AtomicU64>,
-    filter_generation: &Arc<AtomicU64>,
-    directory_rows: &SharedRows,
-    selection: &SharedSelection,
-) {
-    let generation = load_generation.fetch_add(1, Ordering::AcqRel) + 1;
-    filter_generation.fetch_add(1, Ordering::AcqRel);
-    let load_generation = Arc::clone(load_generation);
-    let filter_generation = Arc::clone(filter_generation);
-    let directory_rows = Arc::clone(directory_rows);
-    let selection = Arc::clone(selection);
-    let failure_ui_weak = ui_weak.clone();
-    let worker = thread::Builder::new()
-        .name("rovex-filesystem-loader".to_owned())
-        .spawn(move || {
-            let loaded = load_directory(path);
-            let _ = ui_weak.upgrade_in_event_loop(move |ui| {
-                if load_generation.load(Ordering::Acquire) != generation {
-                    return;
-                }
-                ui.set_current_path(SharedString::from(
-                    loaded.path.to_string_lossy().to_string(),
-                ));
-                filter_generation.fetch_add(1, Ordering::AcqRel);
-                ui.set_filter_text(SharedString::default());
-                let Ok(mut selection_state) = selection.lock() else {
-                    ui.set_status_text("Falha interna ao limpar a seleção".into());
-                    return;
-                };
-                selection_state.clear();
-                let snapshot: Arc<[LoadedRow]> = Arc::from(loaded.rows);
-                let Ok(mut rows) = directory_rows.lock() else {
-                    ui.set_status_text("Falha interna ao armazenar a listagem".into());
-                    return;
-                };
-                *rows = Arc::clone(&snapshot);
-                ui.set_status_text(SharedString::from(loaded.status));
-                if !set_rows(&ui, snapshot.as_ref().to_vec(), &selection_state) {
-                    ui.set_status_text("Falha interna ao atualizar a lista".into());
-                }
-            });
-        });
+impl Drop for FilterScheduler {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Release);
+        let (_, condition) = &*self.pending;
+        condition.notify_one();
+    }
+}
 
-    if worker.is_err() {
-        let _ = failure_ui_weak.upgrade_in_event_loop(|ui| {
-            ui.set_status_text("Falha ao iniciar o carregamento".into());
+struct LoadRequest {
+    generation: u64,
+    path: PathBuf,
+}
+
+struct LoadScheduler {
+    pending: Arc<(Mutex<Option<LoadRequest>>, std::sync::Condvar)>,
+    stop: Arc<AtomicBool>,
+    load_generation: Arc<AtomicU64>,
+    filter_generation: Arc<AtomicU64>,
+}
+
+impl LoadScheduler {
+    fn new(
+        ui_weak: slint::Weak<MainWindow>,
+        directory_rows: SharedRows,
+        selection: SharedSelection,
+        filter_generation: Arc<AtomicU64>,
+    ) -> Result<Self, ()> {
+        let pending = Arc::new((Mutex::new(None::<LoadRequest>), std::sync::Condvar::new()));
+        let stop = Arc::new(AtomicBool::new(false));
+        let load_generation = Arc::new(AtomicU64::new(0));
+        let worker_pending = Arc::clone(&pending);
+        let worker_stop = Arc::clone(&stop);
+        let worker_load_generation = Arc::clone(&load_generation);
+        let worker_filter_generation = Arc::clone(&filter_generation);
+        let worker_directory_rows = Arc::clone(&directory_rows);
+        let worker_selection = Arc::clone(&selection);
+        thread::Builder::new()
+            .name("rovex-filesystem-loader".to_owned())
+            .spawn(move || loop {
+                let request = {
+                    let (lock, condition) = &*worker_pending;
+                    let Ok(pending) = lock.lock() else {
+                        break;
+                    };
+                    let mut pending = match condition.wait_while(pending, |request| {
+                        request.is_none() && !worker_stop.load(Ordering::Acquire)
+                    }) {
+                        Ok(pending) => pending,
+                        Err(_) => break,
+                    };
+                    if pending.is_none() && worker_stop.load(Ordering::Acquire) {
+                        break;
+                    }
+                    pending.take()
+                };
+
+                let Some(request) = request else {
+                    continue;
+                };
+                let loaded = load_directory(request.path);
+                let ui_load_generation = Arc::clone(&worker_load_generation);
+                let ui_filter_generation = Arc::clone(&worker_filter_generation);
+                let ui_directory_rows = Arc::clone(&worker_directory_rows);
+                let ui_selection = Arc::clone(&worker_selection);
+                let _ = ui_weak.upgrade_in_event_loop(move |ui| {
+                    if ui_load_generation.load(Ordering::Acquire) != request.generation {
+                        return;
+                    }
+                    ui.set_current_path(SharedString::from(
+                        loaded.path.to_string_lossy().to_string(),
+                    ));
+                    ui_filter_generation.fetch_add(1, Ordering::AcqRel);
+                    ui.set_filter_text(SharedString::default());
+                    let Ok(mut selection_state) = ui_selection.lock() else {
+                        ui.set_status_text("Falha interna ao limpar a seleção".into());
+                        return;
+                    };
+                    selection_state.clear();
+                    let snapshot: Arc<[LoadedRow]> = Arc::from(loaded.rows);
+                    let Ok(mut rows) = ui_directory_rows.lock() else {
+                        ui.set_status_text("Falha interna ao armazenar a listagem".into());
+                        return;
+                    };
+                    *rows = Arc::clone(&snapshot);
+                    ui.set_status_text(SharedString::from(loaded.status));
+                    if !set_rows(&ui, snapshot.as_ref().to_vec(), &selection_state) {
+                        ui.set_status_text("Falha interna ao atualizar a lista".into());
+                    }
+                });
+            })
+            .map_err(|_| ())?;
+
+        Ok(Self {
+            pending,
+            stop,
+            load_generation,
+            filter_generation,
+        })
+    }
+
+    fn schedule(&self, path: PathBuf) -> Result<(), ()> {
+        let generation = self.load_generation.fetch_add(1, Ordering::AcqRel) + 1;
+        self.filter_generation.fetch_add(1, Ordering::AcqRel);
+        let (lock, condition) = &*self.pending;
+        let Ok(mut pending) = lock.lock() else {
+            return Err(());
+        };
+        *pending = Some(LoadRequest { generation, path });
+        condition.notify_one();
+        Ok(())
+    }
+}
+
+impl Drop for LoadScheduler {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Release);
+        let (_, condition) = &*self.pending;
+        condition.notify_one();
+    }
+}
+
+fn start_load(
+    ui_weak: &slint::Weak<MainWindow>,
+    path: PathBuf,
+    scheduler: Option<&Arc<LoadScheduler>>,
+) {
+    let Some(scheduler) = scheduler else {
+        let _ = ui_weak.upgrade_in_event_loop(|ui| {
+            ui.set_status_text("Carregador indisponível".into());
+        });
+        return;
+    };
+    if scheduler.schedule(path).is_err() {
+        let _ = ui_weak.upgrade_in_event_loop(|ui| {
+            ui.set_status_text("Falha ao agendar o carregamento".into());
         });
     }
 }
@@ -478,8 +571,15 @@ pub fn run() -> Result<(), slint::PlatformError> {
     )));
     let directory_rows: SharedRows = Arc::new(Mutex::new(Arc::from(Vec::<LoadedRow>::new())));
     let selection: SharedSelection = Arc::new(Mutex::new(SelectionState::default()));
-    let load_generation = Arc::new(AtomicU64::new(0));
     let filter_generation = Arc::new(AtomicU64::new(0));
+    let load_scheduler = LoadScheduler::new(
+        ui_weak.clone(),
+        Arc::clone(&directory_rows),
+        Arc::clone(&selection),
+        Arc::clone(&filter_generation),
+    )
+    .map(Arc::new)
+    .ok();
     let filter_scheduler = FilterScheduler::new(
         ui_weak.clone(),
         Arc::clone(&directory_rows),
@@ -492,44 +592,24 @@ pub fn run() -> Result<(), slint::PlatformError> {
     {
         let ui_weak = ui_weak.clone();
         let history = history.clone();
-        let load_generation = Arc::clone(&load_generation);
-        let filter_generation = Arc::clone(&filter_generation);
-        let directory_rows = Arc::clone(&directory_rows);
-        let selection = Arc::clone(&selection);
+        let load_scheduler = load_scheduler.clone();
         ui.on_refresh_requested(move || {
             let path = history.borrow().current.clone();
-            start_load(
-                ui_weak.clone(),
-                path,
-                &load_generation,
-                &filter_generation,
-                &directory_rows,
-                &selection,
-            );
+            start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
         let history = history.clone();
-        let load_generation = Arc::clone(&load_generation);
-        let filter_generation = Arc::clone(&filter_generation);
-        let directory_rows = Arc::clone(&directory_rows);
-        let selection = Arc::clone(&selection);
+        let load_scheduler = load_scheduler.clone();
         ui.on_navigate_to(move |text| {
             let path = PathBuf::from(text.to_string());
             let changed = history.borrow_mut().visit(path.clone());
             if changed {
                 update_history_controls(&ui_weak, &history.borrow());
             }
-            start_load(
-                ui_weak.clone(),
-                path,
-                &load_generation,
-                &filter_generation,
-                &directory_rows,
-                &selection,
-            );
+            start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
@@ -537,10 +617,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let ui_weak = ui_weak.clone();
         let locations = locations.clone();
         let history = history.clone();
-        let load_generation = Arc::clone(&load_generation);
-        let filter_generation = Arc::clone(&filter_generation);
-        let directory_rows = Arc::clone(&directory_rows);
-        let selection = Arc::clone(&selection);
+        let load_scheduler = load_scheduler.clone();
         ui.on_navigate_to_location(move |index| {
             if index < 0 {
                 return;
@@ -551,70 +628,40 @@ pub fn run() -> Result<(), slint::PlatformError> {
             let path = PathBuf::from(location.path.to_string());
             history.borrow_mut().visit(path.clone());
             update_history_controls(&ui_weak, &history.borrow());
-            start_load(
-                ui_weak.clone(),
-                path,
-                &load_generation,
-                &filter_generation,
-                &directory_rows,
-                &selection,
-            );
+            start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
         let history = history.clone();
-        let load_generation = Arc::clone(&load_generation);
-        let filter_generation = Arc::clone(&filter_generation);
-        let directory_rows = Arc::clone(&directory_rows);
-        let selection = Arc::clone(&selection);
+        let load_scheduler = load_scheduler.clone();
         ui.on_back_requested(move || {
             let Some(path) = history.borrow_mut().go_back() else {
                 return;
             };
             update_history_controls(&ui_weak, &history.borrow());
-            start_load(
-                ui_weak.clone(),
-                path,
-                &load_generation,
-                &filter_generation,
-                &directory_rows,
-                &selection,
-            );
+            start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
         let history = history.clone();
-        let load_generation = Arc::clone(&load_generation);
-        let filter_generation = Arc::clone(&filter_generation);
-        let directory_rows = Arc::clone(&directory_rows);
-        let selection = Arc::clone(&selection);
+        let load_scheduler = load_scheduler.clone();
         ui.on_forward_requested(move || {
             let Some(path) = history.borrow_mut().go_forward() else {
                 return;
             };
             update_history_controls(&ui_weak, &history.borrow());
-            start_load(
-                ui_weak.clone(),
-                path,
-                &load_generation,
-                &filter_generation,
-                &directory_rows,
-                &selection,
-            );
+            start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
         let history = history.clone();
-        let load_generation = Arc::clone(&load_generation);
-        let filter_generation = Arc::clone(&filter_generation);
-        let directory_rows = Arc::clone(&directory_rows);
-        let selection = Arc::clone(&selection);
+        let load_scheduler = load_scheduler.clone();
         ui.on_navigate_up(move || {
             let current = history.borrow().current.clone();
             let Some(parent) = parent_directory(&current) else {
@@ -622,14 +669,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
             };
             history.borrow_mut().visit(parent.clone());
             update_history_controls(&ui_weak, &history.borrow());
-            start_load(
-                ui_weak.clone(),
-                parent,
-                &load_generation,
-                &filter_generation,
-                &directory_rows,
-                &selection,
-            );
+            start_load(&ui_weak, parent, load_scheduler.as_ref());
         });
     }
 
@@ -637,10 +677,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let ui_weak = ui_weak.clone();
         let entries = entries.clone();
         let history = history.clone();
-        let load_generation = Arc::clone(&load_generation);
-        let filter_generation = Arc::clone(&filter_generation);
-        let directory_rows = Arc::clone(&directory_rows);
-        let selection = Arc::clone(&selection);
+        let load_scheduler = load_scheduler.clone();
         ui.on_activate(move |index| {
             if index < 0 {
                 return;
@@ -654,14 +691,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
             let next = history.borrow().current.join(row.name.as_str());
             history.borrow_mut().visit(next.clone());
             update_history_controls(&ui_weak, &history.borrow());
-            start_load(
-                ui_weak.clone(),
-                next,
-                &load_generation,
-                &filter_generation,
-                &directory_rows,
-                &selection,
-            );
+            start_load(&ui_weak, next, load_scheduler.as_ref());
         });
     }
 
@@ -739,14 +769,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
     }
 
     update_history_controls(&ui_weak, &history.borrow());
-    start_load(
-        ui.as_weak(),
-        initial_path,
-        &load_generation,
-        &filter_generation,
-        &directory_rows,
-        &selection,
-    );
+    start_load(&ui_weak, initial_path, load_scheduler.as_ref());
     ui.run()
 }
 
@@ -841,6 +864,31 @@ mod tests {
         assert_eq!(filtered[0].name, "Foto.JPG");
         assert_eq!(filter_rows(&rows, "   ").len(), 2);
         assert_eq!(filter_status(2, 1, "jpg"), "1 de 2 itens");
+    }
+
+    #[test]
+    #[ignore = "benchmark manual de performance"]
+    fn benchmark_filtro_100k() {
+        use std::time::Instant;
+
+        let rows = (0..100_000)
+            .map(|index| LoadedRow {
+                key: format!("/tmp/file-{index:05}.txt"),
+                name: format!("file-{index:05}.txt"),
+                kind: "[FILE]".to_owned(),
+                details: "1 B".to_owned(),
+                is_directory: false,
+            })
+            .collect::<Vec<_>>();
+        let started = Instant::now();
+        let filtered = filter_rows(&rows, "99999");
+        let elapsed = started.elapsed();
+        eprintln!(
+            "benchmark_filter_100k elapsed_ms={} matches={}",
+            elapsed.as_secs_f64() * 1000.0,
+            filtered.len()
+        );
+        assert_eq!(filtered.len(), 1);
     }
 
     #[test]

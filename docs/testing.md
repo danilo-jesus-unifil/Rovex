@@ -4,7 +4,7 @@
 
 O núcleo e a primeira camada desktop são verificados com `cargo fmt --all -- --check`, `cargo check --all-targets --all-features`, `cargo test --all-targets --all-features`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo build --release`, build release cruzado para Windows x64, `cargo audit` e `cargo deny check`.
 
-O resultado atual deste incremento é de **21 testes aprovados, zero falhas**, Clippy sem diagnósticos e cargo-deny aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
+O resultado atual deste incremento é de **21 testes aprovados, zero falhas**, com um benchmark manual ignorado por padrão, Clippy sem diagnósticos e cargo-deny aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
 
 ## Cobertura do núcleo
 
@@ -12,7 +12,7 @@ Os testes cobrem classificação de diretórios e arquivos, listagem sem seguir 
 
 ## Cobertura desktop
 
-A camada desktop tem testes para formatação de tamanhos, descoberta segura da pasta pai, carregamento de diretório real, conversão de erro de filesystem em status controlado, filtragem case-insensitive por nome, estado vazio sem resultados, histórico voltar/avançar e seleção por clique, Ctrl-clique, Shift-clique e Ctrl+A. O carregamento usa geração atômica para descartar resultados obsoletos. O filtro usa uma fila latest-only, um worker dedicado e snapshots `Arc<[LoadedRow]>`, para que a UI não mantenha o mutex durante a filtragem. A atualização do `VecModel` ocorre apenas pelo event loop do Slint.
+A camada desktop tem testes para formatação de tamanhos, descoberta segura da pasta pai, carregamento de diretório real, conversão de erro de filesystem em status controlado, filtragem case-insensitive por nome, estado vazio sem resultados, histórico voltar/avançar e seleção por clique, Ctrl-clique, Shift-clique e Ctrl+A. O carregamento usa um worker único latest-only, geração atômica para descartar resultados obsoletos e encerramento cooperativo. O filtro usa uma fila latest-only, um worker dedicado e snapshots `Arc<[LoadedRow]>`, para que a UI não mantenha o mutex durante a filtragem. A atualização do `VecModel` ocorre apenas pelo event loop do Slint.
 
 Um smoke test executável em Xvfb abre a janela release, localiza o título `Rovex`, edita a barra de endereço para `/tmp`, preenche o filtro com `cargo`, confirma a redução para cinco itens, captura uma imagem de 1100×720 e encerra o processo. O screenshot validado mostra o caminho `/tmp`, o filtro preenchido e a listagem reduzida.
 
@@ -20,7 +20,7 @@ Um segundo smoke test cria quatro arquivos temporários e executa clique normal,
 
 ## Estresse e próximos testes do filesystem
 
-A listagem CLI foi exercitada com 10.000, 50.000 e 100.000 arquivos temporários, retornando todas as entradas sem crash. A UI foi exercitada com 10.000 arquivos, e o filtro local reduziu a lista para um resultado sem travar a janela. O `ListView` mantém a representação visual limitada aos itens visíveis, mas o carregamento atual ainda materializa os metadados da pasta em memória; virtualização incremental do carregamento continua sendo uma melhoria futura para diretórios extremos.
+A listagem CLI foi exercitada com 10.000, 50.000 e 100.000 arquivos temporários, retornando todas as entradas sem crash. A UI foi exercitada com 10.000 arquivos, e o filtro local reduziu a lista para um resultado sem travar a janela. A linha de base CLI de 100.000 arquivos foi `0,332518 s` e `30.356 KiB` de pico RSS; após o worker único foi `0,348735 s` e `30.104 KiB`, sem declarar ganho de tempo a partir de uma única amostra. O benchmark manual do filtro processou 100.000 linhas em `9,732455 ms` no release antes de qualquer mudança de normalização. O `ListView` mantém a representação visual limitada aos itens visíveis, mas o carregamento atual ainda materializa os metadados da pasta em memória; virtualização incremental do carregamento continua sendo uma melhoria futura para diretórios extremos.
 
 A próxima expansão deve incluir nomes Unicode e reservados do Windows, paths longos, arquivos maiores que 4 GB quando o runner permitir, junctions e demais reparse points, arquivos em uso, permissões negadas, unidades desconectadas, caminhos UNC, colisões de nome, interrupção de cópia, disco cheio e cancelamento. Cada bug encontrado deverá gerar um teste de regressão.
 
