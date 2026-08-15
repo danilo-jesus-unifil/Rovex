@@ -11,7 +11,7 @@ pub mod security;
 
 pub use filesystem::{DirectoryEntry, EntryKind, FileSystem, FileSystemError};
 pub use operations::{
-    copy_file_atomic, copy_file_atomic_with_progress, create_directory, delete_entry, rename_entry,
-    CopyProgress, CopyReport, OperationError,
+    CopyProgress, CopyReport, OperationError, copy_file_atomic, copy_file_atomic_with_progress,
+    create_directory, delete_entry, rename_entry,
 };
-pub use security::{validate_destination, DestinationPolicy};
+pub use security::{DestinationPolicy, validate_destination};

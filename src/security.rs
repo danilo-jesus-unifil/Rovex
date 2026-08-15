@@ -249,7 +249,7 @@ pub fn ensure_not_root(path: &Path) -> Result<(), ValidationError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ensure_not_root, validate_destination, DestinationPolicy, ValidationError};
+    use super::{DestinationPolicy, ValidationError, ensure_not_root, validate_destination};
     use std::fs;
     use std::sync::atomic::{AtomicU64, Ordering};
 

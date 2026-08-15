@@ -1,5 +1,5 @@
 use crate::security::{
-    ensure_not_root, validate_destination, validate_source, DestinationPolicy, ValidationError,
+    DestinationPolicy, ValidationError, ensure_not_root, validate_destination, validate_source,
 };
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
@@ -340,8 +340,8 @@ pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        copy_file_atomic, copy_file_atomic_with_progress, create_directory, delete_entry,
-        publish_file_no_replace, rename_entry, OperationError,
+        OperationError, copy_file_atomic, copy_file_atomic_with_progress, create_directory,
+        delete_entry, publish_file_no_replace, rename_entry,
     };
     use std::fs;
     use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -425,11 +425,13 @@ mod tests {
 
         assert!(matches!(result, Err(OperationError::Cancelled)));
         assert!(!destination.exists());
-        assert!(!fs::read_dir(&root).unwrap().any(|entry| entry
-            .unwrap()
-            .file_name()
-            .to_string_lossy()
-            .contains("rovex-tmp")));
+        assert!(!fs::read_dir(&root).unwrap().any(|entry| {
+            entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .contains("rovex-tmp")
+        }));
         fs::remove_dir_all(root).expect("o diretório deve ser removido");
     }
 

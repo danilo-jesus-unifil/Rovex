@@ -1,7 +1,7 @@
 [package]
 name = "rovex"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.92"
 license = "MIT"
 description = "Explorador de arquivos local, seguro e leve para Windows 10/11"

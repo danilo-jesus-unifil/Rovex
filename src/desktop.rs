@@ -4,14 +4,14 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{
+    Arc, Mutex,
     atomic::{AtomicBool, AtomicU64, Ordering},
     mpsc::{self, Sender},
-    Arc, Mutex,
 };
 use std::thread;
 
 use crate::operations::{
-    copy_file_atomic_with_progress, delete_entry, rename_entry, CopyProgress, OperationError,
+    CopyProgress, OperationError, copy_file_atomic_with_progress, delete_entry, rename_entry,
 };
 
 slint::include_modules!();
@@ -726,60 +726,62 @@ impl FilterScheduler {
         let worker_stop = Arc::clone(&stop);
         thread::Builder::new()
             .name("rovex-filter-worker".to_owned())
-            .spawn(move || loop {
-                let request = {
-                    let (lock, condition) = &*worker_pending;
-                    let Ok(pending) = lock.lock() else {
-                        break;
+            .spawn(move || {
+                loop {
+                    let request = {
+                        let (lock, condition) = &*worker_pending;
+                        let Ok(pending) = lock.lock() else {
+                            break;
+                        };
+                        let mut pending = match condition.wait_while(pending, |request| {
+                            request.is_none() && !worker_stop.load(Ordering::Acquire)
+                        }) {
+                            Ok(pending) => pending,
+                            Err(_) => break,
+                        };
+                        if pending.is_none() && worker_stop.load(Ordering::Acquire) {
+                            break;
+                        }
+                        pending.take()
                     };
-                    let mut pending = match condition.wait_while(pending, |request| {
-                        request.is_none() && !worker_stop.load(Ordering::Acquire)
-                    }) {
-                        Ok(pending) => pending,
-                        Err(_) => break,
-                    };
-                    if pending.is_none() && worker_stop.load(Ordering::Acquire) {
-                        break;
-                    }
-                    pending.take()
-                };
 
-                let Some(request) = request else {
-                    continue;
-                };
-                let rows = match directory_rows.lock() {
-                    Ok(rows) => Some(Arc::clone(&rows)),
-                    Err(_) => None,
-                };
-                let result = match rows {
-                    Some(rows) => {
-                        let filtered = filter_rows(rows.as_ref(), &request.query);
-                        let status = filter_status(rows.len(), filtered.len(), &request.query);
-                        let empty_state =
-                            empty_state_text(rows.len(), filtered.len(), &request.query);
-                        (Some(filtered), status, empty_state)
-                    }
-                    None => (None, "Falha interna ao ler a listagem".to_owned(), ""),
-                };
-                let ui_filter_generation = Arc::clone(&filter_generation);
-                let ui_selection = Arc::clone(&selection);
-                let _ = ui_weak.upgrade_in_event_loop(move |ui| {
-                    if ui_filter_generation.load(Ordering::Acquire) != request.generation {
-                        return;
-                    }
-                    let (filtered, status, empty_state) = result;
-                    let Ok(selection) = ui_selection.lock() else {
-                        ui.set_status_text("Falha interna ao ler a seleção".into());
-                        return;
+                    let Some(request) = request else {
+                        continue;
                     };
-                    ui.set_empty_state_text(SharedString::from(empty_state));
-                    ui.set_status_text(SharedString::from(status));
-                    if let Some(filtered) = filtered {
-                        if !set_rows(&ui, filtered, &selection) {
+                    let rows = match directory_rows.lock() {
+                        Ok(rows) => Some(Arc::clone(&rows)),
+                        Err(_) => None,
+                    };
+                    let result = match rows {
+                        Some(rows) => {
+                            let filtered = filter_rows(rows.as_ref(), &request.query);
+                            let status = filter_status(rows.len(), filtered.len(), &request.query);
+                            let empty_state =
+                                empty_state_text(rows.len(), filtered.len(), &request.query);
+                            (Some(filtered), status, empty_state)
+                        }
+                        None => (None, "Falha interna ao ler a listagem".to_owned(), ""),
+                    };
+                    let ui_filter_generation = Arc::clone(&filter_generation);
+                    let ui_selection = Arc::clone(&selection);
+                    let _ = ui_weak.upgrade_in_event_loop(move |ui| {
+                        if ui_filter_generation.load(Ordering::Acquire) != request.generation {
+                            return;
+                        }
+                        let (filtered, status, empty_state) = result;
+                        let Ok(selection) = ui_selection.lock() else {
+                            ui.set_status_text("Falha interna ao ler a seleção".into());
+                            return;
+                        };
+                        ui.set_empty_state_text(SharedString::from(empty_state));
+                        ui.set_status_text(SharedString::from(status));
+                        if let Some(filtered) = filtered
+                            && !set_rows(&ui, filtered, &selection)
+                        {
                             ui.set_status_text("Falha interna ao atualizar a lista".into());
                         }
-                    }
-                });
+                    });
+                }
             })
             .map_err(|_| ())?;
 
@@ -835,64 +837,66 @@ impl LoadScheduler {
         let worker_selection = Arc::clone(&selection);
         thread::Builder::new()
             .name("rovex-filesystem-loader".to_owned())
-            .spawn(move || loop {
-                let request = {
-                    let (lock, condition) = &*worker_pending;
-                    let Ok(pending) = lock.lock() else {
-                        break;
+            .spawn(move || {
+                loop {
+                    let request = {
+                        let (lock, condition) = &*worker_pending;
+                        let Ok(pending) = lock.lock() else {
+                            break;
+                        };
+                        let mut pending = match condition.wait_while(pending, |request| {
+                            request.is_none() && !worker_stop.load(Ordering::Acquire)
+                        }) {
+                            Ok(pending) => pending,
+                            Err(_) => break,
+                        };
+                        if pending.is_none() && worker_stop.load(Ordering::Acquire) {
+                            break;
+                        }
+                        pending.take()
                     };
-                    let mut pending = match condition.wait_while(pending, |request| {
-                        request.is_none() && !worker_stop.load(Ordering::Acquire)
-                    }) {
-                        Ok(pending) => pending,
-                        Err(_) => break,
-                    };
-                    if pending.is_none() && worker_stop.load(Ordering::Acquire) {
-                        break;
-                    }
-                    pending.take()
-                };
 
-                let Some(request) = request else {
-                    continue;
-                };
-                let loaded = load_directory(request.path);
-                let ui_load_generation = Arc::clone(&worker_load_generation);
-                let ui_filter_generation = Arc::clone(&worker_filter_generation);
-                let ui_directory_rows = Arc::clone(&worker_directory_rows);
-                let ui_selection = Arc::clone(&worker_selection);
-                let _ = ui_weak.upgrade_in_event_loop(move |ui| {
-                    if ui_load_generation.load(Ordering::Acquire) != request.generation {
-                        return;
-                    }
-                    ui.set_current_path(SharedString::from(
-                        loaded.path.to_string_lossy().to_string(),
-                    ));
-                    ui_filter_generation.fetch_add(1, Ordering::AcqRel);
-                    ui.set_filter_text(SharedString::default());
-                    let empty_state = if loaded.is_error {
-                        ""
-                    } else {
-                        empty_state_text(loaded.rows.len(), loaded.rows.len(), "")
+                    let Some(request) = request else {
+                        continue;
                     };
-                    ui.set_empty_state_text(SharedString::from(empty_state));
-                    let Ok(mut selection_state) = ui_selection.lock() else {
-                        ui.set_status_text("Falha interna ao limpar a seleção".into());
-                        return;
-                    };
-                    selection_state.clear();
-                    ui.set_selection_count(0);
-                    let snapshot: Arc<[LoadedRow]> = Arc::from(loaded.rows);
-                    let Ok(mut rows) = ui_directory_rows.lock() else {
-                        ui.set_status_text("Falha interna ao armazenar a listagem".into());
-                        return;
-                    };
-                    *rows = Arc::clone(&snapshot);
-                    ui.set_status_text(SharedString::from(loaded.status));
-                    if !set_rows(&ui, snapshot.as_ref().to_vec(), &selection_state) {
-                        ui.set_status_text("Falha interna ao atualizar a lista".into());
-                    }
-                });
+                    let loaded = load_directory(request.path);
+                    let ui_load_generation = Arc::clone(&worker_load_generation);
+                    let ui_filter_generation = Arc::clone(&worker_filter_generation);
+                    let ui_directory_rows = Arc::clone(&worker_directory_rows);
+                    let ui_selection = Arc::clone(&worker_selection);
+                    let _ = ui_weak.upgrade_in_event_loop(move |ui| {
+                        if ui_load_generation.load(Ordering::Acquire) != request.generation {
+                            return;
+                        }
+                        ui.set_current_path(SharedString::from(
+                            loaded.path.to_string_lossy().to_string(),
+                        ));
+                        ui_filter_generation.fetch_add(1, Ordering::AcqRel);
+                        ui.set_filter_text(SharedString::default());
+                        let empty_state = if loaded.is_error {
+                            ""
+                        } else {
+                            empty_state_text(loaded.rows.len(), loaded.rows.len(), "")
+                        };
+                        ui.set_empty_state_text(SharedString::from(empty_state));
+                        let Ok(mut selection_state) = ui_selection.lock() else {
+                            ui.set_status_text("Falha interna ao limpar a seleção".into());
+                            return;
+                        };
+                        selection_state.clear();
+                        ui.set_selection_count(0);
+                        let snapshot: Arc<[LoadedRow]> = Arc::from(loaded.rows);
+                        let Ok(mut rows) = ui_directory_rows.lock() else {
+                            ui.set_status_text("Falha interna ao armazenar a listagem".into());
+                            return;
+                        };
+                        *rows = Arc::clone(&snapshot);
+                        ui.set_status_text(SharedString::from(loaded.status));
+                        if !set_rows(&ui, snapshot.as_ref().to_vec(), &selection_state) {
+                            ui.set_status_text("Falha interna ao atualizar a lista".into());
+                        }
+                    });
+                }
             })
             .map_err(|_| ())?;
 
@@ -1432,11 +1436,11 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let ui_weak = ui_weak.clone();
         let pending_operation = pending_operation.clone();
         ui.on_operation_dismissed(move || {
-            if let Some(ui) = ui_weak.upgrade() {
-                if !ui.get_operation_busy() {
-                    ui.set_operation_dialog_visible(false);
-                    *pending_operation.borrow_mut() = None;
-                }
+            if let Some(ui) = ui_weak.upgrade()
+                && !ui.get_operation_busy()
+            {
+                ui.set_operation_dialog_visible(false);
+                *pending_operation.borrow_mut() = None;
             }
         });
     }
@@ -1477,9 +1481,9 @@ pub fn run() -> Result<(), slint::PlatformError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        default_locations, empty_state_text, filter_rows, filter_status, format_size,
-        load_directory, parent_directory, validate_rename_name, LoadedRow, NavigationHistory,
-        SelectionState,
+        LoadedRow, NavigationHistory, SelectionState, default_locations, empty_state_text,
+        filter_rows, filter_status, format_size, load_directory, parent_directory,
+        validate_rename_name,
     };
     use std::path::{Path, PathBuf};
 
@@ -1547,9 +1551,11 @@ mod tests {
     #[test]
     fn locais_padrao_so_incluem_diretorios_existentes() {
         let locations = default_locations(Path::new("."));
-        assert!(locations
-            .iter()
-            .any(|location| location.path == Path::new(".")));
+        assert!(
+            locations
+                .iter()
+                .any(|location| location.path == Path::new("."))
+        );
         assert!(locations.iter().all(|location| !location.label.is_empty()));
         assert!(locations.iter().all(|location| location.path.is_dir()));
     }
@@ -1677,8 +1683,10 @@ mod tests {
         let loaded = load_directory(path);
         assert!(loaded.rows.is_empty());
         assert!(loaded.is_error);
-        assert!(loaded
-            .status
-            .starts_with("Não foi possível listar a pasta:"));
+        assert!(
+            loaded
+                .status
+                .starts_with("Não foi possível listar a pasta:")
+        );
     }
 }
