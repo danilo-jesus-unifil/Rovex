@@ -2,7 +2,7 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é um protótipo desktop funcional de navegação e operações locais. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança e exibe erros controlados, mas ainda não é um Explorer completo nem uma release de distribuição.
+> O estado atual é um protótipo desktop funcional de navegação e operações locais em preparação para a primeira release portable `v0.1.0`. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança e exibe erros controlados, mas ainda não é um Explorer completo nem possui instalador, assinatura ou atualização automática.
 
 ## Estado atual
 
@@ -61,7 +61,7 @@ A execução gráfica foi testada em display virtual com carregamento de `/tmp`,
 
 ## Documentação
 
-A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md) e as notas das fontes anteriores estão em [`docs_research_notes.md`](docs_research_notes.md).
+A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o relatório da release está em [`RELEASE_REPORT.md`](RELEASE_REPORT.md), os hashes dos artefatos estão em [`SHA256SUMS-v0.1.0.txt`](SHA256SUMS-v0.1.0.txt) e as notas das fontes anteriores estão em [`docs_research_notes.md`](docs_research_notes.md).
 
 ## Segurança e dependências
 
