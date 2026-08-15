@@ -58,6 +58,7 @@ export component MainWindow inherits Window {
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
     in-out property <int> selection-count: 0;
+    in-out property <int> focused-row-index: -1;
     in-out property <bool> operation-dialog-visible: false;
     in-out property <bool> operation-busy: false;
     in-out property <bool> operation-close-only: false;
@@ -257,21 +258,26 @@ export component MainWindow inherits Window {
                     vertical-stretch: 1;
 
                     focus-scope := FocusScope {
-                width: 100%;
-                height: 100%;
-                focus-on-click: true;
-                key-pressed(event) => {
-                    if (event.modifiers.control && (event.text == "a" || event.text == "A")) {
-                        root.select-all();
-                        accept
-                    }
-                    reject
-                }
-
-                    ListView {
                         width: 100%;
                         height: 100%;
-                    for entry[index] in root.entries: Rectangle {
+                        focus-on-click: true;
+                        key-pressed(event) => {
+                            if (event.modifiers.control && (event.text == "a" || event.text == "A")) {
+                                root.select-all();
+                                root.focused-row-index = -1;
+                                accept
+                            } else if (event.text == "\n" && root.focused-row-index >= 0) {
+                                root.activate(root.focused-row-index);
+                                accept
+                            } else {
+                                reject
+                            }
+                        }
+
+                        ListView {
+                            width: 100%;
+                            height: 100%;
+                            for entry[index] in root.entries: Rectangle {
                         height: DesignTokens.file-row-height;
                         background: entry.selected ? DesignTokens.surface-selected : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary);
                         accessible-role: list-item;
@@ -308,11 +314,12 @@ export component MainWindow inherits Window {
                             pointer-event(event) => {
                                 if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
                                     focus-scope.focus();
+                                    root.focused-row-index = index;
                                     root.select-row(index, event.modifiers.control, event.modifiers.shift);
-                                    if (!event.modifiers.control && !event.modifiers.shift) {
-                                        root.activate(index);
-                                    }
                                 }
+                            }
+                            double-clicked => {
+                                root.activate(index);
                             }
                         }
                     }
@@ -339,15 +346,32 @@ export component MainWindow inherits Window {
         }
     }
 
-    if root.operation-dialog-visible: Rectangle {
+    if root.operation-dialog-visible: FocusScope {
         x: 0px;
         y: 0px;
         width: parent.width;
         height: parent.height;
-        background: #00000066;
-        TouchArea {
+        focus-on-click: true;
+        init => { self.focus(); }
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                if (root.operation-busy) {
+                    root.operation-cancelled();
+                } else {
+                    root.operation-dismissed();
+                }
+                accept
+            }
+            reject
+        }
+        Rectangle {
             width: 100%;
             height: 100%;
+            background: #00000066;
+            TouchArea {
+                width: 100%;
+                height: 100%;
+            }
         }
 
         Rectangle {

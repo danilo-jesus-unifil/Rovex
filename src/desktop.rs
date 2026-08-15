@@ -879,6 +879,7 @@ impl LoadScheduler {
                             empty_state_text(loaded.rows.len(), loaded.rows.len(), "")
                         };
                         ui.set_empty_state_text(SharedString::from(empty_state));
+                        ui.set_focused_row_index(-1);
                         let Ok(mut selection_state) = ui_selection.lock() else {
                             ui.set_status_text("Falha interna ao limpar a seleção".into());
                             return;
@@ -1455,6 +1456,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 state.clear();
                 if let Some(ui) = ui_weak.upgrade() {
                     ui.set_selection_count(0);
+                    ui.set_focused_row_index(-1);
                 }
             }
             let generation = filter_generation.fetch_add(1, Ordering::AcqRel) + 1;

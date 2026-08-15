@@ -152,11 +152,16 @@ fn temporary_destination(destination: &Path) -> Result<PathBuf, OperationError> 
 fn copy_temporary_no_replace(temporary: &Path, destination: &Path) -> Result<(), OperationError> {
     let mut input =
         File::open(temporary).map_err(|error| from_io("abrir temporário", temporary, error))?;
-    let mut output = OpenOptions::new()
+    let mut output = match OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(destination)
-        .map_err(|error| from_io("criar destino sem sobrescrita", destination, error))?;
+    {
+        Ok(output) => output,
+        Err(error) => {
+            return Err(from_io("criar destino sem sobrescrita", destination, error));
+        }
+    };
     let result = (|| {
         let bytes_copied = io::copy(&mut input, &mut output)
             .map_err(|error| from_io("publicar conteúdo", destination, error))?;
@@ -178,6 +183,8 @@ fn copy_temporary_no_replace(temporary: &Path, destination: &Path) -> Result<(),
         Ok(())
     })();
     if result.is_err() {
+        // `create_new` succeeded before entering the closure, so this file is
+        // owned by this operation and may be cleaned up safely.
         let _ = fs::remove_file(destination);
     }
     result
@@ -461,6 +468,24 @@ mod tests {
         fs::write(&destination, b"antigo").expect("o destino deve ser criado");
 
         let result = publish_file_no_replace(&temporary, &destination);
+        assert!(matches!(result, Err(OperationError::FileSystem { .. })));
+        assert_eq!(
+            fs::read(&destination).expect("o destino deve permanecer"),
+            b"antigo"
+        );
+        assert!(temporary.exists());
+        fs::remove_dir_all(root).expect("o diretório deve ser removido");
+    }
+
+    #[test]
+    fn fallback_nao_remove_destino_preexistente_quando_create_new_falha() {
+        let root = temporary_directory();
+        let temporary = root.join(".destino.rovex-tmp");
+        let destination = root.join("destino.txt");
+        fs::write(&temporary, b"novo").expect("o temporário deve ser criado");
+        fs::write(&destination, b"antigo").expect("o destino deve ser criado");
+
+        let result = super::copy_temporary_no_replace(&temporary, &destination);
         assert!(matches!(result, Err(OperationError::FileSystem { .. })));
         assert_eq!(
             fs::read(&destination).expect("o destino deve permanecer"),
