@@ -2,7 +2,7 @@
 
 ## Estado da auditoria
 
-Esta auditoria foi iniciada a partir do prompt final anexado em 15 de agosto de 2026. O checkpoint remoto `backup/before-final-audit-fixes-2026-08-15` protege o estado publicado antes das correções. O objetivo é registrar somente problemas reproduzidos, causas verificadas, correções implementadas e limitações que permanecem explícitas.
+Esta auditoria foi iniciada a partir do prompt final anexado em 15 de agosto de 2026. O checkpoint remoto `backup/before-final-stabilization-2026-08-15` protege o estado modernizado publicado antes das correções desta rodada. O objetivo é registrar somente problemas reproduzidos, causas verificadas, correções implementadas e limitações que permanecem explícitas.
 
 ## Achados já reproduzidos e corrigidos
 
@@ -13,6 +13,8 @@ Esta auditoria foi iniciada a partir do prompt final anexado em 15 de agosto de 
 | Path traversal/ambiguidade | Operações aceitavam caminhos relativos e podiam atravessar componentes pai symlink | Validação canonicalizava o pai, mas não recusava explicitamente caminho relativo nem symlink em componentes do pai | Destinos relativos agora são recusados; cada componente pai é validado com `symlink_metadata`, e symlinks são rejeitados | Testes de caminho relativo e componente symlink aprovados |
 | Mensagens de erro | Erros exibiam `ErrorKind` e códigos OS diretamente ao usuário | `Display` formatava o diagnóstico técnico como mensagem principal | Mensagens humanizadas preservam detalhes estruturados internamente | Testes de microcopy para acesso negado aprovados |
 | Estado vazio | Pasta sem entradas aparecia somente como `0 itens`, sem orientação; filtro sem resultados não tinha estado visual dedicado | A UI não tinha propriedade de empty state | Added distinct messages `Esta pasta está vazia.` and `Nenhum item corresponde ao filtro.` | Teste unitário e smoke visual aprovados |
+| Fallback de publicação | Um destino preexistente podia ser removido se `create_new` falhasse antes do bloco de limpeza | A limpeza genérica não distinguia arquivo criado pelo processo de arquivo preexistente | Retorno imediato no erro de criação e cleanup somente após `create_new` bem-sucedido | `fallback_nao_remove_destino_preexistente_quando_create_new_falha` |
+| Interação da lista | Clique simples também ativava diretórios | O callback de pointer chamava `activate` em todo release | Seleção ficou separada de double-click/Enter | Smoke X11 de interação aprovado |
 
 ## Evidência visual
 
@@ -23,7 +25,7 @@ O smoke `/tmp/rovex-small-window-smoke.png` em 720×480 não mostrou sobreposiç
 
 A primeira implementação do empty state revelou uma regressão durante a própria auditoria: um diretório inexistente produzia zero linhas e poderia ser descrito como vazio. A causa foi a ausência de uma marca explícita de erro em `LoadedDirectory`. O modelo agora carrega `is_error`, mantém somente o status de erro e não mostra a mensagem de pasta vazia quando a listagem falha; a regressão `erro_de_diretorio_inexistente_vira_status_controlado` cobre essa invariável.
 
-O caminho de publicação sem sobrescrita usa `hard_link` quando disponível e fallback `OpenOptions::create_new` para volumes que não suportam hard links, como alguns cenários de rede. O fallback valida tamanho, sincroniza o destino e remove qualquer arquivo parcial criado por ele em caso de falha; destinos preexistentes nunca são removidos porque a criação falha antes da entrada no bloco de cleanup.
+O caminho de publicação sem sobrescrita usa `hard_link` quando disponível e fallback `OpenOptions::create_new` para volumes que não suportam hard links, como alguns cenários de rede. O fallback valida tamanho, sincroniza o destino e remove somente o arquivo parcial que ele próprio criou em caso de falha; destinos preexistentes permanecem intactos mesmo quando `create_new` falha antes da entrada no bloco de cleanup.
 
 A sidebar recebeu `FocusScope` com foco visível, setas Up/Down e Enter/Space. O smoke real confirmou `Down` + `Enter` até `/home/ubuntu/Downloads`. Em 720×480, um smoke adicional confirmou que toolbar, filtro, sidebar, lista, estado vazio e status continuam sem sobreposição.
 A inspeção final confirmou que a seleção múltipla continua exibindo quatro linhas selecionadas e status `4 itens selecionados` após todas as correções. A janela mínima de 720×480 continua sem sobreposição, com nomes truncados quando necessário e status visível. A bateria final de smoke release passou para filtro, seleção, histórico, sidebar, estado vazio, sidebar por teclado e janela mínima.
@@ -31,4 +33,4 @@ A inspeção final confirmou que a seleção múltipla continua exibindo quatro 
 
 `cargo audit` terminou com código 0 e `cargo deny check` aprovou advisories, bans, licenças e fontes; permanecem quatro avisos transitivos de manutenção do toolkit Slint (`bincode`, `paste`, `rustybuzz` e `ttf-parser`), sem vulnerabilidade reportada nessa execução. `cargo outdated` não estava instalado no ambiente e não foi tratado como disponível; a ausência foi registrada em vez de simular uma análise. A árvore possui duplicações transitivas esperadas do toolkit, sem nova dependência direta adicionada nesta auditoria.
 
-A CI final do commit `a9e32e8` foi aprovada na execução `31857990905`, com jobs Linux, Windows e auditoria de dependências. O working tree será mantido limpo após o commit documental final. A auditoria não afirma ausência absoluta de bugs: afirma que nenhum problema conhecido relevante permaneceu dentro do escopo testado, com execução nativa Windows 10/11, paths longos, reparse points, UNC/SMB, DPI nativo, instalador e operações visuais ainda pendentes.
+A CI histórica do commit `a9e32e8` foi aprovada na execução `31857990905`, com jobs Linux, Windows e auditoria de dependências. A CI desta rodada será registrada no commit final após a publicação do relatório. A auditoria não afirma ausência absoluta de bugs: afirma que nenhum problema conhecido relevante permaneceu dentro do escopo testado, com execução nativa Windows 10/11, paths longos, reparse points, UNC/SMB, DPI nativo, instalador e operações visuais ainda pendentes.

@@ -8,7 +8,7 @@ O Rovex usa Slint 1.17.1 com backend Winit, renderer software, acessibilidade e 
 
 | Área | Observação | Prioridade | Decisão inicial |
 |---|---|---:|---|
-| Carregamento | Cada chamada a `start_load` cria uma nova thread nomeada; gerações descartam resultados obsoletos, mas não cancelam o trabalho de filesystem em andamento. | Alta | Medir e substituir por worker único latest-only se a mudança preservar semântica e estabilidade. |
+| Carregamento | O estado atual usa um worker único latest-only persistente, com fila efetiva de capacidade 1, geração e encerramento cooperativo; o risco restante é materializar a pasta inteira antes da publicação. | Média | Manter a arquitetura; avaliar streaming/paginação somente com demanda e benchmark de pastas enormes. |
 | Filtro | Existe um worker dedicado persistente e uma fila de capacidade efetiva 1, o que evita threads por tecla e filas infinitas. | Baixa | Manter; revisar encerramento lifecycle e custo de normalização após medir. |
 | Filtro | `filter_rows` aloca `to_lowercase()` para a consulta e para cada nome a cada consulta; também clona as linhas filtradas. | Média | Medir em 100.000 itens; considerar cache de chave normalizada ou comparação case-insensitive com menos alocações, sem duplicar memória sem evidência. |
 | Estado | `SharedRows` armazena uma única `Arc<[LoadedRow]>`; o modelo Slint possui outra representação das linhas visíveis. | Média | Manter por segurança do event loop; evitar cópias adicionais e avaliar atualização incremental somente se necessário. |
@@ -19,9 +19,9 @@ O Rovex usa Slint 1.17.1 com backend Winit, renderer software, acessibilidade e 
 
 ## Auditoria de segurança/performance
 
-Não há `fs::read`, `read_to_string`, previews ou carregamento de arquivos grandes no caminho da UI. O filesystem usa `symlink_metadata` e lista somente uma pasta. O filtro não faz pesquisa recursiva. O risco principal para a responsividade é a criação repetida de workers de filesystem durante navegação rápida, não o renderer visual.
+Não há `fs::read`, `read_to_string`, previews ou carregamento de arquivos grandes no caminho da UI. O filesystem usa `symlink_metadata` e lista somente uma pasta. O filtro não faz pesquisa recursiva. O risco principal para a responsividade é a materialização completa de diretórios muito grandes e a duplicação temporária de snapshots/modelos, não a criação repetida de workers; a navegação rápida agora reutiliza um worker único.
 
-A próxima fase deve medir tempo de listagem, primeira publicação, filtro de 100.000 linhas, RSS/CPU do processo idle e comportamento com navegações rápidas. Nenhuma otimização deve ser declarada como ganho antes da comparação antes/depois.
+A próxima fase deve medir tempo de listagem, primeira publicação, filtro de 100.000 linhas e RSS/CPU em idle. O smoke de estabilização já executou 12 navegações rápidas seguidas de consultas latest-only e confirmou que `folder-12` e `file-12-12.txt` venceram resultados obsoletos. Nenhuma otimização deve ser declarada como ganho antes da comparação antes/depois.
 ## Linha de base medida
 
 A medição executada em 15/08/2026 criou 100.000 arquivos temporários. O modo CLI retornou todas as 100.000 entradas, terminou em `0,332518 s` e apresentou pico de RSS de `30.356 KiB` no processo filho. A janela release apareceu em `117 ms` sob Xvfb; após um segundo em uma pasta de 100.000 arquivos, o processo apresentou aproximadamente `82.980 KiB` de RSS, `177.620 KiB` de VSZ e `36%` de CPU na amostragem pontual. A amostra de CPU não deve ser tratada como consumo idle estável, pois inclui o carregamento inicial e a amostragem ocorreu durante a listagem.
