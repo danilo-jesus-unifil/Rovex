@@ -9,7 +9,16 @@ repository = "https://github.com/danilo-jesus-unifil/Rovex"
 readme = "README.md"
 build = "build.rs"
 
-[dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
+# O CI Linux e os smoke tests usam Xvfb/X11; Wayland não é compilado nesse alvo.
+slint = { version = "=1.17.1", default-features = false, features = ["backend-winit-x11", "renderer-software", "accessibility", "compat-1-2"] }
+
+[target.'cfg(all(unix, not(target_os = "linux")))'.dependencies]
+# Preserve o backend completo para Unix não-Linux, sem restringir plataformas não testadas.
+slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
+
+[target.'cfg(windows)'.dependencies]
+# Windows 10/11 continua com X11/Wayland desativados pelo próprio target e backend Winit nativo.
 slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
 
 [build-dependencies]
