@@ -2,11 +2,11 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é um protótipo desktop funcional de navegação e operações locais em preparação para a primeira release portable `v0.1.0`. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança e exibe erros controlados, mas ainda não é um Explorer completo nem possui instalador, assinatura ou atualização automática.
+> O estado atual é uma release portable `v0.1.1` de um protótipo desktop funcional. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
 
 ## Estado atual
 
-O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento e as operações em workers limitados, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e encerra workers cooperativamente. A modal exige confirmação explícita, mostra progresso/cancelamento e recarrega a pasta após o resultado. A barra lateral mostra somente locais conhecidos que existem, sem análise de espaço ou varredura de unidades. O histórico mantém pilhas reais de voltar/avançar, e a seleção local suporta clique, Ctrl-clique, Shift-clique e Ctrl+A. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla. O visual usa tokens Slint locais para cores, espaçamento, raios e estados, sem blur, animações contínuas ou dependências extras.
+O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento, as operações e as conversões em workers limitados, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e encerra workers cooperativamente. A modal exige confirmação explícita, mostra progresso/cancelamento e recarrega a pasta após o resultado. A barra lateral mostra somente locais conhecidos que existem, sem análise de espaço ou varredura de unidades. O histórico mantém pilhas reais de voltar/avançar, e a seleção local suporta clique, Ctrl-clique, Shift-clique e Ctrl+A. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla. O visual usa tokens Slint locais para tema escuro, cores, espaçamento, raios e estados, sem blur, animações contínuas ou dependências extras.
 
 | Área | Estado |
 |---|---|
@@ -25,9 +25,13 @@ O núcleo implementa listagem real de diretórios, classificação de arquivos, 
 | Seleção múltipla local | Implementada e testada com clique, Ctrl/Shift e Ctrl+A |
 | Barra lateral com locais existentes | Implementada sem análise de discos |
 | Worker único de carregamento e encerramento cooperativo | Implementado e validado com stress/smoke |
-| Design System local de tokens | Implementado e validado visualmente |
+| Design System local de tokens e tema escuro | Implementado e validado visualmente |
+| Menu contextual por clique direito | Implementado com ações de arquivo e conversões condicionais |
+| JPEG/PNG e imagens compatíveis → JPEG XL | Implementado via FFmpeg/libjxl e validado por ffprobe |
+| WAV/MP3/FLAC e áudio compatível → Opus | Implementado via FFmpeg/libopus e validado por ffprobe |
+| Imagens → PNG e áudio → FLAC | Implementado via FFmpeg e validado por ffprobe |
 | Pesquisa global, abas, thumbnails e drag and drop | Planejados |
-| Conversores multimídia/PDF/OCR | Fora da primeira fatia; não simulados |
+| Conversores PDF/OCR | Fora do escopo desta release; não simulados |
 | Instalador, assinatura e atualização | Planejados para a fase de distribuição |
 
 ## Verificação local
@@ -57,11 +61,11 @@ O modo CLI permanece disponível para ambientes sem display e para diagnóstico 
 cargo run -- --cli .
 ```
 
-A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, filtro local, seleção múltipla, histórico de navegação e captura de screenshots. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows.
+A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, filtro local, seleção múltipla, histórico de navegação, clique direito, confirmação de conversão e captura de screenshots. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows. As conversões exigem `ffmpeg.exe` e `ffprobe.exe` instalados no `PATH`; o Rovex não baixa executáveis em runtime.
 
 ## Documentação
 
-A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o relatório da release está em [`RELEASE_REPORT.md`](RELEASE_REPORT.md), os hashes dos artefatos estão em [`SHA256SUMS-v0.1.0.txt`](SHA256SUMS-v0.1.0.txt) e as notas das fontes anteriores estão em [`docs_research_notes.md`](docs_research_notes.md).
+A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.1.md`](RELEASE_REPORT-v0.1.1.md).
 
 ## Segurança e dependências
 

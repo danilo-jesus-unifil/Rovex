@@ -5,7 +5,7 @@ mkdir -p artifacts
 fixture=/tmp/rovex-ui-jxl-fixture
 rm -rf "$fixture"
 mkdir -p "$fixture"
-convert -size 16x16 xc:'#2563eb' "$fixture/entrada.png"
+ffmpeg -hide_banner -loglevel error -nostdin -f lavfi -i color=c=0x2563eb:s=16x16 -frames:v 1 "$fixture/entrada.png"
 xvfb_display=102
 Xvfb ":$xvfb_display" -screen 0 1200x800x24 -nolisten tcp >/tmp/rovex-ui-jxl-xvfb.log 2>&1 &
 xvfb_pid=$!
