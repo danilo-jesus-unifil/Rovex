@@ -624,10 +624,11 @@ mod tests {
 
     #[test]
     fn saida_usa_nome_irmao_e_evita_mesmo_caminho() {
-        let jxl = output_path(Path::new("/tmp/foto.jpg"), ConversionKind::JpegXl).unwrap();
-        assert_eq!(jxl, Path::new("/tmp/foto.jxl"));
-        let same = output_path(Path::new("/tmp/foto.jxl"), ConversionKind::JpegXl).unwrap();
-        assert_eq!(same, Path::new("/tmp/foto.converted.jxl"));
+        let root = std::env::current_dir().unwrap().join("fixtures");
+        let jxl = output_path(&root.join("foto.jpg"), ConversionKind::JpegXl).unwrap();
+        assert_eq!(jxl, root.join("foto.jxl"));
+        let same = output_path(&root.join("foto.jxl"), ConversionKind::JpegXl).unwrap();
+        assert_eq!(same, root.join("foto.converted.jxl"));
     }
 
     #[test]
