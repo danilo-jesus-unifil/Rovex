@@ -190,7 +190,10 @@ fn copy_temporary_no_replace(temporary: &Path, destination: &Path) -> Result<(),
     result
 }
 
-fn publish_file_no_replace(temporary: &Path, destination: &Path) -> Result<(), OperationError> {
+pub(crate) fn publish_file_no_replace(
+    temporary: &Path,
+    destination: &Path,
+) -> Result<(), OperationError> {
     match fs::hard_link(temporary, destination) {
         Ok(()) => fs::remove_file(temporary)
             .map_err(|error| from_io("limpar arquivo temporário", temporary, error)),

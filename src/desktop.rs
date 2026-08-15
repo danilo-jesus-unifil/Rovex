@@ -10,6 +10,7 @@ use std::sync::{
 };
 use std::thread;
 
+use crate::converters::{ConversionError, ConversionKind, ConversionStage, convert_file};
 use crate::operations::{
     CopyProgress, OperationError, copy_file_atomic_with_progress, delete_entry, rename_entry,
 };
@@ -137,6 +138,64 @@ enum OperationKind {
 }
 
 #[derive(Debug, Clone)]
+struct ConversionRequest {
+    kind: ConversionKind,
+    sources: Vec<PathBuf>,
+    refresh_path: PathBuf,
+}
+
+#[derive(Debug)]
+struct ConversionOutcome {
+    kind: ConversionKind,
+    completed: usize,
+    failed: Vec<String>,
+    cancelled: bool,
+}
+
+impl ConversionOutcome {
+    fn message(&self) -> String {
+        let mut message = if self.cancelled {
+            format!(
+                "Conversão cancelada: {} item(ns) concluído(s), {} falha(s).",
+                self.completed,
+                self.failed.len()
+            )
+        } else if self.failed.is_empty() {
+            format!(
+                "Conversão para {} concluída: {} item(ns).",
+                self.kind.label(),
+                self.completed
+            )
+        } else {
+            format!(
+                "Conversão para {} concluída parcialmente: {} item(ns) concluído(s), {} falha(s).",
+                self.kind.label(),
+                self.completed,
+                self.failed.len()
+            )
+        };
+        for failure in self.failed.iter().take(3) {
+            message.push('\n');
+            message.push_str(failure);
+        }
+        if self.failed.len() > 3 {
+            message.push_str(&format!("\n… e mais {} falha(s).", self.failed.len() - 3));
+        }
+        message
+    }
+
+    fn status(&self) -> String {
+        if self.cancelled {
+            "Conversão cancelada; a pasta será atualizada.".to_owned()
+        } else if self.failed.is_empty() {
+            "Conversão concluída; a pasta será atualizada.".to_owned()
+        } else {
+            "Conversão concluída parcialmente; verifique o resultado.".to_owned()
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 struct OperationRequest {
     kind: OperationKind,
     sources: Vec<PathBuf>,
@@ -204,6 +263,7 @@ struct OperationUpdate {
     total_items: usize,
     current_bytes: u64,
     current_total_bytes: u64,
+    explicit_percent: Option<u8>,
     label: String,
 }
 
@@ -245,6 +305,26 @@ fn emit_item_progress<F>(
         total_items,
         current_bytes,
         current_total_bytes,
+        explicit_percent: None,
+        label: label.to_owned(),
+    });
+}
+
+fn emit_stage_progress<F>(
+    emit: &mut F,
+    index: usize,
+    total_items: usize,
+    label: &str,
+    stage: ConversionStage,
+) where
+    F: FnMut(OperationUpdate),
+{
+    emit(OperationUpdate {
+        completed_items: index,
+        total_items,
+        current_bytes: 0,
+        current_total_bytes: 0,
+        explicit_percent: Some(stage.percent()),
         label: label.to_owned(),
     });
 }
@@ -426,7 +506,11 @@ impl OperationScheduler {
                         } else {
                             0.0
                         };
-                        let percentage = (((update.completed_items as f64 + item_fraction) / total)
+                        let item_progress = update
+                            .explicit_percent
+                            .map(|percent| f64::from(percent) / 100.0)
+                            .unwrap_or(item_fraction);
+                        let percentage = (((update.completed_items as f64 + item_progress) / total)
                             * 100.0)
                             .round()
                             .clamp(0.0, 100.0) as i32;
@@ -502,6 +586,177 @@ impl Drop for OperationScheduler {
     fn drop(&mut self) {
         self.cancel.store(true, Ordering::Release);
         let _ = self.sender.send(OperationMessage::Shutdown);
+    }
+}
+
+fn execute_conversion<F>(
+    request: &ConversionRequest,
+    cancel: &AtomicBool,
+    mut emit: F,
+) -> ConversionOutcome
+where
+    F: FnMut(OperationUpdate),
+{
+    let total_items = request.sources.len();
+    let mut completed = 0;
+    let mut failed = Vec::new();
+
+    for (index, source) in request.sources.iter().enumerate() {
+        if cancel.load(Ordering::Acquire) {
+            return ConversionOutcome {
+                kind: request.kind,
+                completed,
+                failed,
+                cancelled: true,
+            };
+        }
+        let label = operation_label(source);
+        let result = convert_file(source, request.kind, cancel, |stage| {
+            emit_stage_progress(&mut emit, index, total_items, &label, stage);
+        });
+        match result {
+            Ok(_) => {
+                completed += 1;
+                emit_item_progress(&mut emit, index + 1, total_items, &label, 0, 0);
+            }
+            Err(ConversionError::Cancelled) => {
+                return ConversionOutcome {
+                    kind: request.kind,
+                    completed,
+                    failed,
+                    cancelled: true,
+                };
+            }
+            Err(error) => failed.push(format!("{label}: {error}")),
+        }
+    }
+
+    ConversionOutcome {
+        kind: request.kind,
+        completed,
+        failed,
+        cancelled: false,
+    }
+}
+
+#[derive(Debug)]
+enum ConversionMessage {
+    Run(ConversionRequest, Arc<AtomicBool>),
+    Shutdown,
+}
+
+struct ConversionScheduler {
+    sender: Sender<ConversionMessage>,
+    cancel: Arc<AtomicBool>,
+    busy: Arc<AtomicBool>,
+}
+
+impl ConversionScheduler {
+    fn new(
+        ui_weak: slint::Weak<MainWindow>,
+        load_scheduler: Option<Arc<LoadScheduler>>,
+    ) -> Result<Self, ()> {
+        let (sender, receiver) = mpsc::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let busy = Arc::new(AtomicBool::new(false));
+        let worker_busy = Arc::clone(&busy);
+        let worker_ui = ui_weak.clone();
+        thread::Builder::new()
+            .name("rovex-conversion-worker".to_owned())
+            .spawn(move || {
+                while let Ok(message) = receiver.recv() {
+                    let ConversionMessage::Run(request, request_cancel) = message else {
+                        break;
+                    };
+                    let progress_ui = worker_ui.clone();
+                    let mut last_percentage = -1_i32;
+                    let outcome = execute_conversion(&request, &request_cancel, |update| {
+                        let total = update.total_items.max(1) as f64;
+                        let item_fraction = if update.current_total_bytes > 0 {
+                            update.current_bytes as f64 / update.current_total_bytes as f64
+                        } else {
+                            0.0
+                        };
+                        let item_progress = update
+                            .explicit_percent
+                            .map(|percent| f64::from(percent) / 100.0)
+                            .unwrap_or(item_fraction);
+                        let percentage = (((update.completed_items as f64 + item_progress) / total)
+                            * 100.0)
+                            .round()
+                            .clamp(0.0, 100.0) as i32;
+                        if percentage == last_percentage {
+                            return;
+                        }
+                        last_percentage = percentage;
+                        let text = format!("{} — {}%", update.label, percentage);
+                        let _ = progress_ui.upgrade_in_event_loop(move |ui| {
+                            if ui.get_operation_busy() {
+                                ui.set_operation_progress(percentage);
+                                ui.set_operation_progress_text(SharedString::from(text));
+                            }
+                        });
+                    });
+                    worker_busy.store(false, Ordering::Release);
+                    if let Some(load_scheduler) = load_scheduler.as_ref() {
+                        let _ = load_scheduler.schedule(request.refresh_path.clone());
+                    }
+                    let message = outcome.message();
+                    let status = outcome.status();
+                    let progress = if outcome.cancelled || !outcome.failed.is_empty() {
+                        0
+                    } else {
+                        100
+                    };
+                    let _ = worker_ui.upgrade_in_event_loop(move |ui| {
+                        ui.set_operation_busy(false);
+                        ui.set_operation_close_only(true);
+                        ui.set_operation_needs_input(false);
+                        ui.set_operation_progress(progress);
+                        ui.set_operation_progress_text(SharedString::from("Resultado"));
+                        ui.set_operation_dialog_message(SharedString::from(message));
+                        ui.set_status_text(SharedString::from(status));
+                    });
+                }
+            })
+            .map_err(|_| ())?;
+
+        Ok(Self {
+            sender,
+            cancel,
+            busy,
+        })
+    }
+
+    fn start(&self, request: ConversionRequest) -> Result<(), ConversionRequest> {
+        if self.busy.swap(true, Ordering::AcqRel) {
+            return Err(request);
+        }
+        self.cancel.store(false, Ordering::Release);
+        let message = ConversionMessage::Run(request, Arc::clone(&self.cancel));
+        match self.sender.send(message) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                self.busy.store(false, Ordering::Release);
+                match error.0 {
+                    ConversionMessage::Run(request, _) => Err(request),
+                    ConversionMessage::Shutdown => unreachable!("shutdown não é enviado por start"),
+                }
+            }
+        }
+    }
+
+    fn cancel(&self) {
+        if self.busy.load(Ordering::Acquire) {
+            self.cancel.store(true, Ordering::Release);
+        }
+    }
+}
+
+impl Drop for ConversionScheduler {
+    fn drop(&mut self) {
+        self.cancel.store(true, Ordering::Release);
+        let _ = self.sender.send(ConversionMessage::Shutdown);
     }
 }
 
@@ -977,6 +1232,121 @@ fn validate_rename_name(name: &str) -> Result<String, &'static str> {
     Ok(trimmed.to_owned())
 }
 
+fn show_selected_operation_dialog(
+    ui_weak: &slint::Weak<MainWindow>,
+    pending: &Rc<std::cell::RefCell<Option<OperationRequest>>>,
+    directory_rows: &SharedRows,
+    selection: &SharedSelection,
+    history: &Rc<std::cell::RefCell<NavigationHistory>>,
+    kind: OperationKind,
+) {
+    let sources = selected_paths(directory_rows, selection);
+    if sources.is_empty() {
+        return;
+    }
+    let (title, message, input, needs_input) = match kind {
+        OperationKind::Copy => (
+            "Copiar itens",
+            format!(
+                "Confirme a cópia de {} item(ns). Informe um diretório de destino absoluto. Destinos existentes não serão sobrescritos.",
+                sources.len()
+            ),
+            String::new(),
+            true,
+        ),
+        OperationKind::Move => (
+            "Mover itens",
+            format!(
+                "Confirme a movimentação de {} item(ns). Informe um diretório de destino absoluto. Destinos existentes não serão sobrescritos.",
+                sources.len()
+            ),
+            String::new(),
+            true,
+        ),
+        OperationKind::Rename => {
+            let Some(source) = sources.first() else {
+                return;
+            };
+            let name = operation_label(source);
+            (
+                "Renomear item",
+                "Informe um único nome novo. Separadores de caminho, ponto e ponto-ponto não são permitidos.".to_owned(),
+                name,
+                true,
+            )
+        }
+        OperationKind::Delete => (
+            "Excluir itens",
+            format!(
+                "Confirme a exclusão de {} item(ns). A operação não é recursiva: diretórios não vazios serão preservados.",
+                sources.len()
+            ),
+            String::new(),
+            false,
+        ),
+    };
+    let request = OperationRequest {
+        kind,
+        sources,
+        destination_directory: None,
+        rename_name: if kind == OperationKind::Rename {
+            Some(input.clone())
+        } else {
+            None
+        },
+        refresh_path: history.borrow().current.clone(),
+    };
+    show_operation_dialog(
+        ui_weak,
+        pending,
+        request,
+        title,
+        &message,
+        &input,
+        needs_input,
+    );
+}
+
+fn show_conversion_dialog(
+    ui_weak: &slint::Weak<MainWindow>,
+    pending: &Rc<std::cell::RefCell<Option<ConversionRequest>>>,
+    directory_rows: &SharedRows,
+    selection: &SharedSelection,
+    history: &Rc<std::cell::RefCell<NavigationHistory>>,
+    kind: ConversionKind,
+) {
+    let sources = selected_paths(directory_rows, selection);
+    if sources.is_empty() {
+        return;
+    }
+    let request = ConversionRequest {
+        kind,
+        sources: sources.clone(),
+        refresh_path: history.borrow().current.clone(),
+    };
+    *pending.borrow_mut() = Some(request);
+    if let Some(ui) = ui_weak.upgrade() {
+        ui.set_context_menu_visible(false);
+        ui.set_context_menu_can_jxl(false);
+        ui.set_context_menu_can_opus(false);
+        ui.set_context_menu_can_png(false);
+        ui.set_context_menu_can_flac(false);
+        ui.set_operation_dialog_title("Converter arquivos".into());
+        ui.set_operation_dialog_message(SharedString::from(format!(
+            "Confirme a conversão de {} item(ns) para {}. A saída será criada no mesmo diretório e nunca sobrescreverá um arquivo existente.",
+            sources.len(),
+            kind.label()
+        )));
+        ui.set_operation_dialog_input(SharedString::default());
+        ui.set_operation_needs_input(false);
+        ui.set_operation_close_only(false);
+        ui.set_operation_busy(false);
+        ui.set_operation_progress(0);
+        ui.set_operation_progress_text(SharedString::default());
+        ui.set_operation_dialog_visible(true);
+    }
+}
+
 fn show_operation_dialog(
     ui_weak: &slint::Weak<MainWindow>,
     pending: &Rc<std::cell::RefCell<Option<OperationRequest>>>,
@@ -996,6 +1366,11 @@ fn show_operation_dialog(
         ui.set_operation_busy(false);
         ui.set_operation_progress(0);
         ui.set_operation_progress_text(SharedString::default());
+        ui.set_context_menu_visible(false);
+        ui.set_context_menu_can_jxl(false);
+        ui.set_context_menu_can_opus(false);
+        ui.set_context_menu_can_png(false);
+        ui.set_context_menu_can_flac(false);
         ui.set_operation_dialog_visible(true);
     }
 }
@@ -1057,7 +1432,11 @@ pub fn run() -> Result<(), slint::PlatformError> {
     .map(Arc::new)
     .ok();
     let pending_operation = Rc::new(std::cell::RefCell::new(None::<OperationRequest>));
+    let pending_conversion = Rc::new(std::cell::RefCell::new(None::<ConversionRequest>));
     let operation_scheduler = OperationScheduler::new(ui_weak.clone(), load_scheduler.clone())
+        .map(Arc::new)
+        .ok();
+    let conversion_scheduler = ConversionScheduler::new(ui_weak.clone(), load_scheduler.clone())
         .map(Arc::new)
         .ok();
 
@@ -1233,33 +1612,64 @@ pub fn run() -> Result<(), slint::PlatformError> {
 
     {
         let ui_weak = ui_weak.clone();
+        let entries = entries.clone();
+        let selection = Arc::clone(&selection);
+        ui.on_context_menu_requested(move |index| {
+            if index < 0 {
+                return;
+            }
+            let Some(row) = entries.row_data(index as usize) else {
+                return;
+            };
+            let keys = (0..entries.row_count())
+                .filter_map(|row_index| entries.row_data(row_index))
+                .map(|visible_row| visible_row.key.to_string())
+                .collect::<Vec<_>>();
+            let Ok(mut state) = selection.lock() else {
+                return;
+            };
+            state.click(row.key.as_str(), &keys, false, false);
+            let Some(ui) = ui_weak.upgrade() else {
+                return;
+            };
+            if !update_selection_visuals(&ui, &state) {
+                ui.set_status_text("Falha interna ao atualizar a seleção".into());
+                return;
+            }
+            ui.set_selection_count(state.count() as i32);
+            ui.set_status_text(SharedString::from(selection_status(&state)));
+            let is_regular_file = row.kind == "[FILE]";
+            ui.set_context_menu_target_name(row.name.clone());
+            ui.set_context_menu_can_jxl(
+                is_regular_file && ConversionKind::JpegXl.accepts(Path::new(row.name.as_str())),
+            );
+            ui.set_context_menu_can_opus(
+                is_regular_file && ConversionKind::Opus.accepts(Path::new(row.name.as_str())),
+            );
+            ui.set_context_menu_can_png(
+                is_regular_file && ConversionKind::Png.accepts(Path::new(row.name.as_str())),
+            );
+            ui.set_context_menu_can_flac(
+                is_regular_file && ConversionKind::Flac.accepts(Path::new(row.name.as_str())),
+            );
+            ui.set_context_menu_visible(true);
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
         let history = history.clone();
         ui.on_copy_requested(move || {
-            let sources = selected_paths(&directory_rows, &selection);
-            if sources.is_empty() {
-                return;
-            }
-            let request = OperationRequest {
-                kind: OperationKind::Copy,
-                sources: sources.clone(),
-                destination_directory: None,
-                rename_name: None,
-                refresh_path: history.borrow().current.clone(),
-            };
-            show_operation_dialog(
+            show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
-                request,
-                "Copiar itens",
-                &format!(
-                    "Confirme a cópia de {} item(ns). Informe um diretório de destino absoluto. Destinos existentes não serão sobrescritos.",
-                    sources.len()
-                ),
-                "",
-                true,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Copy,
             );
         });
     }
@@ -1271,28 +1681,13 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let selection = Arc::clone(&selection);
         let history = history.clone();
         ui.on_move_requested(move || {
-            let sources = selected_paths(&directory_rows, &selection);
-            if sources.is_empty() {
-                return;
-            }
-            let request = OperationRequest {
-                kind: OperationKind::Move,
-                sources: sources.clone(),
-                destination_directory: None,
-                rename_name: None,
-                refresh_path: history.borrow().current.clone(),
-            };
-            show_operation_dialog(
+            show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
-                request,
-                "Mover itens",
-                &format!(
-                    "Confirme a movimentação de {} item(ns). Informe um diretório de destino absoluto. Destinos existentes não serão sobrescritos.",
-                    sources.len()
-                ),
-                "",
-                true,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Move,
             );
         });
     }
@@ -1304,26 +1699,13 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let selection = Arc::clone(&selection);
         let history = history.clone();
         ui.on_rename_requested(move || {
-            let sources = selected_paths(&directory_rows, &selection);
-            let Some(source) = sources.first() else {
-                return;
-            };
-            let name = operation_label(source);
-            let request = OperationRequest {
-                kind: OperationKind::Rename,
-                sources: vec![source.clone()],
-                destination_directory: None,
-                rename_name: Some(name.clone()),
-                refresh_path: history.borrow().current.clone(),
-            };
-            show_operation_dialog(
+            show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
-                request,
-                "Renomear item",
-                "Informe um único nome novo. Separadores de caminho, ponto e ponto-ponto não são permitidos.",
-                &name,
-                true,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Rename,
             );
         });
     }
@@ -1335,28 +1717,13 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let selection = Arc::clone(&selection);
         let history = history.clone();
         ui.on_delete_requested(move || {
-            let sources = selected_paths(&directory_rows, &selection);
-            if sources.is_empty() {
-                return;
-            }
-            let request = OperationRequest {
-                kind: OperationKind::Delete,
-                sources: sources.clone(),
-                destination_directory: None,
-                rename_name: None,
-                refresh_path: history.borrow().current.clone(),
-            };
-            show_operation_dialog(
+            show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
-                request,
-                "Excluir itens",
-                &format!(
-                    "Confirme a exclusão de {} item(ns). A operação não é recursiva: diretórios não vazios serão preservados.",
-                    sources.len()
-                ),
-                "",
-                false,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Delete,
             );
         });
     }
@@ -1364,8 +1731,193 @@ pub fn run() -> Result<(), slint::PlatformError> {
     {
         let ui_weak = ui_weak.clone();
         let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_copy_requested(move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                ui.set_context_menu_visible(false);
+            }
+            show_selected_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Copy,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_move_requested(move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                ui.set_context_menu_visible(false);
+            }
+            show_selected_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Move,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_rename_requested(move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                ui.set_context_menu_visible(false);
+            }
+            show_selected_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Rename,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_delete_requested(move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                ui.set_context_menu_visible(false);
+            }
+            show_selected_operation_dialog(
+                &ui_weak,
+                &pending_operation,
+                &directory_rows,
+                &selection,
+                &history,
+                OperationKind::Delete,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_conversion = pending_conversion.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_convert_jxl_requested(move || {
+            show_conversion_dialog(
+                &ui_weak,
+                &pending_conversion,
+                &directory_rows,
+                &selection,
+                &history,
+                ConversionKind::JpegXl,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_conversion = pending_conversion.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_convert_opus_requested(move || {
+            show_conversion_dialog(
+                &ui_weak,
+                &pending_conversion,
+                &directory_rows,
+                &selection,
+                &history,
+                ConversionKind::Opus,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_conversion = pending_conversion.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_convert_png_requested(move || {
+            show_conversion_dialog(
+                &ui_weak,
+                &pending_conversion,
+                &directory_rows,
+                &selection,
+                &history,
+                ConversionKind::Png,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_conversion = pending_conversion.clone();
+        let directory_rows = Arc::clone(&directory_rows);
+        let selection = Arc::clone(&selection);
+        let history = history.clone();
+        ui.on_context_menu_convert_flac_requested(move || {
+            show_conversion_dialog(
+                &ui_weak,
+                &pending_conversion,
+                &directory_rows,
+                &selection,
+                &history,
+                ConversionKind::Flac,
+            );
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
+        let pending_conversion = pending_conversion.clone();
         let operation_scheduler = operation_scheduler.clone();
+        let conversion_scheduler = conversion_scheduler.clone();
         ui.on_operation_confirmed(move || {
+            let conversion_request = pending_conversion.borrow_mut().take();
+            if let Some(request) = conversion_request {
+                let Some(ui) = ui_weak.upgrade() else {
+                    return;
+                };
+                let Some(scheduler) = conversion_scheduler.as_ref() else {
+                    ui.set_operation_dialog_message(
+                        "O worker de conversão está indisponível.".into(),
+                    );
+                    *pending_conversion.borrow_mut() = Some(request);
+                    return;
+                };
+                if let Err(request) = scheduler.start(request) {
+                    ui.set_operation_dialog_message(
+                        "Já existe uma conversão em andamento; aguarde o resultado.".into(),
+                    );
+                    *pending_conversion.borrow_mut() = Some(request);
+                    return;
+                }
+                ui.set_operation_busy(true);
+                ui.set_operation_close_only(false);
+                ui.set_operation_needs_input(false);
+                ui.set_operation_progress(0);
+                ui.set_operation_progress_text("Preparando conversão…".into());
+                return;
+            }
+
             let Some(mut request) = pending_operation.borrow_mut().take() else {
                 return;
             };
@@ -1419,15 +1971,18 @@ pub fn run() -> Result<(), slint::PlatformError> {
     {
         let ui_weak = ui_weak.clone();
         let operation_scheduler = operation_scheduler.clone();
+        let conversion_scheduler = conversion_scheduler.clone();
         ui.on_operation_cancelled(move || {
-            let Some(scheduler) = operation_scheduler.as_ref() else {
-                return;
-            };
-            scheduler.cancel();
+            if let Some(scheduler) = operation_scheduler.as_ref() {
+                scheduler.cancel();
+            }
+            if let Some(scheduler) = conversion_scheduler.as_ref() {
+                scheduler.cancel();
+            }
             if let Some(ui) = ui_weak.upgrade() {
                 ui.set_operation_progress_text("Cancelamento solicitado…".into());
                 ui.set_operation_dialog_message(
-                    "A operação será interrompida no próximo ponto seguro; o resultado parcial será verificado.".into(),
+                    "A tarefa será interrompida no próximo ponto seguro; o resultado parcial será verificado.".into(),
                 );
             }
         });
@@ -1436,12 +1991,23 @@ pub fn run() -> Result<(), slint::PlatformError> {
     {
         let ui_weak = ui_weak.clone();
         let pending_operation = pending_operation.clone();
+        let pending_conversion = pending_conversion.clone();
         ui.on_operation_dismissed(move || {
             if let Some(ui) = ui_weak.upgrade()
                 && !ui.get_operation_busy()
             {
                 ui.set_operation_dialog_visible(false);
                 *pending_operation.borrow_mut() = None;
+                *pending_conversion.borrow_mut() = None;
+            }
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        ui.on_context_menu_dismissed(move || {
+            if let Some(ui) = ui_weak.upgrade() {
+                ui.set_context_menu_visible(false);
             }
         });
     }

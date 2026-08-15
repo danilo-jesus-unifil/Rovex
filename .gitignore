@@ -3,3 +3,6 @@
 *.swp
 .vscode/
 .idea/
+
+# Evidências locais de smoke tests e revisão visual.
+/artifacts/

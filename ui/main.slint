@@ -1,18 +1,29 @@
-import { Button, LineEdit, ListView } from "std-widgets.slint";
+import { ListView } from "std-widgets.slint";
 
 export global DesignTokens {
-    out property <color> window-background: #f4f5f7;
-    out property <color> surface: #ffffff;
-    out property <color> surface-secondary: #f7f8fa;
-    out property <color> surface-selected: #dbeafe;
-    out property <color> surface-dialog: #ffffff;
-    out property <color> surface-danger: #fef2f2;
-    out property <color> border: #d9dde3;
-    out property <color> text-primary: #1f2937;
-    out property <color> text-secondary: #6b7280;
-    out property <color> text-muted: #697386;
-    out property <color> accent: #2563eb;
-    out property <color> danger: #b91c1c;
+    out property <color> window-background: #0f141a;
+    out property <color> surface: #171d24;
+    out property <color> surface-secondary: #1d252e;
+    out property <color> surface-selected: #263f63;
+    out property <color> surface-dialog: #1b232c;
+    out property <color> surface-danger: #42252b;
+    out property <color> surface-menu: #1a222b;
+    out property <color> input-background: #121820;
+    out property <color> control-background: #202a34;
+    out property <color> control-hover: #2a3948;
+    out property <color> control-pressed: #345477;
+    out property <color> control-disabled: #252b32;
+    out property <color> border: #35424f;
+    out property <color> border-strong: #4a5a6b;
+    out property <color> overlay: #00000099;
+    out property <color> text-primary: #f1f5f9;
+    out property <color> text-secondary: #adbac8;
+    out property <color> text-muted: #8190a0;
+    out property <color> text-disabled: #647181;
+    out property <color> accent: #79adff;
+    out property <color> accent-strong: #4b8ff5;
+    out property <color> accent-text: #071629;
+    out property <color> danger: #ff858e;
     out property <length> page-padding: 12px;
     out property <length> layout-gap: 10px;
     out property <length> control-gap: 8px;
@@ -31,6 +42,97 @@ export global DesignTokens {
     out property <length> file-row-padding: 12px;
     out property <length> file-column-gap: 12px;
     out property <length> radius-small: 4px;
+}
+
+component RovexButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback clicked;
+
+    height: 34px;
+    border-width: 1px;
+    border-radius: DesignTokens.radius-small;
+    border-color: root.enabled ? DesignTokens.border-strong : DesignTokens.border;
+    background: !root.enabled ? DesignTokens.control-disabled : (button-touch.pressed ? DesignTokens.control-pressed : (button-touch.has-hover ? DesignTokens.control-hover : DesignTokens.control-background));
+    accessible-role: button;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if (root.enabled) {
+            root.clicked();
+        }
+    }
+
+    forward-focus: button-focus;
+
+    button-focus := FocusScope {
+        width: 100%;
+        height: 100%;
+        focus-on-click: true;
+        key-pressed(event) => {
+            if (root.enabled && (event.text == "\\n" || event.text == Key.Space)) {
+                root.clicked();
+                accept
+            } else {
+                reject
+            }
+        }
+        button-touch := TouchArea {
+            clicked => {
+                if (root.enabled) {
+                    root.clicked();
+                }
+            }
+        }
+        Text {
+            width: 100%;
+            height: 100%;
+            text: root.text;
+            color: root.enabled ? DesignTokens.text-primary : DesignTokens.text-disabled;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component RovexLineEdit inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder-text;
+    callback accepted;
+    callback edited;
+
+    height: 34px;
+    border-width: 1px;
+    border-radius: DesignTokens.radius-small;
+    accessible-role: text-input;
+    border-color: editor.has-focus ? DesignTokens.accent : DesignTokens.border;
+    background: DesignTokens.input-background;
+    clip: true;
+
+    editor := TextInput {
+        x: 12px;
+        width: parent.width - 24px;
+        height: parent.height;
+        text <=> root.text;
+        color: DesignTokens.text-primary;
+        selection-foreground-color: DesignTokens.accent-text;
+        selection-background-color: DesignTokens.accent;
+        vertical-alignment: center;
+        accessible-role: text-input;
+        accessible-label: root.accessible-label;
+        accepted => { root.accepted(); }
+        edited => { root.edited(); }
+    }
+
+    if editor.text == "": Text {
+        x: 12px;
+        width: parent.width - 24px;
+        height: parent.height;
+        text: root.placeholder-text;
+        color: DesignTokens.text-muted;
+        vertical-alignment: center;
+        overflow: elide;
+    }
 }
 
 export struct LocationRow {
@@ -63,6 +165,12 @@ export component MainWindow inherits Window {
     in-out property <bool> operation-busy: false;
     in-out property <bool> operation-close-only: false;
     in-out property <bool> operation-needs-input: false;
+    in-out property <bool> context-menu-visible: false;
+    in-out property <string> context-menu-target-name;
+    in-out property <bool> context-menu-can-jxl: false;
+    in-out property <bool> context-menu-can-opus: false;
+    in-out property <bool> context-menu-can-png: false;
+    in-out property <bool> context-menu-can-flac: false;
     in-out property <string> operation-dialog-title;
     in-out property <string> operation-dialog-message;
     in-out property <string> operation-dialog-input;
@@ -86,6 +194,16 @@ export component MainWindow inherits Window {
     callback operation-confirmed();
     callback operation-cancelled();
     callback operation-dismissed();
+    callback context-menu-requested(int);
+    callback context-menu-dismissed();
+    callback context-menu-copy-requested();
+    callback context-menu-move-requested();
+    callback context-menu-rename-requested();
+    callback context-menu-delete-requested();
+    callback context-menu-convert-jxl-requested();
+    callback context-menu-convert-opus-requested();
+    callback context-menu-convert-png-requested();
+    callback context-menu-convert-flac-requested();
 
     title: "Rovex";
     preferred-width: 1100px;
@@ -102,33 +220,34 @@ export component MainWindow inherits Window {
                 spacing: DesignTokens.control-gap;
                 height: DesignTokens.toolbar-height;
 
-            Button {
+            RovexButton {
                 text: "←";
                 enabled: root.can-go-back;
                 accessible-label: "Voltar no histórico";
                 clicked => { root.back-requested(); }
             }
 
-            Button {
+            RovexButton {
                 text: "→";
                 enabled: root.can-go-forward;
                 accessible-label: "Avançar no histórico";
                 clicked => { root.forward-requested(); }
             }
 
-            Button {
+            RovexButton {
                 text: "↑";
                 accessible-label: "Subir para a pasta pai";
                 clicked => { root.navigate-up(); }
             }
 
-            LineEdit {
+            RovexLineEdit {
                 text <=> root.current-path;
+                accessible-label: "Caminho da pasta";
                 placeholder-text: "Caminho da pasta";
                 accepted => { root.navigate-to(self.text); }
             }
 
-            LineEdit {
+            RovexLineEdit {
                 width: DesignTokens.filter-width;
                 text <=> root.filter-text;
                 placeholder-text: "Filtrar nesta pasta";
@@ -136,7 +255,7 @@ export component MainWindow inherits Window {
                 edited => { root.filter-changed(self.text); }
             }
 
-            Button {
+            RovexButton {
                 text: "Atualizar";
                 accessible-label: "Atualizar listagem";
                 clicked => { root.refresh-requested(); }
@@ -148,28 +267,28 @@ export component MainWindow inherits Window {
             spacing: DesignTokens.control-gap;
             height: DesignTokens.operation-toolbar-height;
 
-            Button {
+            RovexButton {
                 text: "Copiar";
                 enabled: root.selection-count > 0 && !root.operation-busy;
                 accessible-label: "Copiar itens selecionados";
                 clicked => { root.copy-requested(); }
             }
 
-            Button {
+            RovexButton {
                 text: "Mover";
                 enabled: root.selection-count > 0 && !root.operation-busy;
                 accessible-label: "Mover itens selecionados";
                 clicked => { root.move-requested(); }
             }
 
-            Button {
+            RovexButton {
                 text: "Renomear";
                 enabled: root.selection-count == 1 && !root.operation-busy;
                 accessible-label: "Renomear item selecionado";
                 clicked => { root.rename-requested(); }
             }
 
-            Button {
+            RovexButton {
                 text: "Excluir";
                 enabled: root.selection-count > 0 && !root.operation-busy;
                 accessible-label: "Excluir itens selecionados";
@@ -316,6 +435,11 @@ export component MainWindow inherits Window {
                                     focus-scope.focus();
                                     root.focused-row-index = index;
                                     root.select-row(index, event.modifiers.control, event.modifiers.shift);
+                                } else if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
+                                    focus-scope.focus();
+                                    root.focused-row-index = index;
+                                    root.select-row(index, false, false);
+                                    root.context-menu-requested(index);
                                 }
                             }
                             double-clicked => {
@@ -341,6 +465,113 @@ export component MainWindow inherits Window {
                     color: DesignTokens.text-secondary;
                     height: DesignTokens.status-height;
                     overflow: elide;
+                }
+            }
+        }
+    }
+
+    if root.context-menu-visible && !root.operation-dialog-visible: FocusScope {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        focus-on-click: true;
+        init => { self.focus(); }
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.context-menu-dismissed();
+                accept
+            }
+            reject
+        }
+
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            TouchArea {
+                width: 100%;
+                height: 100%;
+                clicked => { root.context-menu-dismissed(); }
+            }
+        }
+
+        Rectangle {
+            x: 16px;
+            y: 58px;
+            width: 330px;
+            height: 408px;
+            background: DesignTokens.surface-menu;
+            border-width: 1px;
+            border-color: DesignTokens.border-strong;
+            border-radius: DesignTokens.radius-small;
+
+            VerticalLayout {
+                padding: 10px;
+                spacing: 4px;
+
+                Text {
+                    text: "Ações — " + root.context-menu-target-name;
+                    color: DesignTokens.text-primary;
+                    height: 24px;
+                    overflow: elide;
+                }
+                Text {
+                    text: "Conversões usam FFmpeg instalado no PATH";
+                    color: DesignTokens.text-muted;
+                    height: 18px;
+                    overflow: elide;
+                }
+
+                RovexButton {
+                    text: "Copiar";
+                    accessible-label: "Copiar item pelo menu contextual";
+                    clicked => { root.context-menu-copy-requested(); }
+                }
+                RovexButton {
+                    text: "Mover";
+                    accessible-label: "Mover item pelo menu contextual";
+                    clicked => { root.context-menu-move-requested(); }
+                }
+                RovexButton {
+                    text: "Renomear";
+                    accessible-label: "Renomear item pelo menu contextual";
+                    clicked => { root.context-menu-rename-requested(); }
+                }
+                RovexButton {
+                    text: "Excluir";
+                    accessible-label: "Excluir item pelo menu contextual";
+                    clicked => { root.context-menu-delete-requested(); }
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: DesignTokens.border;
+                }
+
+                RovexButton {
+                    text: "Converter para JPEG XL (.jxl)";
+                    enabled: root.context-menu-can-jxl;
+                    accessible-label: "Converter imagem selecionada para JPEG XL";
+                    clicked => { root.context-menu-convert-jxl-requested(); }
+                }
+                RovexButton {
+                    text: "Converter áudio para Opus (.opus)";
+                    enabled: root.context-menu-can-opus;
+                    accessible-label: "Converter áudio selecionado para Opus";
+                    clicked => { root.context-menu-convert-opus-requested(); }
+                }
+                RovexButton {
+                    text: "Converter imagem para PNG (.png)";
+                    enabled: root.context-menu-can-png;
+                    accessible-label: "Converter imagem selecionada para PNG";
+                    clicked => { root.context-menu-convert-png-requested(); }
+                }
+                RovexButton {
+                    text: "Converter áudio para FLAC (.flac)";
+                    enabled: root.context-menu-can-flac;
+                    accessible-label: "Converter áudio selecionado para FLAC";
+                    clicked => { root.context-menu-convert-flac-requested(); }
                 }
             }
         }
@@ -403,7 +634,7 @@ export component MainWindow inherits Window {
                     overflow: elide;
                 }
 
-                LineEdit {
+                RovexLineEdit {
                     visible: root.operation-needs-input && !root.operation-busy && !root.operation-close-only;
                     text <=> root.operation-dialog-input;
                     placeholder-text: "Caminho ou novo nome";
@@ -439,7 +670,7 @@ export component MainWindow inherits Window {
                     height: 36px;
                     spacing: DesignTokens.control-gap;
                     horizontal-stretch: 1;
-                    Button {
+                    RovexButton {
                         text: root.operation-busy ? "Cancelar" : (root.operation-close-only ? "Fechar" : "Confirmar");
                         accessible-label: root.operation-busy ? "Cancelar operação" : (root.operation-close-only ? "Fechar resultado" : "Confirmar operação");
                         clicked => {
@@ -452,7 +683,7 @@ export component MainWindow inherits Window {
                             }
                         }
                     }
-                    Button {
+                    RovexButton {
                         visible: !root.operation-busy && !root.operation-close-only;
                         text: "Voltar";
                         clicked => { root.operation-dismissed(); }
