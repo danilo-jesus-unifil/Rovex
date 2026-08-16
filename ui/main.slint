@@ -313,6 +313,7 @@ export component MainWindow inherits Window {
                 border-width: 1px;
                 border-color: DesignTokens.border;
                 border-radius: DesignTokens.radius-small;
+                clip: true;
                 VerticalLayout {
                     padding: DesignTokens.sidebar-padding;
                     spacing: DesignTokens.sidebar-inner-gap;
@@ -345,6 +346,7 @@ export component MainWindow inherits Window {
                             height: 100%;
                             for location[index] in root.locations: Rectangle {
                                 height: DesignTokens.sidebar-row-height;
+                                border-radius: DesignTokens.radius-small;
                                 background: location.path == root.current-path ? DesignTokens.surface-selected : ((sidebar-focus.has-focus && root.sidebar-focus-index == index) ? DesignTokens.surface-secondary : (sidebar-touch.has-hover ? DesignTokens.surface-secondary : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary)));
                                 accessible-role: list-item;
                                 accessible-label: location.label;
