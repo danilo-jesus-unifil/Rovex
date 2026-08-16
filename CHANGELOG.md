@@ -2,16 +2,18 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
-## [Unreleased]
+## [0.1.2] — 2026-08-16
 
-Esta seção registra correções preparadas após a publicação da v0.1.1, ainda sem uma nova tag de release.
+A versão 0.1.2 corrige a descoberta dos backends de conversão, melhora a ergonomia da toolbar, amplia os locais padrão do Windows e arredonda visualmente a sidebar.
 
 | Área | Correção |
 |---|---|
 | Conversão | Resolução determinística e segura de `ffmpeg`/`ffprobe` por PATH, diretório do Rovex, locais fixos de instalação e overrides absolutos; ausência do backend agora informa o número de tentativas sem declarar sucesso falso. |
 | Toolbar | Largura mínima e espaçamento explícito para voltar, avançar, subir e atualizar. |
 | Locais | Known Folders oficiais do Windows para Área de Trabalho, Documentos, Downloads, Imagens, Vídeos, Músicas e Objetos 3D, com filtro por diretório existente e fallback portátil. |
+| Interface | Painel de Locais e itens selecionados com bordas arredondadas e clip interno no tema escuro. |
 | Dependências | `windows-sys` 0.61.2 restrito ao alvo Windows para `SHGetKnownFolderPath`. |
+| Qualidade | `cargo check`, testes, Clippy, auditorias, builds Linux/Windows e CI remoto executados. |
 
 ## [0.1.1] — 2026-08-15
 

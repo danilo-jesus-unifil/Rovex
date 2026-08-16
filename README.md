@@ -2,7 +2,7 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é uma release portable `v0.1.1` de um protótipo desktop funcional. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
+> O estado atual é uma release portable `v0.1.2` de um protótipo desktop funcional. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
 
 ## Estado atual
 
@@ -65,7 +65,7 @@ A execução gráfica foi testada em display virtual com carregamento de `/tmp`,
 
 ## Documentação
 
-A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.1.md`](RELEASE_REPORT-v0.1.1.md).
+A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.2.md`](RELEASE_REPORT-v0.1.2.md).
 
 ## Segurança e dependências
 
