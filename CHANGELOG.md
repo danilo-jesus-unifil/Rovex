@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.4] — 2026-08-17
+
+A versão 0.1.4 é uma nova reconstrução estável do estado corrigido da v0.1.3, repetindo a validação completa e publicando binários otimizados Linux/Windows.
+
+| Área | Resultado |
+|---|---|
+| Compilação | `cargo check` e `cargo build --release` executados no estado atual sem erros. |
+| Compatibilidade | Builds Linux x86_64 e Windows GNU x86_64 regenerados. |
+| Qualidade | Testes, Clippy, auditorias e cross-check Windows repetidos antes da publicação. |
+| Distribuição | Pacotes e SHA-256 regenerados e verificados após download da release. |
+
 ## [0.1.3] — 2026-08-17
 
 A versão 0.1.3 corrige a falha observada em ambiente real na descoberta dos backends de conversão.
