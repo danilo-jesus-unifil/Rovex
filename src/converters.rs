@@ -22,6 +22,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const MAX_CONVERSION_DURATION: Duration = Duration::from_secs(5 * 60);
+const MAX_PROCESS_OUTPUT_BYTES: usize = 64 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConversionKind {
@@ -289,6 +290,62 @@ fn temporary_path(destination: &Path) -> Result<PathBuf, ConversionError> {
         path: destination.to_path_buf(),
         reason: "não foi possível reservar um arquivo temporário",
     })
+}
+
+fn read_limited_output<R: io::Read>(mut reader: R) -> io::Result<Vec<u8>> {
+    let mut bytes = Vec::with_capacity(MAX_PROCESS_OUTPUT_BYTES);
+    let mut buffer = [0_u8; 8 * 1024];
+    let mut exceeded = false;
+    loop {
+        let read = reader.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        if bytes.len() < MAX_PROCESS_OUTPUT_BYTES {
+            let remaining = MAX_PROCESS_OUTPUT_BYTES - bytes.len();
+            let retained = read.min(remaining);
+            bytes.extend_from_slice(&buffer[..retained]);
+            exceeded |= read > remaining;
+        } else {
+            exceeded = true;
+        }
+    }
+    if exceeded {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "a saída do processo excedeu o limite de diagnóstico",
+        ));
+    }
+    Ok(bytes)
+}
+
+fn spawn_output_reader<R: io::Read + Send + 'static>(
+    reader: R,
+    name: &'static str,
+) -> io::Result<thread::JoinHandle<io::Result<Vec<u8>>>> {
+    thread::Builder::new()
+        .name(name.to_owned())
+        .spawn(move || read_limited_output(reader))
+}
+
+fn join_output_reader(
+    reader: Option<thread::JoinHandle<io::Result<Vec<u8>>>>,
+) -> io::Result<Vec<u8>> {
+    match reader {
+        Some(reader) => reader.join().map_err(|_| {
+            io::Error::other("o leitor de saída do processo terminou inesperadamente")
+        })?,
+        None => Ok(Vec::new()),
+    }
+}
+
+fn start_output_reader<R: io::Read + Send + 'static>(
+    reader: Option<R>,
+    name: &'static str,
+) -> io::Result<Option<thread::JoinHandle<io::Result<Vec<u8>>>>> {
+    reader
+        .map(|reader| spawn_output_reader(reader, name))
+        .transpose()
 }
 
 fn stderr_message(bytes: &[u8]) -> String {
@@ -906,16 +963,30 @@ fn spawn_ffmpeg(
             path: source.to_path_buf(),
             message: format!("o executável resolvido não pôde ser iniciado: {error}"),
         })?;
+    let mut stderr_reader = match start_output_reader(child.stderr.take(), "rovex-ffmpeg-stderr") {
+        Ok(reader) => reader,
+        Err(error) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(ConversionError::Process {
+                executable: "ffmpeg",
+                path: source.to_path_buf(),
+                message: format!("não foi possível ler o diagnóstico do processo: {error}"),
+            });
+        }
+    };
     let deadline = Instant::now() + MAX_CONVERSION_DURATION;
     loop {
         if cancel.load(Ordering::Acquire) {
             let _ = child.kill();
             let _ = child.wait();
+            let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Cancelled);
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
             let _ = child.wait();
+            let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Timeout {
                 executable: "ffmpeg",
                 path: source.to_path_buf(),
@@ -923,15 +994,13 @@ fn spawn_ffmpeg(
         }
         match child.try_wait() {
             Ok(Some(status)) => {
-                let stderr = child
-                    .stderr
-                    .take()
-                    .and_then(|mut stderr| {
-                        let mut bytes = Vec::new();
-                        std::io::Read::read_to_end(&mut stderr, &mut bytes).ok()?;
-                        Some(bytes)
-                    })
-                    .unwrap_or_default();
+                let stderr = join_output_reader(stderr_reader.take()).map_err(|error| {
+                    ConversionError::Process {
+                        executable: "ffmpeg",
+                        path: source.to_path_buf(),
+                        message: error.to_string(),
+                    }
+                })?;
                 if status.success() {
                     return Ok(());
                 }
@@ -945,6 +1014,7 @@ fn spawn_ffmpeg(
             Err(error) => {
                 let _ = child.kill();
                 let _ = child.wait();
+                let _ = join_output_reader(stderr_reader.take());
                 return Err(ConversionError::Process {
                     executable: "ffmpeg",
                     path: source.to_path_buf(),
@@ -980,16 +1050,45 @@ fn run_ffprobe(
             path: destination.to_path_buf(),
             message: format!("o executável resolvido não pôde ser iniciado: {error}"),
         })?;
+    let mut stdout_reader = match start_output_reader(child.stdout.take(), "rovex-ffprobe-stdout") {
+        Ok(reader) => reader,
+        Err(error) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(ConversionError::Process {
+                executable: "ffprobe",
+                path: destination.to_path_buf(),
+                message: format!("não foi possível ler a saída do processo: {error}"),
+            });
+        }
+    };
+    let mut stderr_reader = match start_output_reader(child.stderr.take(), "rovex-ffprobe-stderr") {
+        Ok(reader) => reader,
+        Err(error) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = join_output_reader(stdout_reader.take());
+            return Err(ConversionError::Process {
+                executable: "ffprobe",
+                path: destination.to_path_buf(),
+                message: format!("não foi possível ler o diagnóstico do processo: {error}"),
+            });
+        }
+    };
     let deadline = Instant::now() + MAX_CONVERSION_DURATION;
     loop {
         if cancel.load(Ordering::Acquire) {
             let _ = child.kill();
             let _ = child.wait();
+            let _ = join_output_reader(stdout_reader.take());
+            let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Cancelled);
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
             let _ = child.wait();
+            let _ = join_output_reader(stdout_reader.take());
+            let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Timeout {
                 executable: "ffprobe",
                 path: destination.to_path_buf(),
@@ -997,26 +1096,20 @@ fn run_ffprobe(
         }
         match child.try_wait() {
             Ok(Some(status)) => {
-                let mut stdout = Vec::new();
-                if let Some(mut pipe) = child.stdout.take() {
-                    std::io::Read::read_to_end(&mut pipe, &mut stdout).map_err(|error| {
-                        ConversionError::Process {
-                            executable: "ffprobe",
-                            path: destination.to_path_buf(),
-                            message: error.to_string(),
-                        }
-                    })?;
-                }
-                let mut stderr = Vec::new();
-                if let Some(mut pipe) = child.stderr.take() {
-                    std::io::Read::read_to_end(&mut pipe, &mut stderr).map_err(|error| {
-                        ConversionError::Process {
-                            executable: "ffprobe",
-                            path: destination.to_path_buf(),
-                            message: error.to_string(),
-                        }
-                    })?;
-                }
+                let stdout = join_output_reader(stdout_reader.take()).map_err(|error| {
+                    ConversionError::Process {
+                        executable: "ffprobe",
+                        path: destination.to_path_buf(),
+                        message: error.to_string(),
+                    }
+                })?;
+                let stderr = join_output_reader(stderr_reader.take()).map_err(|error| {
+                    ConversionError::Process {
+                        executable: "ffprobe",
+                        path: destination.to_path_buf(),
+                        message: error.to_string(),
+                    }
+                })?;
                 return Ok(std::process::Output {
                     status,
                     stdout,
@@ -1027,6 +1120,8 @@ fn run_ffprobe(
             Err(error) => {
                 let _ = child.kill();
                 let _ = child.wait();
+                let _ = join_output_reader(stdout_reader.take());
+                let _ = join_output_reader(stderr_reader.take());
                 return Err(ConversionError::Process {
                     executable: "ffprobe",
                     path: destination.to_path_buf(),
@@ -1207,7 +1302,8 @@ where
 mod tests {
     use super::{
         ConversionError, ConversionKind, convert_file, output_path,
-        push_path_or_directory_candidates, resolve_backend, resolve_backend_from_candidates,
+        push_path_or_directory_candidates, read_limited_output, resolve_backend,
+        resolve_backend_from_candidates,
     };
     use std::fs;
     #[cfg(unix)]
@@ -1216,6 +1312,14 @@ mod tests {
     use std::process::Command;
     use std::sync::atomic::AtomicBool;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn diagnostico_de_backend_tem_limite_de_tamanho() {
+        let oversized = vec![b'x'; super::MAX_PROCESS_OUTPUT_BYTES + 1];
+        let error = read_limited_output(oversized.as_slice())
+            .expect_err("diagnóstico acima do limite deve ser recusado");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+    }
 
     #[test]
     fn conversores_reconhecem_extensoes_sem_diferenciar_maiusculas() {

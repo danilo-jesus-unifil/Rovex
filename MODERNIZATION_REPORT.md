@@ -28,7 +28,7 @@ A versão direta do Slint permaneceu em **1.17.1**, que foi confirmada pelo regi
 
 ## APIs e código
 
-O inventário não encontrou `unsafe`, `deprecated`, `unwrap` ou `expect` em código de produção; os `expect` encontrados pertencem a fixtures de testes. O Clippy com `-D warnings` revelou dois `collapsible_if` no experimento edition 2024. Eles foram corrigidos com let-chains idiomáticos, sem `allow` ou compatibilidade artificial com código antigo.
+O inventário não encontrou blocos `unsafe` fora das integrações FFI Win32 já existentes e documentadas, nem `deprecated`, `unwrap` ou `expect` em caminhos de produção; os `expect` encontrados pertencem a fixtures de testes. O Clippy com `-D warnings` revelou dois `collapsible_if` no experimento edition 2024. Eles foram corrigidos com let-chains idiomáticos, sem `allow` ou compatibilidade artificial com código antigo.
 
 O `build.rs` continua mínimo e reproduzível: observa `ui/main.slint`, chama `slint_build::compile` e não baixa arquivos, executa shell ou depende de uma máquina específica. Não foram adicionados bindings Windows redundantes, logger, serializador, conversor, codec externo ou sistema de configuração.
 

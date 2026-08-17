@@ -33,7 +33,7 @@ sleep 0.4
 DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 180 320 click 1
 sleep 0.5
 DISPLAY=":$xvfb_display" import -display ":$xvfb_display" -window root artifacts/rovex-jxl-confirm.png
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 220 488 click 1
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 220 464 click 1
 for _ in 1 2 3 4 5 6 7 8 9 10; do
     if [ -s "$fixture/entrada.jxl" ]; then break; fi
     sleep 0.5

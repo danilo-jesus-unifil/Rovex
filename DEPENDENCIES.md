@@ -8,7 +8,7 @@ O Rovex possui dependências diretas de runtime para a UI e para a integração 
 
 | Dependência | Versão resolvida | Uso | Features efetivas | Decisão | Compatibilidade |
 |---|---:|---|---|---|---|
-| `slint` | 1.17.1 | Janela desktop, componentes Slint, event loop, modelo visual e acessibilidade | Linux: `backend-winit-x11`, `renderer-software`, `accessibility`, `compat-1-2`; Windows/Unix não-Linux: `backend-winit`, `renderer-software`, `accessibility`, `compat-1-2`; `default-features = false` | **Manter pin exato** | MSRV publicada 1.92; documentação desktop lista Windows 10 x86-64 e Windows 11 x86-64/aarch64 [1] |
+| `slint` | 1.17.1 | Janela desktop, componentes Slint, event loop, modelo visual e acessibilidade | Linux: `backend-winit-x11`, `renderer-software`, `accessibility`, `compat-1-2`; Windows/Unix não-Linux: `backend-winit`, `renderer-software`, `accessibility`, `compat-1-2`; `default-features = false` | **Manter pin exato** | Requisito do toolkit documentado separadamente; documentação desktop lista Windows 10 x86-64 e Windows 11 x86-64/aarch64 [1] |
 | `slint-build` | 1.17.1 | Compilação de `ui/main.slint` no `build.rs` | Defaults do crate | **Manter pin exato e alinhado ao runtime** | Mesma release do `slint`; evita compiler/runtime divergentes |
 | `windows-sys` | 0.61.2 | `SHGetKnownFolderPath` e leitura do PATH persistente do Windows | `Win32_Foundation`, `Win32_System_Com`, `Win32_System_Environment`, `Win32_System_Registry`, `Win32_UI_Shell`; somente Windows | **Manter restrito ao target** | APIs Win32 compatíveis com Windows 10/11; sem efeito em Linux |
 
@@ -20,7 +20,7 @@ A consulta do registry realizada durante a auditoria retornou `slint = 1.17.1`, 
 |---|---|---|
 | Rust | 1.97.1 | Release estável atual verificada na fonte oficial; inclui correção de miscompilação LLVM [2] |
 | Edição | Rust 2024 | Migração validada com check, testes e Clippy estrito; permite sintaxe moderna e elimina compatibilidade artificial com edição 2021 |
-| `rust-version` | 1.92 | MSRV declarada compatível com Slint 1.17.1; não foi elevada sem necessidade |
+| `rust-version` | 1.97 | MSRV declarada pelo `Cargo.toml`; alinhada ao toolchain fixado do projeto |
 | Componentes | `rustfmt`, `clippy` | Verificação local e CI |
 | Target cross | `x86_64-pc-windows-gnu` | Artefato PE32+ Windows x64 reproduzível no ambiente Linux |
 | Build script | `slint-build::compile("ui/main.slint")` | Sem downloads, shell ou comportamento dependente de uma máquina |

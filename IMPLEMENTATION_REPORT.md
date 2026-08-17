@@ -1,10 +1,14 @@
 # Relatório de implementação e hardening — Rovex
 
+## Estado atual reconciliado
+
+Este documento foi reconciliado em 17 de agosto de 2026 com o estado publicado da v0.1.8 e com a refatoração arquitetural posterior. Relatórios explicitamente versionados continuam sendo históricos de suas respectivas releases.
+
 ## Resultado atual
 
-O Rovex evoluiu da fundação Rust para um protótipo desktop funcional. O binário agora abre uma janela Slint, recebe um diretório inicial, lista entradas reais, navega por caminho, sobe para a pasta pai, atualiza a listagem e mostra status ou erro controlado. A lista é atualizada no thread principal do Slint; o filesystem roda em workers nomeados.
+O Rovex é um aplicativo desktop funcional em Rust/Slint. O binário abre uma janela Slint, recebe um diretório inicial, lista entradas reais, navega por caminho, sobe para a pasta pai, atualiza a listagem, oferece abas, menu contextual, operações de arquivo e quatro conversores locais, e mostra status ou erro controlado. A lista é atualizada no thread principal do Slint; filesystem, filtro, operações e conversões rodam em workers nomeados.
 
-A interface não é apresentada como um Explorer completo. Pesquisa global, abas, thumbnails, pré-visualização, drag and drop, integração com shell, operações de arquivo disparadas pela UI, conversores, OCR, instalador, assinatura e atualização permanecem fora da primeira fatia e estão documentados como pendências. Histórico voltar/avançar, seleção múltipla local e uma barra lateral de locais existentes já são funcionais.
+A interface não é apresentada como um Explorer completo. Pesquisa global, thumbnails, pré-visualização, drag and drop, integração com shell, OCR, instalador, assinatura, atualização automática e acesso à Lixeira permanecem como pendências explícitas. Abas reais, menu contextual, operações de arquivo disparadas pela toolbar/menu, quatro conversores locais, histórico voltar/avançar, seleção múltipla local e uma barra lateral de locais existentes são funcionais e testados.
 
 ## Checkpoints e backups
 
@@ -30,7 +34,7 @@ Durante a revisão foram encontrados e corrigidos erros reais: sintaxe de módul
 
 ## Dependências e auditoria
 
-A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt, Clippy e alvo Windows x64. O Slint é fixado em 1.17.1; seu MSRV 1.92 é compatível com o toolchain do projeto.
+A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt, Clippy e alvo Windows x64. O `Cargo.toml` declara `rust-version = "1.97"`, que é a MSRV efetiva do Rovex; o Slint é fixado em 1.17.1 e possui requisitos próprios documentados separadamente.
 
 `cargo deny check` está aprovado em advisories, bans, licenças e fontes. A política permite somente os identificadores observados na árvore, incluindo `LicenseRef-Slint-Royalty-free-2.0` e `LicenseRef-Slint-Software-3.0`, referências declaradas pelo próprio Slint. `cargo audit` termina com código 0 e não encontrou vulnerabilidades, mas reporta quatro warnings de manutenção transitivos: `bincode` 2.0.1, `paste` 1.0.15, `rustybuzz` 0.20.1 e `ttf-parser` 0.25.1. A base RustSec não fornece atualização segura para essa cadeia durante esta verificação; os warnings permanecem visíveis, registrados em [`docs/slint-research.md`](docs/slint-research.md) e não são tratados como vulnerabilidades.
 
@@ -40,7 +44,7 @@ A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt
 |---|---|
 | `cargo fmt --all -- --check` | Aprovado |
 | `cargo check --all-targets --all-features` | Aprovado |
-| `cargo test --all-targets --all-features` | **28 testes aprovados, 0 falhas; 1 benchmark manual ignorado por padrão** |
+| `cargo test --all-targets --all-features` | **44 testes aprovados, 0 falhas; 2 testes ignorados explicitamente** |
 | `cargo clippy --all-targets --all-features -- -D warnings` | Aprovado |
 | `cargo build --release` | Aprovado |
 | `cargo build --release --target x86_64-pc-windows-gnu` | Aprovado |
@@ -68,7 +72,7 @@ A busca por `unsafe`, `TODO`, `FIXME`, `panic!`, `unwrap` e `expect` encontrou `
 
 ## Próximo gate
 
-A CI remota da auditoria final passou em Linux, Windows e auditoria de dependências na execução `31857990905`. Antes de anunciar compatibilidade final, a execução manual em Windows deve cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos e arquivos em uso. O próximo gate de produto é conectar operações reais de arquivo à seleção com confirmação, cancelamento, progresso e testes de segurança. A cópia de núcleo já protege publicação sem sobrescrita inclusive em corrida; a UI ainda não dispara essa operação. A etapa de performance não adicionou previews, thumbnails, polling, hash ou pesquisa global; todos continuam sob demanda. Favoritos persistentes e seleção de drives ficam para uma etapa posterior, sem análise automática no startup. Pesquisa global, thumbnails e análise de espaço continuam explicitamente sob demanda, nunca no startup.
+A validação atual confirmou Linux nativo, check cruzado Windows GNU, build release, smokes gráficos de abas/menu/conversão e conversão JPEG XL com binário e imagem em diretórios distintos. Antes de anunciar compatibilidade nativa completa, a execução manual em Windows deve cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos, UNC/SMB e arquivos em uso. O próximo gate funcional relevante é implementar a Lixeira com semântica segura e testes multiplataforma; pesquisa global, thumbnails, previews, polling, hash, favoritos persistentes e análise de espaço continuam fora do escopo e não são iniciados automaticamente.
 
 ## Referências técnicas
 

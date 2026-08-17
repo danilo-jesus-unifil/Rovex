@@ -1,6 +1,6 @@
 # Rovex — Release Notes de Modernização
 
-## 15 de agosto de 2026
+## 15 de agosto de 2026 — registro histórico da modernização
 
 Esta etapa moderniza a base técnica do Rovex sem trocar dependências por versões não verificadas. O projeto migrou da edição Rust 2021 para a edição Rust 2024, mantendo Rust 1.97.1, que já era a release estável atual verificada. O Slint e o Slint-build continuam em 1.17.1, alinhados entre runtime e compiler.
 
@@ -10,4 +10,4 @@ O CI agora executa `cargo check` explicitamente e possui um job dedicado de cros
 
 A auditoria não encontrou vulnerabilidades exploráveis. Quatro avisos de manutenção transitivos da cadeia Slint continuam visíveis e documentados: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Eles não foram convertidos em exceções silenciosas.
 
-A modernização foi validada com 31 testes aprovados, Clippy estrito, builds release Linux/Windows GNU, `cargo audit`, `cargo deny check` e smoke tests reais da interface e das operações de arquivo. A execução nativa identificada em Windows 10 22H2, testes de DPI, manifesto PE, UNC/SMB, reparse points e paths longos permanecem como gates de compatibilidade posteriores.
+A modernização foi validada, na data deste registro, com 31 testes aprovados, Clippy estrito, builds release Linux/Windows GNU, `cargo audit`, `cargo deny check` e smoke tests reais da interface e das operações de arquivo. A suíte atual evoluiu posteriormente para 45 testes pelo harness, com 43 aprovados e 2 ignorados explicitamente; consulte [`docs/testing.md`](docs/testing.md) para o estado corrente. A execução nativa identificada em Windows 10 22H2, testes de DPI, manifesto PE, UNC/SMB, reparse points e paths longos permanecem como gates de compatibilidade posteriores.

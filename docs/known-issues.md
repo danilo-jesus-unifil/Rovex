@@ -10,7 +10,7 @@ A exclusão é intencionalmente limitada a arquivos, links e diretórios vazios.
 
 ## Interface
 
-Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pesquisa recursiva. O histórico voltar/avançar, a seleção múltipla local por clique, Ctrl-clique, Shift-clique e Ctrl+A e uma barra lateral com locais existentes já são funcionais e testados. A sidebar possui foco, setas e Enter/Space; estados vazios distinguem pasta vazia, filtro sem resultados e erro de filesystem. A barra lateral não analisa espaço, não enumera unidades inteiras e não cria favoritos persistentes. Ainda não há pesquisa global incremental, abas, thumbnails, pré-visualização, drag and drop, menu contextual, tema configurável, atalhos completos ou integração com o Explorer do Windows. Esses recursos não são simulados e permanecem fora da primeira fatia.
+Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pesquisa recursiva. O histórico voltar/avançar, as abas reais com histórico independente, a seleção múltipla local por clique, Ctrl-clique, Shift-clique e Ctrl+A, o menu contextual e uma barra lateral com locais existentes já são funcionais e testados. A sidebar possui foco, setas e Enter/Space; estados vazios distinguem pasta vazia, filtro sem resultados e erro de filesystem. A barra lateral não analisa espaço, não enumera unidades inteiras e não cria favoritos persistentes. Ainda não há pesquisa global incremental, thumbnails, pré-visualização, drag and drop, tema configurável, atalhos completos, acesso à Lixeira ou integração com o Explorer do Windows. Esses recursos não são simulados e permanecem fora do escopo atual.
 
 ## Dependências
 
@@ -20,4 +20,4 @@ Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pe
 
 O projeto já produz um executável PE32+ x86-64 em build cruzado e a CI deve validar compilação e testes em `windows-latest`. A auditoria adicionou cobertura Linux para caminhos relativos, componentes pai symlink, nomes Unicode inválidos, publicação sem sobrescrita em corrida e mensagens humanizadas. Ainda permanecem pendentes a execução manual em Windows 10/11, paths longos, junctions e demais reparse points, UNC/SMB, permissões negadas, arquivos em uso, DPI por monitor, acessibilidade nativa do Windows, manifesto, instalador, assinatura e desinstalação.
 
-Nenhuma release estável deve ser publicada enquanto essas limitações forem relevantes para o escopo anunciado.
+Essas limitações permanecem gates explícitos para declarações de compatibilidade nativa completa no Windows e para futuras funcionalidades de distribuição; a v0.1.8 já foi publicada com o escopo e as limitações descritos neste documento.

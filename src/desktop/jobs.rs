@@ -447,15 +447,13 @@ impl OperationScheduler {
             return Err(request);
         }
         self.cancel.store(false, Ordering::Release);
+        let retry_request = request.clone();
         let message = OperationMessage::Run(request, Arc::clone(&self.cancel));
         match self.sender.send(message) {
             Ok(()) => Ok(()),
-            Err(error) => {
+            Err(_) => {
                 self.busy.store(false, Ordering::Release);
-                match error.0 {
-                    OperationMessage::Run(request, _) => Err(request),
-                    OperationMessage::Shutdown => unreachable!("shutdown não é enviado por start"),
-                }
+                Err(retry_request)
             }
         }
     }
@@ -618,15 +616,13 @@ impl ConversionScheduler {
             return Err(request);
         }
         self.cancel.store(false, Ordering::Release);
+        let retry_request = request.clone();
         let message = ConversionMessage::Run(request, Arc::clone(&self.cancel));
         match self.sender.send(message) {
             Ok(()) => Ok(()),
-            Err(error) => {
+            Err(_) => {
                 self.busy.store(false, Ordering::Release);
-                match error.0 {
-                    ConversionMessage::Run(request, _) => Err(request),
-                    ConversionMessage::Shutdown => unreachable!("shutdown não é enviado por start"),
-                }
+                Err(retry_request)
             }
         }
     }

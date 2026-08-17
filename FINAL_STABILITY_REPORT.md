@@ -1,5 +1,7 @@
 # Rovex — Relatório Final de Estabilidade
 
+> **Documento histórico:** este relatório descreve o baseline auditado em 15 de agosto de 2026, antes da v0.1.8. Para o estado atual, consulte `README.md`, `docs/known-issues.md` e `ARCHITECTURE-REFACTOR-REPORT-2026-08-17.md`.
+
 **Data da auditoria:** 15 de agosto de 2026  
 **Baseline auditado:** commit `d464851`  
 **Checkpoint de rollback:** `backup/before-final-stabilization-2026-08-15`  
@@ -11,7 +13,7 @@
 
 A auditoria tratou o estado atual como uma versão de pré-release, sem confiar apenas em compilações anteriores. Foram revisados o núcleo de filesystem, segurança de caminhos, cópia atômica, worker de operações, workers latest-only de carregamento e filtro, seleção, histórico, callbacks Slint, modal, documentação de segurança e auditoria de performance. O fluxo aplicado foi encontrar, reproduzir, identificar causa, corrigir, testar e procurar regressão.
 
-A análise também verificou a ausência de processos externos e de `unsafe` no código próprio de produção. O aplicativo não contém pesquisa global, preview, thumbnails, conversores, abas, split view, drag and drop, clipboard, instalador ou atualizador; portanto, esses itens foram tratados como **fora do escopo implementado**, não como funcionalidades presumidas.
+A análise também verificou a ausência de processos externos de conversão e revisou os blocos `unsafe` de FFI Win32 no código próprio de produção daquele baseline. Na data da auditoria, o aplicativo não continha pesquisa global, preview, thumbnails, conversores, abas, split view, drag and drop, clipboard, instalador ou atualizador; portanto, esses itens foram tratados como **fora do escopo implementado naquela versão**, não como funcionalidades presumidas. A v0.1.8 posterior adicionou abas, menu contextual e conversores; este relatório não substitui a documentação atual.
 
 ## Problemas encontrados e corrigidos
 
@@ -30,7 +32,7 @@ A auditoria repetiu `cargo audit`, `cargo deny check`, `cargo tree`, inventário
 
 A revisão de código próprio cobriu traversal, componentes pai symlink, raiz, destinos existentes, nomes Unicode, temporários, publicação sem sobrescrita, cancelamento, remoção limitada, erros parciais e origem/destino equivalentes. O bug de limpeza destrutiva no fallback foi corrigido e recebeu teste de regressão. A política completa permanece em [`SECURITY.md`](SECURITY.md).
 
-Não há execução de shell, PowerShell, CMD, FFmpeg, OCR, compactador ou outro processo externo no produto atual. Não há código `unsafe` no caminho de produção revisado.
+Não há execução de shell, PowerShell, CMD, FFmpeg, OCR, compactador ou outro processo externo no produto daquele baseline. Os blocos `unsafe` existentes ficam restritos às integrações FFI Win32 de Known Folders, com invariantes documentadas; não há `unsafe` não justificado no caminho de produção revisado.
 
 ## Filesystem e proteção contra perda de dados
 

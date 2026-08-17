@@ -667,7 +667,7 @@ export component MainWindow inherits Window {
                     overflow: elide;
                 }
                 Text {
-                    text: "Conversões usam FFmpeg instalado no PATH";
+                    text: "Backends locais: PATH, Windows ou override";
                     color: DesignTokens.text-muted;
                     height: 18px;
                     overflow: elide;
@@ -758,9 +758,9 @@ export component MainWindow inherits Window {
 
         Rectangle {
             x: (parent.width - min(parent.width - 32px, 560px)) / 2;
-            y: (parent.height - min(parent.height - 32px, 330px)) / 2;
+            y: (parent.height - min(parent.height - 32px, 280px)) / 2;
             width: min(parent.width - 32px, 560px);
-            height: min(parent.height - 32px, 330px);
+            height: min(parent.height - 32px, 280px);
             background: DesignTokens.surface-dialog;
             border-width: 1px;
             border-color: DesignTokens.border;

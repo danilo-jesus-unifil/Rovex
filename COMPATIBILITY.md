@@ -18,7 +18,7 @@ A documentação oficial do Slint 1.17.1 lista Windows 10 x86-64 e Windows 11 x8
 
 ## Toolchain e integração de plataforma
 
-O projeto fixa Rust 1.97.1 em `rust-toolchain.toml`, com `rustfmt`, `clippy` e o target cross GNU. A release oficial Rust 1.97.1 foi publicada em 16 de julho de 2026 e corrigiu uma possível miscompilação em otimização LLVM [1]. O `Cargo.toml` usa a edição Rust 2024 e preserva `rust-version = "1.92"` como MSRV declarada do pacote, compatível com o MSRV publicado pelo Slint 1.17.1.
+O projeto fixa Rust 1.97.1 em `rust-toolchain.toml`, com `rustfmt`, `clippy` e o target cross GNU. A release oficial Rust 1.97.1 foi publicada em 16 de julho de 2026 e corrigiu uma possível miscompilação em otimização LLVM [1]. O `Cargo.toml` usa a edição Rust 2024 e declara `rust-version = "1.97"`; portanto, Rust 1.97 é a MSRV efetiva do Rovex nesta versão, independentemente de versões mínimas de dependências transitivas.
 
 A UI usa Slint 1.17.1 com renderer de software, acessibilidade, `compat-1-2` e backend Winit. No Linux testado, somente `backend-winit-x11` é habilitado para o CI/Xvfb; no Windows, o backend Winit apropriado ao target permanece habilitado. O renderer de software é o fallback deliberado para máquinas sem GPU dedicada e não depende de uma API exclusiva do Windows 11.
 
