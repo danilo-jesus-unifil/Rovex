@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.5] — 2026-08-17
+
+A versão 0.1.5 amplia a recuperação automática dos backends de conversão no Windows e transforma a conversão em uma cascata real de candidatos verificáveis.
+
+| Área | Correção |
+|---|---|
+| Registro | Leitura somente leitura de App Paths por usuário e por máquina, incluindo valores expandidos e visões de Registro 32/64 bits. |
+| Busca nativa | Uso de `SearchPathW` com buffer redimensionável e validação de caminho absoluto. |
+| Gerenciadores | Busca limitada em WinGet Links/Packages, Chocolatey, Scoop, shims e instalações lado a lado. |
+| Recuperação | `where.exe` do System32 como fallback final, sem `/r`, sem shell command concatenado e sem download em runtime. |
+| Execução | Tentativas reais por candidatos `ffmpeg`/`ffprobe`, limpeza de arquivos temporários e publicação somente após validação pelo codec. |
+| Segurança | Diretórios e caminhos relativos são recusados como backends; symlinks/junctions só são aceitos quando resolvem para arquivos regulares. |
+| Testes | Regressões para diretórios, caminhos relativos e links; conversões reais JPEG XL, PNG, Opus e FLAC validadas pelo ffprobe. |
+
 ## [0.1.4] — 2026-08-17
 
 A versão 0.1.4 é uma nova reconstrução estável do estado corrigido da v0.1.3, repetindo a validação completa e publicando binários otimizados Linux/Windows.
