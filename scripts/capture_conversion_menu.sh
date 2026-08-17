@@ -29,7 +29,7 @@ if [ -z "$window_id" ]; then
     exit 1
 fi
 DISPLAY=":$xvfb_display" xdotool windowfocus "$window_id"
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 520 120 click 3
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 520 234 click 3
 sleep 1
 DISPLAY=":$xvfb_display" import -display ":$xvfb_display" -window root artifacts/rovex-conversion-menu.png
 kill "$app_pid" 2>/dev/null || true

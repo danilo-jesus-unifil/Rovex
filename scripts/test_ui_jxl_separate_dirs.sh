@@ -38,11 +38,11 @@ if [ -z "$window_id" ]; then
     exit 1
 fi
 DISPLAY=":$xvfb_display" xdotool windowfocus "$window_id"
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 520 120 click 3
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 520 234 click 3
 sleep 0.4
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 180 292 click 1
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 180 320 click 1
 sleep 0.5
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 540 486 click 1
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 220 488 click 1
 
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
     if [ -s "$image_dir/entrada.jxl" ]; then break; fi

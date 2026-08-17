@@ -2,11 +2,11 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é uma release portable `v0.1.7` de um protótipo desktop funcional. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
+> O estado atual é uma release portable `v0.1.8` de um protótipo desktop funcional. Ele abre uma janela Slint com tema escuro, abas reais e ícone próprio, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
 
 ## Estado atual
 
-O núcleo implementa listagem real de diretórios, classificação de arquivos, diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento, as operações e as conversões em workers limitados, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e encerra workers cooperativamente. A modal exige confirmação explícita, mostra progresso/cancelamento e recarrega a pasta após o resultado. A barra lateral mostra somente locais conhecidos que existem, sem análise de espaço ou varredura de unidades. O histórico mantém pilhas reais de voltar/avançar, e a seleção local suporta clique, Ctrl-clique, Shift-clique e Ctrl+A. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla. O visual usa tokens Slint locais para tema escuro, cores, espaçamento, raios e estados, sem blur, animações contínuas ou dependências extras.
+O núcleo implementa listagem real de diretórios, classificação de arquivos e diretórios e links simbólicos sem seguir o destino automaticamente, normalização de destinos, erros estruturados, criação de diretório, renomeação, exclusão limitada a arquivos, links e diretórios vazios e cópia atômica sem sobrescrita. A interface Slint executa o carregamento, as operações e as conversões em workers limitados, atualiza o modelo no thread principal, descarta resultados obsoletos de navegações concorrentes e encerra workers cooperativamente. A modal exige confirmação explícita, mostra progresso/cancelamento e recarrega a pasta após o resultado. A barra lateral mostra somente locais conhecidos que existem, sem análise de espaço ou varredura de unidades. O histórico mantém pilhas reais de voltar/avançar, e a seleção local suporta clique, Ctrl-clique, Shift-clique e Ctrl+A. O filtro atual atua somente sobre a pasta carregada, usa uma fila latest-only com um worker dedicado e trabalha sobre snapshots compartilhados, sem pesquisa recursiva nem thread por tecla. O visual usa tokens Slint locais para tema escuro, cores, espaçamento, raios e estados, sem blur, animações contínuas ou dependências extras.
 
 | Área | Estado |
 |---|---|
@@ -21,16 +21,18 @@ O núcleo implementa listagem real de diretórios, classificação de arquivos, 
 | Lista visual, atualização e ativação de diretórios | Implementadas |
 | Workers e descarte de resultados obsoletos | Implementados |
 | Filtro local sem varredura global | Implementado com fila limitada |
-| Histórico voltar/avançar | Implementado e testado |
+| Histórico voltar/avançar | Implementado e testado por aba |
+| Abas de navegação | Implementadas com histórico independente, abertura, seleção e fechamento |
 | Seleção múltipla local | Implementada e testada com clique, Ctrl/Shift e Ctrl+A |
 | Barra lateral com locais existentes | Implementada sem análise de discos |
 | Worker único de carregamento e encerramento cooperativo | Implementado e validado com stress/smoke |
-| Design System local de tokens e tema escuro | Implementado e validado visualmente |
+| Design System local de tokens e tema escuro | Refatorado e validado visualmente com superfícies, raios e variantes semânticas |
+| Ícone do aplicativo | PNG/ICO próprio, embutido no Windows e disponível para desktop entry Linux |
 | Menu contextual por clique direito | Implementado com ações de arquivo e conversões condicionais |
 | JPEG/PNG e imagens compatíveis → JPEG XL | Implementado via FFmpeg/libjxl e validado por ffprobe |
 | WAV/MP3/FLAC e áudio compatível → Opus | Implementado via FFmpeg/libopus e validado por ffprobe |
 | Imagens → PNG e áudio → FLAC | Implementado via FFmpeg e validado por ffprobe |
-| Pesquisa global, abas, thumbnails e drag and drop | Planejados |
+| Pesquisa global, thumbnails e drag and drop | Planejados |
 | Conversores PDF/OCR | Fora do escopo desta release; não simulados |
 | Instalador, assinatura e atualização | Planejados para a fase de distribuição |
 
@@ -48,6 +50,7 @@ cargo build --release --target x86_64-pc-windows-gnu
 cargo audit
 cargo deny check
 ./scripts/test_ui_jxl_separate_dirs.sh
+./scripts/capture_tabs.sh
 ```
 
 O modo desktop abre a janela com um diretório inicial opcional:
@@ -66,7 +69,7 @@ A execução gráfica foi testada em display virtual com carregamento de `/tmp`,
 
 ## Documentação
 
-A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.7.md`](RELEASE_REPORT-v0.1.7.md), o teste gráfico de diretórios separados está em [`scripts/test_ui_jxl_separate_dirs.sh`](scripts/test_ui_jxl_separate_dirs.sh) e a pesquisa de descoberta de backends está em [`docs/ffmpeg-discovery-research.md`](docs/ffmpeg-discovery-research.md).
+A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.8.md`](RELEASE_REPORT-v0.1.8.md), a auditoria visual está em [`docs/ui-audit-initial.md`](docs/ui-audit-initial.md), o plano visual está em [`docs/ui-refactor-plan.md`](docs/ui-refactor-plan.md), o teste de abas está em [`scripts/capture_tabs.sh`](scripts/capture_tabs.sh), o teste gráfico de diretórios separados está em [`scripts/test_ui_jxl_separate_dirs.sh`](scripts/test_ui_jxl_separate_dirs.sh) e a pesquisa de descoberta de backends está em [`docs/ffmpeg-discovery-research.md`](docs/ffmpeg-discovery-research.md).
 
 ## Segurança e dependências
 

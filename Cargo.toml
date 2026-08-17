@@ -1,6 +1,6 @@
 [package]
 name = "rovex"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
@@ -25,6 +25,7 @@ windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Syste
 
 [build-dependencies]
 slint-build = "=1.17.1"
+winres = "0.1.12"
 
 [lib]
 name = "rovex_core"

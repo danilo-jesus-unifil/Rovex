@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.8] — 2026-08-17
+
+A versão 0.1.8 refatora a interface visual sem remover recursos existentes e fecha o issue aberto de navegação com abas reais.
+
+| Área | Mudança |
+|---|---|
+| Identidade | Novo ícone Rovex em PNG/ICO, incorporado ao executável Windows e acompanhado de desktop entry Linux. |
+| Tema | Tokens escuros semânticos, superfícies diferenciadas, raios médios, espaçamento revisado e variantes de ação primária/perigosa. |
+| Toolbar | Cabeçalho Rovex, navegação mais espaçada e Atualizar substituído por ícone de reload com tooltip e label acessível. |
+| Lista | Marcadores visuais por tipo/extensão, labels acessíveis e preservação de nome, detalhes e seleção. |
+| Abas | Abertura, seleção e fechamento de abas com histórico independente por aba; voltar/avançar continuam preservados. |
+| Menu | Melhor hierarquia das ações, exclusão destacada como perigosa e conversões mantidas com estados corretos. |
+| Regressões | Corrigida a identificação de arquivos regulares após a troca dos marcadores `[FILE]`/`[DIR]` por categorias semânticas. Scripts gráficos foram atualizados para a nova geometria. |
+| Validação | 43 testes passaram, conversões reais passaram, smoke tests de abas e JPEG XL passaram, `cargo check`, Clippy, auditorias e cross-build Windows passaram. |
+
 ## [0.1.7] — 2026-08-17
 
 A versão 0.1.7 corrige a descoberta quando o binário do Rovex e a imagem a converter estão em pastas diferentes e amplia a recuperação para instalações informadas por pasta ou variáveis `FFMPEG_*`.

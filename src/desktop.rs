@@ -28,6 +28,7 @@ struct LoadedRow {
     path: PathBuf,
     name: String,
     kind: String,
+    icon: String,
     details: String,
     is_directory: bool,
 }
@@ -907,6 +908,74 @@ impl NavigationHistory {
     }
 }
 
+#[derive(Debug)]
+struct TabManager {
+    histories: Vec<NavigationHistory>,
+    active: usize,
+}
+
+impl TabManager {
+    fn new(initial_path: PathBuf) -> Self {
+        Self {
+            histories: vec![NavigationHistory::new(initial_path)],
+            active: 0,
+        }
+    }
+
+    fn active(&self) -> &NavigationHistory {
+        &self.histories[self.active]
+    }
+
+    fn active_mut(&mut self) -> &mut NavigationHistory {
+        &mut self.histories[self.active]
+    }
+
+    fn select(&mut self, index: usize) -> bool {
+        if index >= self.histories.len() || index == self.active {
+            return false;
+        }
+        self.active = index;
+        true
+    }
+
+    fn new_tab(&mut self, path: PathBuf) {
+        self.histories.push(NavigationHistory::new(path));
+        self.active = self.histories.len() - 1;
+    }
+
+    fn close(&mut self, index: usize) -> bool {
+        if self.histories.len() <= 1 || index >= self.histories.len() {
+            return false;
+        }
+        self.histories.remove(index);
+        if self.active >= self.histories.len() {
+            self.active = self.histories.len() - 1;
+        } else if index < self.active {
+            self.active -= 1;
+        }
+        true
+    }
+
+    fn rows(&self) -> Vec<TabRow> {
+        self.histories
+            .iter()
+            .enumerate()
+            .map(|(index, history)| TabRow {
+                label: SharedString::from(tab_label(&history.current)),
+                path: SharedString::from(history.current.to_string_lossy().to_string()),
+                active: index == self.active,
+            })
+            .collect()
+    }
+}
+
+fn tab_label(path: &Path) -> String {
+    path.file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| path.display().to_string())
+}
+
 fn filter_rows(rows: &[LoadedRow], query: &str) -> Vec<LoadedRow> {
     let normalized_query = query.trim().to_lowercase();
     if normalized_query.is_empty() {
@@ -942,13 +1011,37 @@ fn filter_status(total: usize, visible: usize, query: &str) -> String {
     format!("{visible} de {total} itens")
 }
 
+fn row_icon(name: &str, kind: EntryKind) -> (&'static str, &'static str, bool) {
+    match kind {
+        EntryKind::Directory => ("▰", "Pasta", true),
+        EntryKind::Symlink => ("↗", "Link simbólico", false),
+        EntryKind::Other => ("◇", "Outro tipo", false),
+        EntryKind::File => {
+            let extension = Path::new(name)
+                .extension()
+                .and_then(|value| value.to_str())
+                .map(|value| value.to_ascii_lowercase());
+            let icon = match extension.as_deref() {
+                Some("html" | "htm") => "<>",
+                Some("css") => "#",
+                Some("rs") => "Rs",
+                Some("py") => "Py",
+                Some("ts" | "tsx") => "TS",
+                Some("js" | "jsx") => "JS",
+                Some("java") => "Jv",
+                Some("json" | "toml" | "yaml" | "yml") => "{}",
+                Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "jxl") => "◉",
+                Some("mp3" | "wav" | "flac" | "opus" | "oga") => "♫",
+                Some("mp4" | "mkv" | "webm" | "mov") => "▶",
+                _ => "●",
+            };
+            (icon, "Arquivo", false)
+        }
+    }
+}
+
 fn row_from_entry(entry: &DirectoryEntry, index: usize) -> LoadedRow {
-    let (kind, is_directory) = match entry.kind {
-        EntryKind::Directory => ("[DIR]", true),
-        EntryKind::File => ("[FILE]", false),
-        EntryKind::Symlink => ("[LINK]", false),
-        EntryKind::Other => ("[OTHER]", false),
-    };
+    let (icon, kind, is_directory) = row_icon(&entry.display_name(), entry.kind);
 
     let details = entry
         .size
@@ -960,6 +1053,7 @@ fn row_from_entry(entry: &DirectoryEntry, index: usize) -> LoadedRow {
         path: entry.path.clone(),
         name: entry.display_name(),
         kind: kind.to_owned(),
+        icon: icon.to_owned(),
         details,
         is_directory,
     }
@@ -1021,6 +1115,7 @@ fn set_rows(ui: &MainWindow, rows: Vec<LoadedRow>, selection: &SelectionState) -
                 key: SharedString::from(row.key),
                 name: SharedString::from(row.name),
                 kind: SharedString::from(row.kind),
+                icon: SharedString::from(row.icon),
                 details: SharedString::from(row.details),
                 is_directory: row.is_directory,
             })
@@ -1335,7 +1430,7 @@ fn show_selected_operation_dialog(
     pending: &Rc<std::cell::RefCell<Option<OperationRequest>>>,
     directory_rows: &SharedRows,
     selection: &SharedSelection,
-    history: &Rc<std::cell::RefCell<NavigationHistory>>,
+    tabs: &Rc<std::cell::RefCell<TabManager>>,
     kind: OperationKind,
 ) {
     let sources = selected_paths(directory_rows, selection);
@@ -1392,7 +1487,7 @@ fn show_selected_operation_dialog(
         } else {
             None
         },
-        refresh_path: history.borrow().current.clone(),
+        refresh_path: tabs.borrow().active().current.clone(),
     };
     show_operation_dialog(
         ui_weak,
@@ -1410,7 +1505,7 @@ fn show_conversion_dialog(
     pending: &Rc<std::cell::RefCell<Option<ConversionRequest>>>,
     directory_rows: &SharedRows,
     selection: &SharedSelection,
-    history: &Rc<std::cell::RefCell<NavigationHistory>>,
+    tabs: &Rc<std::cell::RefCell<TabManager>>,
     kind: ConversionKind,
 ) {
     let sources = selected_paths(directory_rows, selection);
@@ -1420,7 +1515,7 @@ fn show_conversion_dialog(
     let request = ConversionRequest {
         kind,
         sources: sources.clone(),
-        refresh_path: history.borrow().current.clone(),
+        refresh_path: tabs.borrow().active().current.clone(),
     };
     *pending.borrow_mut() = Some(request);
     if let Some(ui) = ui_weak.upgrade() {
@@ -1473,10 +1568,18 @@ fn show_operation_dialog(
     }
 }
 
-fn update_history_controls(ui_weak: &slint::Weak<MainWindow>, history: &NavigationHistory) {
+fn update_tab_visuals(
+    ui_weak: &slint::Weak<MainWindow>,
+    tab_model: &VecModel<TabRow>,
+    tabs: &TabManager,
+) {
+    tab_model.set_vec(tabs.rows());
     if let Some(ui) = ui_weak.upgrade() {
-        ui.set_can_go_back(history.can_go_back());
-        ui.set_can_go_forward(history.can_go_forward());
+        ui.set_current_path(SharedString::from(
+            tabs.active().current.to_string_lossy().to_string(),
+        ));
+        ui.set_can_go_back(tabs.active().can_go_back());
+        ui.set_can_go_forward(tabs.active().can_go_forward());
     }
 }
 
@@ -1486,6 +1589,8 @@ pub fn run() -> Result<(), slint::PlatformError> {
     ui.set_entries(ModelRc::from(entries.clone()));
     let locations = Rc::new(VecModel::<LocationRow>::default());
     ui.set_locations(ModelRc::from(locations.clone()));
+    let tab_model = Rc::new(VecModel::<TabRow>::default());
+    ui.set_tabs(ModelRc::from(tab_model.clone()));
 
     let initial_path = std::env::args_os()
         .nth(1)
@@ -1507,9 +1612,10 @@ pub fn run() -> Result<(), slint::PlatformError> {
     ui.set_status_text("Carregando…".into());
 
     let ui_weak = ui.as_weak();
-    let history = Rc::new(std::cell::RefCell::new(NavigationHistory::new(
+    let tabs = Rc::new(std::cell::RefCell::new(TabManager::new(
         initial_path.clone(),
     )));
+    update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
     let directory_rows: SharedRows = Arc::new(Mutex::new(Arc::from(Vec::<LoadedRow>::new())));
     let selection: SharedSelection = Arc::new(Mutex::new(SelectionState::default()));
     let filter_generation = Arc::new(AtomicU64::new(0));
@@ -1540,23 +1646,24 @@ pub fn run() -> Result<(), slint::PlatformError> {
 
     {
         let ui_weak = ui_weak.clone();
-        let history = history.clone();
+        let tabs = tabs.clone();
         let load_scheduler = load_scheduler.clone();
         ui.on_refresh_requested(move || {
-            let path = history.borrow().current.clone();
+            let path = tabs.borrow().active().current.clone();
             start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
-        let history = history.clone();
+        let tab_model = tab_model.clone();
+        let tabs = tabs.clone();
         let load_scheduler = load_scheduler.clone();
         ui.on_navigate_to(move |text| {
             let path = PathBuf::from(text.to_string());
-            let changed = history.borrow_mut().visit(path.clone());
+            let changed = tabs.borrow_mut().active_mut().visit(path.clone());
             if changed {
-                update_history_controls(&ui_weak, &history.borrow());
+                update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
             }
             start_load(&ui_weak, path, load_scheduler.as_ref());
         });
@@ -1564,8 +1671,9 @@ pub fn run() -> Result<(), slint::PlatformError> {
 
     {
         let ui_weak = ui_weak.clone();
+        let tab_model = tab_model.clone();
         let locations = locations.clone();
-        let history = history.clone();
+        let tabs = tabs.clone();
         let load_scheduler = load_scheduler.clone();
         ui.on_navigate_to_location(move |index| {
             if index < 0 {
@@ -1575,57 +1683,61 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 return;
             };
             let path = PathBuf::from(location.path.to_string());
-            history.borrow_mut().visit(path.clone());
-            update_history_controls(&ui_weak, &history.borrow());
+            tabs.borrow_mut().active_mut().visit(path.clone());
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
             start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
-        let history = history.clone();
+        let tab_model = tab_model.clone();
+        let tabs = tabs.clone();
         let load_scheduler = load_scheduler.clone();
         ui.on_back_requested(move || {
-            let Some(path) = history.borrow_mut().go_back() else {
+            let Some(path) = tabs.borrow_mut().active_mut().go_back() else {
                 return;
             };
-            update_history_controls(&ui_weak, &history.borrow());
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
             start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
-        let history = history.clone();
+        let tab_model = tab_model.clone();
+        let tabs = tabs.clone();
         let load_scheduler = load_scheduler.clone();
         ui.on_forward_requested(move || {
-            let Some(path) = history.borrow_mut().go_forward() else {
+            let Some(path) = tabs.borrow_mut().active_mut().go_forward() else {
                 return;
             };
-            update_history_controls(&ui_weak, &history.borrow());
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
             start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
-        let history = history.clone();
+        let tab_model = tab_model.clone();
+        let tabs = tabs.clone();
         let load_scheduler = load_scheduler.clone();
         ui.on_navigate_up(move || {
-            let current = history.borrow().current.clone();
+            let current = tabs.borrow().active().current.clone();
             let Some(parent) = parent_directory(&current) else {
                 return;
             };
-            history.borrow_mut().visit(parent.clone());
-            update_history_controls(&ui_weak, &history.borrow());
+            tabs.borrow_mut().active_mut().visit(parent.clone());
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
             start_load(&ui_weak, parent, load_scheduler.as_ref());
         });
     }
 
     {
         let ui_weak = ui_weak.clone();
+        let tab_model = tab_model.clone();
         let entries = entries.clone();
-        let history = history.clone();
+        let tabs = tabs.clone();
         let load_scheduler = load_scheduler.clone();
         let directory_rows = Arc::clone(&directory_rows);
         ui.on_activate(move |index| {
@@ -1648,9 +1760,64 @@ pub fn run() -> Result<(), slint::PlatformError> {
             else {
                 return;
             };
-            history.borrow_mut().visit(next.clone());
-            update_history_controls(&ui_weak, &history.borrow());
+            tabs.borrow_mut().active_mut().visit(next.clone());
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
             start_load(&ui_weak, next, load_scheduler.as_ref());
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let tab_model = tab_model.clone();
+        let tabs = tabs.clone();
+        let load_scheduler = load_scheduler.clone();
+        let selection = Arc::clone(&selection);
+        ui.on_new_tab_requested(move || {
+            let path = tabs.borrow().active().current.clone();
+            tabs.borrow_mut().new_tab(path.clone());
+            if let Ok(mut state) = selection.lock() {
+                state.clear();
+            }
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
+            start_load(&ui_weak, path, load_scheduler.as_ref());
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let tab_model = tab_model.clone();
+        let tabs = tabs.clone();
+        let load_scheduler = load_scheduler.clone();
+        let selection = Arc::clone(&selection);
+        ui.on_select_tab(move |index| {
+            if index < 0 || !tabs.borrow_mut().select(index as usize) {
+                return;
+            }
+            let path = tabs.borrow().active().current.clone();
+            if let Ok(mut state) = selection.lock() {
+                state.clear();
+            }
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
+            start_load(&ui_weak, path, load_scheduler.as_ref());
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let tab_model = tab_model.clone();
+        let tabs = tabs.clone();
+        let load_scheduler = load_scheduler.clone();
+        let selection = Arc::clone(&selection);
+        ui.on_close_tab(move |index| {
+            if index < 0 || !tabs.borrow_mut().close(index as usize) {
+                return;
+            }
+            let path = tabs.borrow().active().current.clone();
+            if let Ok(mut state) = selection.lock() {
+                state.clear();
+            }
+            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
+            start_load(&ui_weak, path, load_scheduler.as_ref());
         });
     }
 
@@ -1736,7 +1903,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
             }
             ui.set_selection_count(state.count() as i32);
             ui.set_status_text(SharedString::from(selection_status(&state)));
-            let is_regular_file = row.kind == "[FILE]";
+            let is_regular_file = row.kind == "Arquivo";
             ui.set_context_menu_target_name(row.name.clone());
             ui.set_context_menu_can_jxl(
                 is_regular_file && ConversionKind::JpegXl.accepts(Path::new(row.name.as_str())),
@@ -1759,14 +1926,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_copy_requested(move || {
             show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Copy,
             );
         });
@@ -1777,14 +1944,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_move_requested(move || {
             show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Move,
             );
         });
@@ -1795,14 +1962,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_rename_requested(move || {
             show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Rename,
             );
         });
@@ -1813,14 +1980,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_delete_requested(move || {
             show_selected_operation_dialog(
                 &ui_weak,
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Delete,
             );
         });
@@ -1831,7 +1998,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_copy_requested(move || {
             if let Some(ui) = ui_weak.upgrade() {
                 ui.set_context_menu_visible(false);
@@ -1841,7 +2008,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Copy,
             );
         });
@@ -1852,7 +2019,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_move_requested(move || {
             if let Some(ui) = ui_weak.upgrade() {
                 ui.set_context_menu_visible(false);
@@ -1862,7 +2029,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Move,
             );
         });
@@ -1873,7 +2040,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_rename_requested(move || {
             if let Some(ui) = ui_weak.upgrade() {
                 ui.set_context_menu_visible(false);
@@ -1883,7 +2050,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Rename,
             );
         });
@@ -1894,7 +2061,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_delete_requested(move || {
             if let Some(ui) = ui_weak.upgrade() {
                 ui.set_context_menu_visible(false);
@@ -1904,7 +2071,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
                 &pending_operation,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 OperationKind::Delete,
             );
         });
@@ -1915,14 +2082,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_conversion = pending_conversion.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_convert_jxl_requested(move || {
             show_conversion_dialog(
                 &ui_weak,
                 &pending_conversion,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 ConversionKind::JpegXl,
             );
         });
@@ -1933,14 +2100,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_conversion = pending_conversion.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_convert_opus_requested(move || {
             show_conversion_dialog(
                 &ui_weak,
                 &pending_conversion,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 ConversionKind::Opus,
             );
         });
@@ -1951,14 +2118,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_conversion = pending_conversion.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_convert_png_requested(move || {
             show_conversion_dialog(
                 &ui_weak,
                 &pending_conversion,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 ConversionKind::Png,
             );
         });
@@ -1969,14 +2136,14 @@ pub fn run() -> Result<(), slint::PlatformError> {
         let pending_conversion = pending_conversion.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
-        let history = history.clone();
+        let tabs = tabs.clone();
         ui.on_context_menu_convert_flac_requested(move || {
             show_conversion_dialog(
                 &ui_weak,
                 &pending_conversion,
                 &directory_rows,
                 &selection,
-                &history,
+                &tabs,
                 ConversionKind::Flac,
             );
         });
@@ -2139,7 +2306,7 @@ pub fn run() -> Result<(), slint::PlatformError> {
         });
     }
 
-    update_history_controls(&ui_weak, &history.borrow());
+    update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
     start_load(&ui_weak, initial_path, load_scheduler.as_ref());
     ui.run()
 }
@@ -2147,10 +2314,12 @@ pub fn run() -> Result<(), slint::PlatformError> {
 #[cfg(test)]
 mod tests {
     use super::{
-        LoadedRow, NavigationHistory, SelectionState, default_locations, empty_state_text,
-        filter_rows, filter_status, format_size, load_directory, parent_directory,
-        validate_rename_name,
+        LoadedRow, NavigationHistory, SelectionState, TabManager, default_locations,
+        empty_state_text, filter_rows, filter_status, format_size, load_directory,
+        parent_directory, row_icon, validate_rename_name,
     };
+    use crate::filesystem::EntryKind;
+
     use std::path::{Path, PathBuf};
 
     #[test]
@@ -2215,6 +2384,42 @@ mod tests {
     }
 
     #[test]
+    fn abas_preservam_historicos_independentes_e_nao_fecham_a_ultima() {
+        let mut tabs = TabManager::new(Path::new("/inicio").to_path_buf());
+        tabs.active_mut()
+            .visit(Path::new("/projetos").to_path_buf());
+        tabs.new_tab(Path::new("/documentos").to_path_buf());
+        assert_eq!(tabs.histories.len(), 2);
+        assert_eq!(tabs.active().current, Path::new("/documentos"));
+        assert!(tabs.select(0));
+        assert_eq!(tabs.active().current, Path::new("/projetos"));
+        assert!(tabs.active().can_go_back());
+        assert!(tabs.close(1));
+        assert!(!tabs.close(0));
+        assert_eq!(tabs.histories.len(), 1);
+    }
+
+    #[test]
+    fn icones_semanticos_diferenciam_pasta_arquivo_e_extensoes() {
+        assert_eq!(
+            row_icon("Fotos", EntryKind::Directory),
+            ("▰", "Pasta", true)
+        );
+        assert_eq!(
+            row_icon("imagem.png", EntryKind::File),
+            ("◉", "Arquivo", false)
+        );
+        assert_eq!(
+            row_icon("main.rs", EntryKind::File),
+            ("Rs", "Arquivo", false)
+        );
+        assert_eq!(
+            row_icon("atalho", EntryKind::Symlink),
+            ("↗", "Link simbólico", false)
+        );
+    }
+
+    #[test]
     fn locais_padrao_so_incluem_diretorios_existentes() {
         let locations = default_locations(Path::new("."));
         assert!(
@@ -2233,7 +2438,8 @@ mod tests {
                 key: "foto".to_owned(),
                 path: PathBuf::from("foto"),
                 name: "Foto.JPG".to_owned(),
-                kind: "[FILE]".to_owned(),
+                kind: "Arquivo".to_owned(),
+                icon: "●".to_owned(),
                 details: "4 KB".to_owned(),
                 is_directory: false,
             },
@@ -2241,7 +2447,8 @@ mod tests {
                 key: "projetos".to_owned(),
                 path: PathBuf::from("projetos"),
                 name: "Projetos".to_owned(),
-                kind: "[DIR]".to_owned(),
+                kind: "Pasta".to_owned(),
+                icon: "▰".to_owned(),
                 details: "—".to_owned(),
                 is_directory: true,
             },
@@ -2264,7 +2471,8 @@ mod tests {
                 key: format!("/tmp/file-{index:05}.txt"),
                 path: PathBuf::from(format!("/tmp/file-{index:05}.txt")),
                 name: format!("file-{index:05}.txt"),
-                kind: "[FILE]".to_owned(),
+                kind: "Arquivo".to_owned(),
+                icon: "●".to_owned(),
                 details: "1 B".to_owned(),
                 is_directory: false,
             })

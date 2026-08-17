@@ -4,16 +4,19 @@ export global DesignTokens {
     out property <color> window-background: #0f141a;
     out property <color> surface: #171d24;
     out property <color> surface-secondary: #1d252e;
-    out property <color> surface-selected: #263f63;
+    out property <color> surface-selected: #244a78;
     out property <color> surface-dialog: #1b232c;
     out property <color> surface-danger: #42252b;
     out property <color> surface-menu: #1a222b;
+    out property <color> surface-elevated: #202a35;
+    out property <color> surface-hover: #24303d;
     out property <color> input-background: #121820;
     out property <color> control-background: #202a34;
-    out property <color> control-hover: #2a3948;
+    out property <color> control-hover: #2d4055;
     out property <color> control-pressed: #345477;
     out property <color> control-disabled: #252b32;
     out property <color> border: #35424f;
+    out property <color> border-subtle: #2a3542;
     out property <color> border-strong: #4a5a6b;
     out property <color> overlay: #00000099;
     out property <color> text-primary: #f1f5f9;
@@ -24,39 +27,46 @@ export global DesignTokens {
     out property <color> accent-strong: #4b8ff5;
     out property <color> accent-text: #071629;
     out property <color> danger: #ff858e;
-    out property <length> page-padding: 12px;
-    out property <length> layout-gap: 10px;
+    out property <color> success: #73d6ad;
+    out property <length> page-padding: 16px;
+    out property <length> layout-gap: 12px;
     out property <length> control-gap: 8px;
-    out property <length> content-gap: 10px;
-    out property <length> toolbar-height: 34px;
-    out property <length> toolbar-gap: 10px;
-    out property <length> toolbar-button-width: 42px;
-    out property <length> toolbar-refresh-width: 92px;
+    out property <length> content-gap: 12px;
+    out property <length> toolbar-height: 40px;
+    out property <length> toolbar-gap: 8px;
+    out property <length> toolbar-button-width: 40px;
+    out property <length> toolbar-refresh-width: 40px;
     out property <length> sidebar-inner-gap: 6px;
     out property <length> sidebar-title-height: 24px;
     out property <length> sidebar-text-inset: 10px;
-    out property <length> status-height: 22px;
-    out property <length> filter-width: 260px;
-    out property <length> sidebar-width: 190px;
-    out property <length> sidebar-padding: 10px;
-    out property <length> sidebar-row-height: 34px;
-    out property <length> operation-toolbar-height: 34px;
-    out property <length> file-row-height: 38px;
-    out property <length> file-row-padding: 12px;
-    out property <length> file-column-gap: 12px;
-    out property <length> radius-small: 4px;
+    out property <length> status-height: 24px;
+    out property <length> filter-width: 250px;
+    out property <length> sidebar-width: 204px;
+    out property <length> sidebar-padding: 12px;
+    out property <length> sidebar-row-height: 36px;
+    out property <length> operation-toolbar-height: 40px;
+    out property <length> file-row-height: 40px;
+    out property <length> file-row-padding: 14px;
+    out property <length> file-column-gap: 14px;
+    out property <length> radius-small: 6px;
+    out property <length> radius-medium: 9px;
+    out property <length> radius-large: 12px;
 }
 
 component RovexButton inherits Rectangle {
     in property <string> text;
+    in property <string> tooltip;
     in property <bool> enabled: true;
+    in property <bool> primary: false;
+    in property <bool> danger: false;
+    in property <bool> icon-only: false;
     callback clicked;
 
-    height: 34px;
+    height: DesignTokens.operation-toolbar-height;
     border-width: 1px;
-    border-radius: DesignTokens.radius-small;
-    border-color: root.enabled ? DesignTokens.border-strong : DesignTokens.border;
-    background: !root.enabled ? DesignTokens.control-disabled : (button-touch.pressed ? DesignTokens.control-pressed : (button-touch.has-hover ? DesignTokens.control-hover : DesignTokens.control-background));
+    border-radius: DesignTokens.radius-medium;
+    border-color: !root.enabled ? DesignTokens.border : (root.primary ? DesignTokens.accent-strong : (root.danger ? DesignTokens.danger : DesignTokens.border-strong));
+    background: !root.enabled ? DesignTokens.control-disabled : (root.primary ? DesignTokens.accent-strong : (root.danger ? DesignTokens.surface-danger : (button-touch.pressed ? DesignTokens.control-pressed : (button-touch.has-hover ? DesignTokens.control-hover : DesignTokens.control-background))));
     accessible-role: button;
     accessible-enabled: root.enabled;
     accessible-action-default => {
@@ -90,10 +100,32 @@ component RovexButton inherits Rectangle {
             width: 100%;
             height: 100%;
             text: root.text;
-            color: root.enabled ? DesignTokens.text-primary : DesignTokens.text-disabled;
+            color: root.enabled ? (root.primary ? DesignTokens.accent-text : (root.danger ? DesignTokens.danger : DesignTokens.text-primary)) : DesignTokens.text-disabled;
+            font-size: root.icon-only ? 18px : 13px;
             horizontal-alignment: center;
             vertical-alignment: center;
             overflow: elide;
+        }
+        if root.tooltip != "" && button-touch.has-hover: Rectangle {
+            x: (root.width - max(120px, tooltip-label.preferred-width + 20px)) / 2;
+            y: root.height + 8px;
+            width: max(120px, tooltip-label.preferred-width + 20px);
+            height: 28px;
+            background: DesignTokens.surface-elevated;
+            border-width: 1px;
+            border-color: DesignTokens.border-strong;
+            border-radius: DesignTokens.radius-medium;
+            tooltip-label := Text {
+                x: 10px;
+                width: parent.width - 20px;
+                height: parent.height;
+                text: root.tooltip;
+                color: DesignTokens.text-primary;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
         }
     }
 }
@@ -104,9 +136,9 @@ component RovexLineEdit inherits Rectangle {
     callback accepted;
     callback edited;
 
-    height: 34px;
+    height: DesignTokens.operation-toolbar-height;
     border-width: 1px;
-    border-radius: DesignTokens.radius-small;
+    border-radius: DesignTokens.radius-medium;
     accessible-role: text-input;
     border-color: editor.has-focus ? DesignTokens.accent : DesignTokens.border;
     background: DesignTokens.input-background;
@@ -147,14 +179,22 @@ export struct FileRow {
     key: string,
     name: string,
     kind: string,
+    icon: string,
     details: string,
     is-directory: bool,
     selected: bool,
 }
 
+export struct TabRow {
+    label: string,
+    path: string,
+    active: bool,
+}
+
 export component MainWindow inherits Window {
     in-out property <string> current-path;
     in-out property <string> filter-text;
+    in-out property <[TabRow]> tabs;
     in-out property <[FileRow]> entries;
     in-out property <[LocationRow]> locations;
     in-out property <string> status-text;
@@ -183,6 +223,9 @@ export component MainWindow inherits Window {
     callback back-requested();
     callback forward-requested();
     callback refresh-requested();
+    callback new-tab-requested();
+    callback select-tab(int);
+    callback close-tab(int);
     callback navigate-to-location(int);
     callback navigate-up();
     callback navigate-to(string);
@@ -220,55 +263,133 @@ export component MainWindow inherits Window {
         spacing: DesignTokens.layout-gap;
 
             HorizontalLayout {
-                spacing: DesignTokens.toolbar-gap;
-                height: DesignTokens.toolbar-height;
+            height: 32px;
+            spacing: 10px;
+            Text {
+                text: "Rovex";
+                color: DesignTokens.text-primary;
+                font-size: 20px;
+                vertical-alignment: center;
+            }
+            Text {
+                text: "Explorador de arquivos";
+                color: DesignTokens.text-muted;
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Text {
+                text: root.selection-count > 0 ? root.selection-count + " selecionado(s)" : "Pronto";
+                color: DesignTokens.text-secondary;
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+        }
 
+        HorizontalLayout {
+            height: 38px;
+            spacing: 6px;
+            for tab[index] in root.tabs: Rectangle {
+                width: 190px;
+                height: 34px;
+                border-width: 1px;
+                border-radius: DesignTokens.radius-medium;
+                border-color: tab.active ? DesignTokens.accent-strong : DesignTokens.border;
+                background: tab.active ? DesignTokens.surface-selected : DesignTokens.surface-secondary;
+                tab-touch := TouchArea {
+                    width: parent.width - 38px;
+                    height: parent.height;
+                    clicked => { root.select-tab(index); }
+                }
+                Text {
+                    x: 12px;
+                    width: parent.width - 48px;
+                    height: parent.height;
+                    text: tab.label;
+                    color: tab.active ? DesignTokens.text-primary : DesignTokens.text-secondary;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
                 RovexButton {
-                    width: DesignTokens.toolbar-button-width;
-                    text: "←";
-                    enabled: root.can-go-back;
-                    accessible-label: "Voltar no histórico";
-                    clicked => { root.back-requested(); }
-                }
-
-                RovexButton {
-                    width: DesignTokens.toolbar-button-width;
-                    text: "→";
-                    enabled: root.can-go-forward;
-                    accessible-label: "Avançar no histórico";
-                    clicked => { root.forward-requested(); }
-                }
-
-                RovexButton {
-                    width: DesignTokens.toolbar-button-width;
-                    text: "↑";
-                    accessible-label: "Subir para a pasta pai";
-                    clicked => { root.navigate-up(); }
-                }
-
-                RovexLineEdit {
-                    horizontal-stretch: 1;
-                    text <=> root.current-path;
-                    accessible-label: "Caminho da pasta";
-                    placeholder-text: "Caminho da pasta";
-                    accepted => { root.navigate-to(self.text); }
-                }
-
-                RovexLineEdit {
-                    width: DesignTokens.filter-width;
-                    text <=> root.filter-text;
-                    placeholder-text: "Filtrar nesta pasta";
-                    accessible-label: "Filtrar itens da pasta atual";
-                    edited => { root.filter-changed(self.text); }
-                }
-
-                RovexButton {
-                    width: DesignTokens.toolbar-refresh-width;
-                    text: "Atualizar";
-                    accessible-label: "Atualizar listagem";
-                    clicked => { root.refresh-requested(); }
+                    x: parent.width - 34px;
+                    y: 3px;
+                    width: 28px;
+                    height: 28px;
+                    text: "×";
+                    icon-only: true;
+                    tooltip: "Fechar aba";
+                    accessible-label: "Fechar aba " + tab.label;
+                    clicked => { root.close-tab(index); }
                 }
             }
+            RovexButton {
+                width: 38px;
+                text: "+";
+                icon-only: true;
+                tooltip: "Abrir nova aba";
+                accessible-label: "Abrir nova aba";
+                clicked => { root.new-tab-requested(); }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: DesignTokens.toolbar-gap;
+            height: DesignTokens.toolbar-height;
+
+            RovexButton {
+                width: DesignTokens.toolbar-button-width;
+                text: "←";
+                icon-only: true;
+                tooltip: "Voltar no histórico";
+                enabled: root.can-go-back;
+                accessible-label: "Voltar no histórico";
+                clicked => { root.back-requested(); }
+            }
+
+            RovexButton {
+                width: DesignTokens.toolbar-button-width;
+                text: "→";
+                icon-only: true;
+                tooltip: "Avançar no histórico";
+                enabled: root.can-go-forward;
+                accessible-label: "Avançar no histórico";
+                clicked => { root.forward-requested(); }
+            }
+
+            RovexButton {
+                width: DesignTokens.toolbar-button-width;
+                text: "↑";
+                icon-only: true;
+                tooltip: "Subir para a pasta pai";
+                accessible-label: "Subir para a pasta pai";
+                clicked => { root.navigate-up(); }
+            }
+
+            RovexLineEdit {
+                horizontal-stretch: 1;
+                text <=> root.current-path;
+                accessible-label: "Caminho da pasta";
+                placeholder-text: "Caminho da pasta";
+                accepted => { root.navigate-to(self.text); }
+            }
+
+            RovexLineEdit {
+                width: DesignTokens.filter-width;
+                text <=> root.filter-text;
+                placeholder-text: "Filtrar nesta pasta";
+                accessible-label: "Filtrar itens da pasta atual";
+                edited => { root.filter-changed(self.text); }
+            }
+
+            RovexButton {
+                width: DesignTokens.toolbar-refresh-width;
+                text: "↻";
+                icon-only: true;
+                tooltip: "Atualizar listagem";
+                accessible-label: "Atualizar listagem";
+                clicked => { root.refresh-requested(); }
+            }
+        }
 
         HorizontalLayout {
             spacing: DesignTokens.control-gap;
@@ -276,6 +397,7 @@ export component MainWindow inherits Window {
 
             RovexButton {
                 text: "Copiar";
+                primary: true;
                 enabled: root.selection-count > 0 && !root.operation-busy;
                 accessible-label: "Copiar itens selecionados";
                 clicked => { root.copy-requested(); }
@@ -297,6 +419,7 @@ export component MainWindow inherits Window {
 
             RovexButton {
                 text: "Excluir";
+                danger: true;
                 enabled: root.selection-count > 0 && !root.operation-busy;
                 accessible-label: "Excluir itens selecionados";
                 clicked => { root.delete-requested(); }
@@ -312,7 +435,7 @@ export component MainWindow inherits Window {
                 background: DesignTokens.surface;
                 border-width: 1px;
                 border-color: DesignTokens.border;
-                border-radius: DesignTokens.radius-small;
+                border-radius: DesignTokens.radius-medium;
                 clip: true;
                 VerticalLayout {
                     padding: DesignTokens.sidebar-padding;
@@ -346,7 +469,7 @@ export component MainWindow inherits Window {
                             height: 100%;
                             for location[index] in root.locations: Rectangle {
                                 height: DesignTokens.sidebar-row-height;
-                                border-radius: DesignTokens.radius-small;
+                                border-radius: DesignTokens.radius-medium;
                                 background: location.path == root.current-path ? DesignTokens.surface-selected : ((sidebar-focus.has-focus && root.sidebar-focus-index == index) ? DesignTokens.surface-secondary : (sidebar-touch.has-hover ? DesignTokens.surface-secondary : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary)));
                                 accessible-role: list-item;
                                 accessible-label: location.label;
@@ -382,7 +505,7 @@ export component MainWindow inherits Window {
                     background: DesignTokens.surface;
                     border-width: 1px;
                     border-color: DesignTokens.border;
-                    border-radius: DesignTokens.radius-small;
+                    border-radius: DesignTokens.radius-medium;
                     vertical-stretch: 1;
 
                     focus-scope := FocusScope {
@@ -409,18 +532,36 @@ export component MainWindow inherits Window {
                         height: DesignTokens.file-row-height;
                         background: entry.selected ? DesignTokens.surface-selected : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary);
                         accessible-role: list-item;
-                        accessible-label: entry.selected ? "Selecionado: " + entry.name : entry.name;
+                        accessible-label: (entry.selected ? "Selecionado: " : "") + entry.kind + ": " + entry.name;
 
                         HorizontalLayout {
                             padding-left: DesignTokens.file-row-padding;
                             padding-right: DesignTokens.file-row-padding;
                             spacing: DesignTokens.file-column-gap;
 
+                            Rectangle {
+                                width: 34px;
+                                height: 28px;
+                                border-radius: DesignTokens.radius-medium;
+                                background: entry.is-directory ? DesignTokens.surface-selected : DesignTokens.surface-elevated;
+                                Text {
+                                    width: 100%;
+                                    height: 100%;
+                                    text: entry.icon;
+                                    color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-secondary;
+                                    font-size: 12px;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+
                             Text {
                                 width: 64px;
                                 text: entry.kind;
                                 color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-muted;
+                                font-size: 12px;
                                 vertical-alignment: center;
+                                overflow: elide;
                             }
 
                             Text {
@@ -513,7 +654,7 @@ export component MainWindow inherits Window {
             background: DesignTokens.surface-menu;
             border-width: 1px;
             border-color: DesignTokens.border-strong;
-            border-radius: DesignTokens.radius-small;
+            border-radius: DesignTokens.radius-medium;
 
             VerticalLayout {
                 padding: 10px;
@@ -549,6 +690,7 @@ export component MainWindow inherits Window {
                 }
                 RovexButton {
                     text: "Excluir";
+                    danger: true;
                     accessible-label: "Excluir item pelo menu contextual";
                     clicked => { root.context-menu-delete-requested(); }
                 }
@@ -622,7 +764,7 @@ export component MainWindow inherits Window {
             background: DesignTokens.surface-dialog;
             border-width: 1px;
             border-color: DesignTokens.border;
-            border-radius: DesignTokens.radius-small;
+            border-radius: DesignTokens.radius-medium;
 
             VerticalLayout {
                 padding: 20px;
@@ -679,8 +821,10 @@ export component MainWindow inherits Window {
                     height: 36px;
                     spacing: DesignTokens.control-gap;
                     horizontal-stretch: 1;
-                    RovexButton {
-                        text: root.operation-busy ? "Cancelar" : (root.operation-close-only ? "Fechar" : "Confirmar");
+                        RovexButton {
+                            primary: !root.operation-busy && !root.operation-close-only;
+                            danger: root.operation-busy;
+                            text: root.operation-busy ? "Cancelar" : (root.operation-close-only ? "Fechar" : "Confirmar");
                         accessible-label: root.operation-busy ? "Cancelar operação" : (root.operation-close-only ? "Fechar resultado" : "Confirmar operação");
                         clicked => {
                             if (root.operation-busy) {

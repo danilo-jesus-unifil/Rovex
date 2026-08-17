@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Rovex
+Comment=Explorador de arquivos local, seguro e leve
+Exec=rovex %U
+Icon=rovex
+Terminal=false
+Categories=System;FileManager;Utility;
+StartupNotify=true
