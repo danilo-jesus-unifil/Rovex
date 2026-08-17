@@ -55,3 +55,9 @@ As capturas `tooltip-fix-v0.1.9/02-tooltip-new-tab.png` e `03-tooltip-refresh.pn
 [2]: https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/tooltips "Microsoft Learn — Tooltips - Windows apps"
 [3]: https://www.nngroup.com/articles/tooltip-guidelines/ "Nielsen Norman Group — Tooltip Guidelines"
 [4]: https://docs.slint.dev/latest/docs/slint/reference/window/tooltip/ "Slint Docs — Tooltip"
+
+## Correção adicional validada
+
+A célula do ícone agora usa `cross-axis-alignment: center` no `HorizontalLayout` da linha, mantendo o quadrado de 34×28 px centralizado na linha de 40 px. A captura atual mostra o glyph no centro vertical do quadrado, sem ficar colado ao topo.
+
+O Tooltip customizado agora usa `DesignTokens.text-primary` para o texto, `surface-elevated` para o painel e `border-strong` para a borda. A captura final mostra `Abrir nova aba` com a mesma cor principal de texto do software e contraste coerente com o tema escuro.

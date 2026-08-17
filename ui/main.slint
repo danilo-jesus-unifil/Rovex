@@ -206,6 +206,7 @@ export component MainWindow inherits Window {
                                 accessible-role: list-item;
                                 accessible-label: (entry.selected ? "Selecionado: " : "") + entry.kind + ": " + entry.name;
                                 HorizontalLayout {
+                                    cross-axis-alignment: center;
                                     padding-left: DesignTokens.file-row-padding;
                                     padding-right: DesignTokens.file-row-padding;
                                     spacing: DesignTokens.file-column-gap;
