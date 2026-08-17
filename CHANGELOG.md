@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.6] — 2026-08-17
+
+A versão 0.1.6 organiza a documentação do estado atual, alinha o README com a descoberta em camadas do FFmpeg/ffprobe e repete a validação completa antes da distribuição.
+
+| Área | Resultado |
+|---|---|
+| Organização | README, documentação da release e referências de versão alinhados com o estado publicado. |
+| Conversão | Camadas de App Paths, `SearchPathW`, WinGet, Chocolatey, Scoop e `where.exe` preservadas e verificadas. |
+| Qualidade | `cargo check`, testes, Clippy, auditorias e cross-build Windows repetidos sem erros bloqueantes. |
+| Distribuição | Builds release Linux/Windows e checksums serão gerados para a v0.1.6. |
+
 ## [0.1.5] — 2026-08-17
 
 A versão 0.1.5 amplia a recuperação automática dos backends de conversão no Windows e transforma a conversão em uma cascata real de candidatos verificáveis.
