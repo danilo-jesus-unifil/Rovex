@@ -74,3 +74,9 @@ A revisão final comparará número e tamanho dos arquivos, dependências entre 
 [5]: https://github.com/sharkdp/fd/tree/master/src "sharkdp/fd — src"
 
 As fontes [1] e [2] sustentam módulos por responsabilidade e convenções de layout; [3] orienta APIs pequenas, previsíveis e encapsuladas; [4] e [5] servem como referências reais de projetos Rust que separam domínios sem exigir um arquivo por função.
+
+## Validação incremental concluída
+
+Após a extração, `cargo fmt --check`, `cargo check`, `cargo test` e `cargo clippy --all-targets --all-features -- -D warnings` passaram novamente. O check `x86_64-pc-windows-gnu` e o `cargo build --release` também passaram.
+
+O smoke test gráfico permaneceu ativo até o timeout esperado. O fluxo de abas executado com `target/release/rovex` abriu uma segunda aba, alternou para a primeira e fechou a segunda sem encerrar o processo. As screenshots atualizadas são `artifacts/rovex-tabs-two.png` e `artifacts/rovex-tabs-one.png`; a inspeção visual não encontrou elementos cortados ou regressões aparentes no layout.
