@@ -1,90 +1,108 @@
 # Relatório de refatoração arquitetural do Rovex
 
-**Data:** 2026-08-17  
-**Versão de partida:** v0.1.8  
-**Commits da refatoração:** `6c11eba`, `aa70ec4`  
-**Branch de rollback:** `backup/before-architecture-refactor-2026-08-17`
+**Data:** 17 de agosto de 2026  
+**Projeto:** Rovex — explorador de arquivos nativo para Windows 10/11  
+**Autor:** Manus AI  
+**HEAD validado:** `eca6051`  
+**Branch:** `main`
 
-## Resultado executivo
+## 1. Resultado executivo
 
-A refatoração foi concluída como uma mudança estrutural, sem alterar os contratos funcionais observados. O projeto continua sendo um único crate Rust com biblioteca `rovex_core` e binário `rovex`. A principal correção foi retirar de `src/desktop.rs` as responsabilidades que não pertencem ao composition root da interface: estado/view-model, descoberta de locais e coordenação de jobs assíncronos.
+A refatoração arquitetural foi concluída com o comportamento funcional preservado. Todos os arquivos de produção em `src/` e `ui/` ficaram abaixo do limite objetivo de 400 linhas. A extração foi realizada por fronteiras de responsabilidade reais: operações de arquivo, estado de navegação e seleção, schedulers, conversores, handlers da janela, tokens visuais, controles reutilizáveis, barras de ferramentas, modelos Slint e overlays.
 
-A arquitetura resultante é menor em acoplamento e mais navegável, mas não foi fragmentada artificialmente. `filesystem.rs`, `operations.rs`, `security.rs` e `converters.rs` permaneceram como módulos de domínio coesos. Não foram criados traits, factories, wrappers, crates adicionais ou arquivos por função.
+A interface continua usando o tema escuro, os botões de navegação e atualização, as abas, a listagem, o menu contextual com as quatro conversões e o diálogo de operação. A validação gráfica confirmou inicialização, fluxo de abas e conversão JPEG XL pela UI em uma pasta diferente da pasta do binário.
 
-## Comparação antes/depois
+## 2. Comparação objetiva de tamanho
 
-| Área | Antes | Depois | Motivo da decisão |
-|---|---|---|---|
-| Fachada desktop | `src/desktop.rs` com 2.566 linhas reunia UI, estado, locais, jobs e callbacks | `src/desktop.rs` com 911 linhas mantém composição Slint, diálogos e callbacks | A fachada continua sendo o composition root e não espalha a wiring da UI por arquivos pequenos. |
-| Estado da interface | Misturado em `desktop.rs` | `src/desktop/state.rs` com 663 linhas | Reúne seleção, abas, filtragem, view-model, carregamento de diretório e regras puras relacionadas. |
-| Jobs assíncronos | Misturados com callbacks e estado | `src/desktop/jobs.rs` com 892 linhas | Reúne requests, outcomes, progresso, cancelamento e schedulers que compartilham ciclo de vida e dependências. |
-| Locais iniciais | Misturados com a inicialização da janela | `src/desktop/locations.rs` com 132 linhas | Isola known folders do Windows e fallback multiplataforma, incluindo `cfg(windows)`. |
-| Conversão | `src/converters.rs` com 1.438 linhas | Permaneceu unido | O domínio já tinha coesão interna entre descoberta, execução e orquestração; dividir por tamanho aumentaria a superfície entre módulos. |
-| Filesystem, operações e segurança | Módulos independentes e coesos | Permaneceram independentes | Já representavam fronteiras naturais e não exigiam redistribuição. |
+O baseline utilizado foi o checkpoint `4e2ccdf`, criado antes da modularização completa. A contagem abaixo considera arquivos Rust e Slint de produção, excluindo artefatos de `target/`.
 
-A árvore de produção final é:
+| Arquivo no baseline | Linhas antes | Resultado após a refatoração |
+|---|---:|---|
+| `src/converters.rs` | 1.542 | Substituído por 9 módulos; maior módulo atual: `windows_backend.rs` com 298 linhas |
+| `src/desktop.rs` | 911 | Fachada de 31 linhas; handlers separados em 8 módulos |
+| `src/desktop/jobs.rs` | 888 | Substituído por 8 módulos; maior módulo atual: `operations.rs` com 208 linhas |
+| `src/desktop/state.rs` | 663 | Substituído por 6 módulos; maior módulo atual: `tests.rs` com 249 linhas |
+| `src/operations.rs` | 531 | Substituído por 5 módulos; maior módulo atual: `copy.rs` com 200 linhas |
+| `ui/main.slint` | 848 | Fachada principal com 317 linhas; UI distribuída em 6 arquivos |
 
-```text
-src/
-├── lib.rs
-├── main.rs
-├── filesystem.rs
-├── security.rs
-├── operations.rs
-├── converters.rs
-├── desktop.rs
-└── desktop/
-    ├── locations.rs
-    ├── state.rs
-    └── jobs.rs
-```
+No estado final, o maior arquivo de produção é `src/security.rs`, com 367 linhas. Portanto, o critério objetivo de nenhum arquivo acima de 400 linhas foi satisfeito sem deixar um arquivo residual acima do limite.
 
-## Fronteiras e encapsulamento
+## 3. Estrutura final por responsabilidade
 
-Os submódulos `desktop::locations`, `desktop::state` e `desktop::jobs` são privados à árvore desktop. A comunicação necessária com a fachada usa `pub(super)`, sem ampliar a API pública do crate. Os campos internos de seleção, histórico, schedulers e conversão continuam privados; apenas dados efetivamente consumidos por um módulo irmão ou pela fachada atravessam a fronteira.
+| Área | Organização final | Responsabilidade preservada |
+|---|---|---|
+| Operações | `src/operations/{error,copy,entry,tests,mod}.rs` | Validação, cópia atômica, criação, exclusão, renomeação e testes |
+| Estado desktop | `src/desktop/state/{models,navigation,listing,view,tests,mod}.rs` | Modelos, histórico de abas, listagem, seleção e view-model |
+| Jobs desktop | `src/desktop/jobs/{types,operations,operation_scheduler,conversion,conversion_scheduler,filter_scheduler,load_scheduler,mod}.rs` | Tipos de requisição, execução assíncrona, cancelamento e atualização da UI |
+| Conversores | `src/converters/{types,paths,process_output,backend,windows_backend,process,pipeline,tests,mod}.rs` | Resolução de backends, fallbacks, processos FFmpeg/ffprobe e publicação segura |
+| Handlers | `src/desktop/handlers/{navigation,selection,operations,confirmation,conversions,dialogs,filter,lifecycle,mod}.rs` | Registro dos callbacks da `MainWindow` e coordenação dos fluxos da UI |
+| Contexto | `src/desktop/context.rs` | Agregação explícita dos modelos, schedulers, seleção, abas e `Weak<MainWindow>` |
+| UI Slint | `design_tokens.slint`, `components.slint`, `data.slint`, `toolbars.slint`, `overlays.slint`, `main.slint` | Tema escuro, controles reutilizáveis, barras, listagem, menu contextual e diálogo |
 
-`state` não depende de `jobs`. O módulo de jobs depende do view-model de estado para carregar e atualizar listagens, além de depender dos domínios existentes de operações e conversão. A fachada desktop monta os componentes e conecta callbacks. Essa direção reduz a mistura entre regras de estado e execução assíncrona sem criar uma camada de abstração que apenas repassaria chamadas.
+A divisão da UI segue o sistema de módulos do Slint: tipos exportados podem ser importados por outros arquivos `.slint`, e componentes exportados podem ser compostos em um componente principal.[1] A fachada `main.slint` continua exportando `MainWindow`, `LocationRow`, `FileRow`, `TabRow` e `DesignTokens`, mantendo a superfície usada pelo código Rust.
 
-A convenção usada foi `desktop.rs` como arquivo-fachada com a pasta `desktop/` para submódulos. Não foi criado `mod.rs`, alinhando a organização à convenção moderna de arquivo de módulo mais diretório de submódulos documentada pelo ecossistema Rust.
+> “Similarly, components exported from other files may be imported.” — documentação oficial do Slint sobre módulos.[1]
 
-## Pesquisa e decisões evitadas
+O `build.rs` também foi atualizado com `cargo:rerun-if-changed` para cada módulo Slint. Assim, uma alteração em tokens, controles, modelos, toolbar ou overlays força a recompilação apropriada da interface, em vez de depender somente da data de `main.slint`.
 
-A documentação oficial do Rust descreve módulos como mecanismos para organizar código por legibilidade e controlar privacidade, com itens privados por padrão [1]. O Cargo recomenda convenções de layout que facilitem a navegação em um pacote novo, sem exigir um arquivo para cada função [2]. As Rust API Guidelines tratam desenho de APIs, previsibilidade, dependabilidade e evolução como recomendações a serem aplicadas com julgamento, não como uma regra rígida [3].
+## 4. Correção de compatibilidade Windows encontrada na validação
 
-As árvores de projetos reais `ripgrep` e `fd` foram consultadas. `ripgrep` separa áreas de domínio, testes, CI e empacotamento em uma escala muito maior que a do Rovex [4]. `fd` mantém arquivos de domínio em `src` e usa subdiretórios somente para agrupamentos que possuem coesão própria, como `exec`, `filter` e `fmt` [5]. Essas referências foram usadas como comparação, não como modelos copiados.
+O check cruzado revelou que `windows_backend.rs` ainda importava helpers como se eles estivessem diretamente na fachada `converters`, embora, após a modularização, eles estivessem em `converters::backend`. A correção passou a importar explicitamente esses helpers de `super::backend` e incluiu `Command` e `Stdio` no escopo do backend Windows. O alvo `x86_64-pc-windows-gnu` foi recompilado com sucesso depois dessa correção.
 
-Foram deliberadamente evitados um workspace com vários crates, uma hierarquia profunda, módulos genéricos como `utils.rs` ou `helpers.rs`, uma trait para cada scheduler, factories, wrappers, duplicação de tipos e tornar tudo público para contornar erros de import. A única duplicação nominal observada na auditoria final foi `human_io_reason` em módulos de erro distintos; são funções privadas com contextos e mensagens de domínio diferentes, portanto não foi criada uma abstração artificial para eliminá-las.
+Essa verificação foi importante porque o caminho Linux não exercita o módulo condicionado por `cfg(windows)`. A compilação cruzada foi mantida como parte da validação final justamente para capturar esse tipo de regressão de plataforma.
 
-## Validação realizada
+## 5. Validação executada
 
-A migração foi feita com compilação após os primeiros ajustes de cada fronteira. Durante a primeira tentativa, o compilador identificou visibilidades e imports insuficientes; o código gerado foi restaurado ao checkpoint, o script de migração foi corrigido para não alterar literais de struct, e a migração foi repetida de forma determinística. O resultado final passou por todas as verificações abaixo.
-
-| Comando/fluxo | Resultado |
+| Verificação | Resultado |
 |---|---|
-| `cargo fmt --check` | Passou. |
-| `cargo check` | Passou. |
-| `cargo test` | 43 passaram, 2 ignorados explicitamente, 0 falhas. |
-| `cargo clippy --all-targets --all-features -- -D warnings` | Passou sem warnings. |
-| `cargo check --target x86_64-pc-windows-gnu` | Passou. |
-| `cargo build --release` | Passou com perfil otimizado existente. |
-| `cargo audit` | Passou sem advisories bloqueantes. |
-| `cargo deny check` | Passou: advisories, bans, licenses e sources aprovados. |
-| `scripts/smoke_gui.sh` | O processo gráfico permaneceu ativo até o timeout esperado sob Xvfb. |
-| `scripts/capture_tabs.sh` | Abriu segunda aba, alternou para a primeira, fechou a segunda e permaneceu ativo. |
-| Inspeção visual | `artifacts/rovex-tabs-two.png` e `artifacts/rovex-tabs-one.png` não mostraram regressões aparentes, cortes ou controles quebrados no fluxo testado. |
+| `cargo fmt --all -- --check` | Aprovado |
+| `cargo check --all-targets --all-features` | Aprovado |
+| `cargo test --all-targets --all-features` | 44 aprovados, 0 falhos, 2 ignorados explicitamente |
+| `cargo clippy --all-targets --all-features -- -D warnings` | Aprovado sem warnings |
+| `cargo check --target x86_64-pc-windows-gnu` | Aprovado |
+| `cargo build --release` | Aprovado; binário otimizado gerado |
+| `cargo deny check` | `advisories ok, bans ok, licenses ok, sources ok` |
+| `git diff --check` | Aprovado, sem erros de whitespace |
+| Inventário de arquivos `src/` e `ui/` | Nenhum arquivo acima de 400 linhas |
+| `scripts/smoke_gui.sh` | Processo permaneceu ativo até o timeout esperado |
+| `scripts/capture_tabs.sh` | Abertura, alternância e fechamento de aba aprovados |
+| `scripts/test_ui_jxl_conversion.sh` | Saída JPEG XL criada com 67 bytes |
 
-O binário release foi executado no fluxo de abas, não apenas compilado. Os testes unitários continuam cobrindo seleção Ctrl/Shift/Ctrl+A, histórico e abas, filtragem, ícones semânticos, locais, carregamento real, nomes Unicode/caminhos inválidos, operações atômicas, cancelamento, segurança e descoberta de conversores.
+Os dois testes ignorados continuam explicitamente documentados: o benchmark manual de filtro de 100 mil itens e o teste de conversões reais que requer FFmpeg e ffprobe no ambiente de teste.
 
-## Conclusão
+## 6. Auditoria de dependências
 
-A nova arquitetura atende o objetivo principal: responsabilidades reais estão separadas em módulos coesos, a fachada desktop voltou a representar a composição da aplicação e os domínios existentes não foram fragmentados sem necessidade. O comportamento observado da v0.1.8 foi preservado, o branch principal está limpo após os commits da refatoração e existe um branch remoto de rollback no estado anterior.
+O `cargo audit` terminou com sucesso e reportou quatro avisos de dependências não mantidas, sem registrar neste ciclo um advisory de vulnerabilidade explorável. Os avisos pertencem à árvore resolvida de dependências e não foram introduzidos pela divisão de módulos do Rovex.
 
-A próxima melhoria funcional do issue do GitHub — acesso à Lixeira — deve ser tratada como um novo domínio, com API e testes próprios, e não incorporada artificialmente em `operations.rs` ou `desktop.rs` sem uma decisão explícita sobre a semântica multiplataforma.
+| Crate | Versão | Advisory | Natureza |
+|---|---:|---|---|
+| `bincode` | 2.0.1 | [RUSTSEC-2025-0141][2] | Não mantida |
+| `paste` | 1.0.15 | [RUSTSEC-2024-0436][3] | Não mantida |
+| `rustybuzz` | 0.20.1 | [RUSTSEC-2026-0206][4] | Não mantida |
+| `ttf-parser` | 0.25.1 | [RUSTSEC-2026-0192][5] | Não mantida |
 
-## Referências
+O `cargo deny check` aprovou advisories, bans, licenças e fontes. Como os crates estão associados à árvore transitiva da stack gráfica e não houve falha de segurança acionável no conjunto avaliado, não foi feita uma atualização cega que pudesse quebrar Slint 1.17.1 ou a compatibilidade Windows. A recomendação é reavaliar esses avisos quando uma versão compatível da cadeia Slint substituir os crates, especialmente antes de uma atualização de dependências.
 
-[1]: https://doc.rust-lang.org/book/ch07-02-defining-modules-to-control-scope-and-privacy.html "The Rust Programming Language — Control Scope and Privacy with Modules"
-[2]: https://doc.rust-lang.org/cargo/guide/project-layout.html "The Cargo Book — Package Layout"
-[3]: https://rust-lang.github.io/api-guidelines/about.html "Rust API Guidelines"
-[4]: https://github.com/BurntSushi/ripgrep "BurntSushi/ripgrep"
-[5]: https://github.com/sharkdp/fd/tree/master/src "sharkdp/fd — src"
+## 7. Pontos de recuperação e commits
+
+O estado estável anterior à divisão da UI está preservado na branch `backup/before-ui-modularization-2026-08-17`. Também permanecem disponíveis os checkpoints históricos anteriores, incluindo `backup/before-full-modularization-2026-08-17`.
+
+| Commit | Conteúdo |
+|---|---|
+| `ab104bf` | Divisão inicial das operações de arquivo em módulos |
+| `6e675d7` | Modularização de handlers desktop, estado compartilhado, jobs e conversores |
+| `eca6051` | Modularização da interface Slint e correção dos imports do backend Windows |
+
+O working tree está limpo. A branch `main` está quatro commits à frente de `origin/main`; nenhum push foi forçado ou executado durante esta etapa.
+
+## 8. Conclusão
+
+O Rovex está em um estado estável para a próxima etapa de desenvolvimento. A regra de modularização foi cumprida para Rust e Slint, os limites de responsabilidade ficaram explícitos, a API pública da janela foi preservada, a compilação Linux e Windows GNU foi validada, as verificações estáticas passaram e os fluxos gráficos essenciais foram exercitados sob Xvfb.
+
+### Referências
+
+[1]: https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/ "Slint Docs — The .slint File e Modules"
+[2]: https://rustsec.org/advisories/RUSTSEC-2025-0141 "RustSec — Bincode is unmaintained"
+[3]: https://rustsec.org/advisories/RUSTSEC-2024-0436 "RustSec — paste is no longer maintained"
+[4]: https://rustsec.org/advisories/RUSTSEC-2026-0206 "RustSec — rustybuzz is unmaintained"
+[5]: https://rustsec.org/advisories/RUSTSEC-2026-0192 "RustSec — ttf-parser is unmaintained"
