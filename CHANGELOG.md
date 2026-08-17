@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.3] — 2026-08-17
+
+A versão 0.1.3 corrige a falha observada em ambiente real na descoberta dos backends de conversão.
+
+| Área | Correção |
+|---|---|
+| Descoberta | O PATH persistente do usuário e do sistema Windows agora é lido diretamente do Registro, incluindo valores `REG_EXPAND_SZ`, mesmo quando o processo foi iniciado antes da instalação do FFmpeg. |
+| Compatibilidade | Symlinks, junctions e links de gerenciadores de pacotes que apontam para um arquivo regular agora são aceitos como executáveis válidos. |
+| Recuperação | Depois de encontrar o FFmpeg, o Rovex tenta também o `ffprobe` no mesmo diretório antes de falhar. |
+| Testes | O teste real de quatro formatos passa com PATH e overrides deliberadamente inválidos, usando os fallbacks seguros do sistema. |
+| Qualidade | O ciclo completo de formatação, check, testes, Clippy, auditorias e cross-check Windows foi executado após a correção. |
+
 ## [0.1.2] — 2026-08-16
 
 A versão 0.1.2 corrige a descoberta dos backends de conversão, melhora a ergonomia da toolbar, amplia os locais padrão do Windows e arredonda visualmente a sidebar.

@@ -2,14 +2,19 @@
 //!
 //! O ambiente de desenvolvimento foi validado com FFmpeg/ffprobe 6.1.1 do
 //! Ubuntu 24.04, incluindo os codecs libjxl, libopus, PNG e FLAC. No Windows,
-//! `ffmpeg.exe` e `ffprobe.exe` devem estar disponíveis no `PATH`; o Rovex não
-//! baixa executáveis nem invoca shell em runtime.
+//! o Rovex tenta o PATH herdado, o PATH persistente do usuário/sistema, o diretório
+//! do executável e locais seguros conhecidos; não baixa executáveis nem invoca shell
+//! em runtime.
 
 use crate::operations::{OperationError, publish_file_no_replace};
 use crate::security::{DestinationPolicy, ValidationError, validate_destination, validate_source};
+#[cfg(windows)]
+use std::ffi::OsString;
 use std::fmt;
 use std::fs;
 use std::io;
+#[cfg(windows)]
+use std::os::windows::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -331,6 +336,101 @@ fn push_directory_candidates(candidates: &mut Vec<PathBuf>, directory: PathBuf, 
     }
 }
 
+#[cfg(windows)]
+fn windows_wide_null(value: &str) -> Vec<u16> {
+    value.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+#[cfg(windows)]
+fn expand_windows_environment(value: &str) -> Option<OsString> {
+    use windows_sys::Win32::System::Environment::ExpandEnvironmentStringsW;
+
+    let source = windows_wide_null(value);
+    // SAFETY: source é uma string UTF-16 terminada em NUL e o destino nulo apenas consulta o tamanho.
+    let required = unsafe { ExpandEnvironmentStringsW(source.as_ptr(), std::ptr::null_mut(), 0) };
+    if required == 0 {
+        return None;
+    }
+    let mut expanded = vec![0u16; required as usize];
+    // SAFETY: expanded tem exatamente o tamanho retornado pela API e o ponteiro de origem permanece válido.
+    let written =
+        unsafe { ExpandEnvironmentStringsW(source.as_ptr(), expanded.as_mut_ptr(), required) };
+    if written == 0 {
+        return None;
+    }
+    let length = (written as usize).saturating_sub(1).min(expanded.len());
+    Some(OsString::from_wide(&expanded[..length]))
+}
+
+#[cfg(windows)]
+fn windows_persistent_path_entries() -> Vec<PathBuf> {
+    use windows_sys::Win32::Foundation::ERROR_SUCCESS;
+    use windows_sys::Win32::System::Registry::{
+        HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ, REG_EXPAND_SZ, REG_SZ, RegCloseKey,
+        RegOpenKeyExW, RegQueryValueExW,
+    };
+
+    let subkey = windows_wide_null("Environment");
+    let value_name = windows_wide_null("Path");
+    let mut entries = Vec::new();
+    for root in [HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE] {
+        let mut key = std::ptr::null_mut();
+        // SAFETY: as strings são terminadas em NUL, key é um ponteiro de saída válido e KEY_READ é somente leitura.
+        let open_status = unsafe { RegOpenKeyExW(root, subkey.as_ptr(), 0, KEY_READ, &mut key) };
+        if open_status != ERROR_SUCCESS || key.is_null() {
+            continue;
+        }
+
+        let mut value_type = 0;
+        let mut byte_count = 0u32;
+        // SAFETY: a primeira consulta pede apenas o tamanho e não escreve em dados.
+        let size_status = unsafe {
+            RegQueryValueExW(
+                key,
+                value_name.as_ptr(),
+                std::ptr::null(),
+                &mut value_type,
+                std::ptr::null_mut(),
+                &mut byte_count,
+            )
+        };
+        if size_status == ERROR_SUCCESS
+            && byte_count >= 2
+            && (value_type == REG_SZ || value_type == REG_EXPAND_SZ)
+        {
+            let unit_count = (byte_count as usize).saturating_add(1) / 2;
+            let mut buffer = vec![0u16; unit_count];
+            // SAFETY: buffer tem espaço para o tamanho informado pela consulta anterior e o Windows escreve bytes UTF-16.
+            let read_status = unsafe {
+                RegQueryValueExW(
+                    key,
+                    value_name.as_ptr(),
+                    std::ptr::null(),
+                    &mut value_type,
+                    buffer.as_mut_ptr().cast(),
+                    &mut byte_count,
+                )
+            };
+            if read_status == ERROR_SUCCESS {
+                let units = (byte_count as usize / 2).min(buffer.len());
+                let raw = OsString::from_wide(&buffer[..units])
+                    .to_string_lossy()
+                    .trim_end_matches('\0')
+                    .to_owned();
+                let path_value = if value_type == REG_EXPAND_SZ {
+                    expand_windows_environment(&raw).unwrap_or_else(|| OsString::from(raw))
+                } else {
+                    OsString::from(raw)
+                };
+                entries.extend(std::env::split_paths(&path_value));
+            }
+        }
+        // SAFETY: key foi aberto com sucesso nesta função e é fechado exatamente uma vez.
+        unsafe { RegCloseKey(key) };
+    }
+    entries
+}
+
 fn backend_candidates(executable: &str) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
 
@@ -348,6 +448,11 @@ fn backend_candidates(executable: &str) -> Vec<PathBuf> {
         for directory in std::env::split_paths(&path) {
             push_directory_candidates(&mut candidates, directory, executable);
         }
+    }
+
+    #[cfg(windows)]
+    for directory in windows_persistent_path_entries() {
+        push_directory_candidates(&mut candidates, directory, executable);
     }
 
     if let Ok(current_exe) = std::env::current_exe()
@@ -419,9 +524,11 @@ fn backend_candidates(executable: &str) -> Vec<PathBuf> {
     candidates
 }
 
-fn is_regular_non_symlink(path: &Path) -> bool {
-    fs::symlink_metadata(path)
-        .map(|metadata| metadata.file_type().is_file())
+fn is_backend_file(path: &Path) -> bool {
+    // `metadata` segue symlinks e junctions, necessários para instalações via
+    // gerenciadores de pacotes e links do sistema; continua recusando diretórios.
+    fs::metadata(path)
+        .map(|metadata| metadata.is_file())
         .unwrap_or(false)
 }
 
@@ -430,7 +537,7 @@ fn resolve_backend_from_candidates(
     candidates: &[PathBuf],
 ) -> Result<BackendResolution, ConversionError> {
     for candidate in candidates {
-        if is_regular_non_symlink(candidate) {
+        if is_backend_file(candidate) {
             return Ok(BackendResolution {
                 path: candidate.clone(),
             });
@@ -442,9 +549,19 @@ fn resolve_backend_from_candidates(
     })
 }
 
-fn resolve_backend(executable: &'static str) -> Result<BackendResolution, ConversionError> {
-    let candidates = backend_candidates(executable);
+fn resolve_backend_with_adjacent(
+    executable: &'static str,
+    adjacent_directory: Option<&Path>,
+) -> Result<BackendResolution, ConversionError> {
+    let mut candidates = backend_candidates(executable);
+    if let Some(directory) = adjacent_directory {
+        push_directory_candidates(&mut candidates, directory.to_path_buf(), executable);
+    }
     resolve_backend_from_candidates(executable, &candidates)
+}
+
+fn resolve_backend(executable: &'static str) -> Result<BackendResolution, ConversionError> {
+    resolve_backend_with_adjacent(executable, None)
 }
 
 fn spawn_ffmpeg(
@@ -721,7 +838,7 @@ where
         )?;
     let temporary = temporary_path(&destination)?;
     let ffmpeg = resolve_backend("ffmpeg")?;
-    let ffprobe = resolve_backend("ffprobe")?;
+    let ffprobe = resolve_backend_with_adjacent("ffprobe", ffmpeg.path.parent())?;
     let result = (|| {
         spawn_ffmpeg(&ffmpeg.path, &source, &temporary, kind, cancel, &mut stage)?;
         stage(ConversionStage::Validating);
@@ -747,9 +864,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        ConversionError, ConversionKind, convert_file, output_path, resolve_backend_from_candidates,
+        ConversionError, ConversionKind, convert_file, output_path, resolve_backend,
+        resolve_backend_from_candidates,
     };
     use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
     use std::path::Path;
     use std::process::Command;
     use std::sync::atomic::AtomicBool;
@@ -789,6 +909,28 @@ mod tests {
         let resolved = resolve_backend_from_candidates("ffmpeg", &candidates)
             .expect("resolver deve avançar até o arquivo regular");
         assert_eq!(resolved.path, backend);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn resolvedor_aceita_link_para_backend_regular() {
+        let root = std::env::temp_dir().join(format!(
+            "rovex-backend-symlink-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&root).expect("criar diretório do teste");
+        let backend = root.join("ffmpeg-real");
+        let link = root.join("ffmpeg-link");
+        fs::write(&backend, b"backend de teste").expect("criar backend de teste");
+        symlink(&backend, &link).expect("criar link do backend");
+        let resolved = resolve_backend_from_candidates("ffmpeg", std::slice::from_ref(&link))
+            .expect("resolver deve aceitar link para arquivo regular");
+        assert_eq!(resolved.path, link);
         let _ = fs::remove_dir_all(root);
     }
 
@@ -842,7 +984,8 @@ mod tests {
         fs::create_dir(&directory).expect("criar diretório temporário");
         let image = directory.join("entrada.png");
         let audio = directory.join("entrada.wav");
-        let create_image = Command::new("ffmpeg")
+        let ffmpeg = resolve_backend("ffmpeg").expect("resolver encontrar ffmpeg para fixture");
+        let create_image = Command::new(&ffmpeg.path)
             .args([
                 "-hide_banner",
                 "-loglevel",
@@ -859,7 +1002,7 @@ mod tests {
             .status()
             .expect("executar ffmpeg para a imagem");
         assert!(create_image.success());
-        let create_audio = Command::new("ffmpeg")
+        let create_audio = Command::new(&ffmpeg.path)
             .args([
                 "-hide_banner",
                 "-loglevel",

@@ -10,7 +10,7 @@ O Rovex possui dependências diretas de runtime para a UI e para a integração 
 |---|---:|---|---|---|---|
 | `slint` | 1.17.1 | Janela desktop, componentes Slint, event loop, modelo visual e acessibilidade | Linux: `backend-winit-x11`, `renderer-software`, `accessibility`, `compat-1-2`; Windows/Unix não-Linux: `backend-winit`, `renderer-software`, `accessibility`, `compat-1-2`; `default-features = false` | **Manter pin exato** | MSRV publicada 1.92; documentação desktop lista Windows 10 x86-64 e Windows 11 x86-64/aarch64 [1] |
 | `slint-build` | 1.17.1 | Compilação de `ui/main.slint` no `build.rs` | Defaults do crate | **Manter pin exato e alinhado ao runtime** | Mesma release do `slint`; evita compiler/runtime divergentes |
-| `windows-sys` | 0.61.2 | `SHGetKnownFolderPath` para locais conhecidos do Windows | `Win32_Foundation`, `Win32_System_Com`, `Win32_UI_Shell`; somente Windows | **Manter restrito ao target** | API Win32 compatível com Windows 10/11; sem efeito em Linux |
+| `windows-sys` | 0.61.2 | `SHGetKnownFolderPath` e leitura do PATH persistente do Windows | `Win32_Foundation`, `Win32_System_Com`, `Win32_System_Environment`, `Win32_System_Registry`, `Win32_UI_Shell`; somente Windows | **Manter restrito ao target** | APIs Win32 compatíveis com Windows 10/11; sem efeito em Linux |
 
 A consulta do registry realizada durante a auditoria retornou `slint = 1.17.1`, `slint-build = 1.17.1` e `windows-sys = 0.61.2` como versões usadas e verificadas para esta etapa. `windows-sys` foi adicionado somente para o target Windows e não altera o backend Linux.
 
@@ -58,7 +58,7 @@ O projeto é MIT. O Slint publica uma expressão que inclui `GPL-3.0-only` ou as
 
 Não foi introduzida outra biblioteca de UI, renderer, binding Windows, logger, serializador, conversor ou sistema de configuração. O projeto não usa essas categorias diretamente. Substituir Slint por outro toolkit ou adicionar bindings Windows seria uma mudança arquitetural, não uma consolidação segura de dependências, e não foi justificado por nenhuma incompatibilidade encontrada.
 
-> **Decisão:** a stack direta mantém Rust 1.97.1 e Slint 1.17.1; `windows-sys` foi adicionado de modo restrito ao target Windows para consultar Known Folders oficiais, sem alterar o alvo Linux. A árvore continua auditada por cargo-audit e cargo-deny.
+> **Decisão:** a stack direta mantém Rust 1.97.1 e Slint 1.17.1; `windows-sys` permanece restrito ao target Windows para Known Folders e leitura somente do PATH persistente do usuário/sistema, sem alterar o alvo Linux. A árvore continua auditada por cargo-audit e cargo-deny.
 
 ## Referências
 
