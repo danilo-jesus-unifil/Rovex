@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.7] — 2026-08-17
+
+A versão 0.1.7 corrige a descoberta quando o binário do Rovex e a imagem a converter estão em pastas diferentes e amplia a recuperação para instalações informadas por pasta ou variáveis `FFMPEG_*`.
+
+| Área | Correção |
+|---|---|
+| Descoberta | O diretório de trabalho atual agora é candidato independente do diretório do executável. |
+| Overrides | `ROVEX_FFMPEG_PATH`/`ROVEX_FFPROBE_PATH`, App Paths e variáveis `FFMPEG_HOME`, `FFMPEG_ROOT`, `FFMPEG_DIR` e `FFMPEG_PATH` aceitam arquivo direto, arquivo sem extensão ou pasta contendo o backend. |
+| Regressão | Novo teste unitário cobre pastas de instalação sem extensão e novo teste gráfico copia o binário para uma pasta diferente da imagem. |
+| Validação | Conversão real JPEG XL foi executada pela UI em Xvfb, com saída criada na pasta da imagem e codec confirmado como `jpegxl` pelo ffprobe. |
+
 ## [0.1.6] — 2026-08-17
 
 A versão 0.1.6 organiza a documentação do estado atual, alinha o README com a descoberta em camadas do FFmpeg/ffprobe e repete a validação completa antes da distribuição.

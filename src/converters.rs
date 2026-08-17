@@ -2,9 +2,9 @@
 //!
 //! O ambiente de desenvolvimento foi validado com FFmpeg/ffprobe 6.1.1 do
 //! Ubuntu 24.04, incluindo os codecs libjxl, libopus, PNG e FLAC. No Windows,
-//! o Rovex tenta o PATH herdado, o PATH persistente do usuário/sistema, o diretório
-//! do executável e locais seguros conhecidos; não baixa executáveis nem invoca shell
-//! em runtime.
+//! o Rovex tenta overrides absolutos, PATH herdado, PATH persistente, App Paths,
+//! SearchPathW, diretório de trabalho, diretório do executável, variáveis FFMPEG_*
+//! e locais seguros conhecidos; não baixa executáveis nem invoca shell em runtime.
 
 use crate::operations::{OperationError, publish_file_no_replace};
 use crate::security::{DestinationPolicy, ValidationError, validate_destination, validate_source};
@@ -337,6 +337,18 @@ fn push_directory_candidates(candidates: &mut Vec<PathBuf>, directory: PathBuf, 
     }
 }
 
+fn push_path_or_directory_candidates(
+    candidates: &mut Vec<PathBuf>,
+    path: PathBuf,
+    executable: &str,
+) {
+    push_candidate(candidates, path.clone());
+    if path.extension().is_none() {
+        push_candidate(candidates, path.with_extension("exe"));
+    }
+    push_directory_candidates(candidates, path, executable);
+}
+
 #[cfg(windows)]
 fn windows_wide_null(value: &str) -> Vec<u16> {
     value.encode_utf16().chain(std::iter::once(0)).collect()
@@ -486,7 +498,11 @@ fn windows_app_path_entries(executable: &str) -> Vec<PathBuf> {
                     .strip_prefix('"')
                     .and_then(|value| value.strip_suffix('"'))
                     .unwrap_or(&value);
-                push_candidate(&mut candidates, PathBuf::from(value));
+                push_path_or_directory_candidates(
+                    &mut candidates,
+                    PathBuf::from(value),
+                    executable,
+                );
             }
             if let Some((_, value)) = windows_registry_value(root, &subkey, Some("Path"), access) {
                 for directory in std::env::split_paths(&value) {
@@ -629,10 +645,7 @@ fn backend_candidates(executable: &str, adjacent_directory: Option<&Path>) -> Ve
     if let Some(override_path) = std::env::var_os(backend_override_name(executable)) {
         let override_path = PathBuf::from(override_path);
         if override_path.is_absolute() {
-            push_candidate(&mut candidates, override_path.clone());
-            if override_path.extension().is_none() {
-                push_candidate(&mut candidates, override_path.with_extension("exe"));
-            }
+            push_path_or_directory_candidates(&mut candidates, override_path, executable);
         }
     }
 
@@ -659,6 +672,9 @@ fn backend_candidates(executable: &str, adjacent_directory: Option<&Path>) -> Ve
         && let Some(directory) = current_exe.parent()
     {
         push_directory_candidates(&mut candidates, directory.to_path_buf(), executable);
+    }
+    if let Ok(current_directory) = std::env::current_dir() {
+        push_directory_candidates(&mut candidates, current_directory, executable);
     }
     if let Some(directory) = adjacent_directory {
         push_directory_candidates(&mut candidates, directory.to_path_buf(), executable);
@@ -754,6 +770,14 @@ fn backend_candidates(executable: &str, adjacent_directory: Option<&Path>) -> Ve
                     executable,
                 );
             }
+        }
+    }
+
+    for variable in ["FFMPEG_HOME", "FFMPEG_ROOT", "FFMPEG_DIR", "FFMPEG_PATH"] {
+        if let Some(path) = std::env::var_os(variable).map(PathBuf::from)
+            && path.is_absolute()
+        {
+            push_path_or_directory_candidates(&mut candidates, path, executable);
         }
     }
 
@@ -1182,8 +1206,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        ConversionError, ConversionKind, convert_file, output_path, resolve_backend,
-        resolve_backend_from_candidates,
+        ConversionError, ConversionKind, convert_file, output_path,
+        push_path_or_directory_candidates, resolve_backend, resolve_backend_from_candidates,
     };
     use std::fs;
     #[cfg(unix)]
@@ -1228,6 +1252,17 @@ mod tests {
             .expect("resolver deve avançar até o arquivo regular");
         assert_eq!(resolved.path, backend);
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn override_sem_extensao_tambem_considera_executavel_dentro_da_pasta() {
+        let directory = std::env::temp_dir().join("rovex-ffmpeg-install");
+        let mut candidates = Vec::new();
+        push_path_or_directory_candidates(&mut candidates, directory.clone(), "ffmpeg");
+        assert!(candidates.contains(&directory));
+        assert!(candidates.contains(&directory.with_extension("exe")));
+        assert!(candidates.contains(&directory.join("ffmpeg")));
+        assert!(candidates.contains(&directory.join("ffmpeg.exe")));
     }
 
     #[test]

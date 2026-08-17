@@ -2,7 +2,7 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é uma release portable `v0.1.5` de um protótipo desktop funcional. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
+> O estado atual é uma release portable `v0.1.7` de um protótipo desktop funcional. Ele abre uma janela Slint, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
 
 ## Estado atual
 
@@ -47,6 +47,7 @@ cargo build --release
 cargo build --release --target x86_64-pc-windows-gnu
 cargo audit
 cargo deny check
+./scripts/test_ui_jxl_separate_dirs.sh
 ```
 
 O modo desktop abre a janela com um diretório inicial opcional:
@@ -61,11 +62,11 @@ O modo CLI permanece disponível para ambientes sem display e para diagnóstico 
 cargo run -- --cli .
 ```
 
-A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, filtro local, seleção múltipla, histórico de navegação, clique direito, confirmação de conversão e captura de screenshots. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows. As conversões exigem `ffmpeg.exe` e `ffprobe.exe`. O Rovex tenta overrides absolutos, `PATH`, PATH persistente do usuário e do sistema no Windows, App Paths, `SearchPathW`, o diretório do próprio executável, o diretório irmão do FFmpeg, WinGet, Chocolatey, Scoop e outros diretórios seguros conhecidos; `where.exe` é o fallback final. Para diagnóstico controlado, também aceita `ROVEX_FFMPEG_PATH` e `ROVEX_FFPROBE_PATH` com caminhos absolutos. O Rovex não baixa executáveis em runtime.
+A execução gráfica foi testada em display virtual com carregamento de `/tmp`, interação com a barra de endereço, filtro local, seleção múltipla, histórico de navegação, clique direito, confirmação de conversão e captura de screenshots. A validação cruzada gera um PE32+ x86-64 para Windows; a execução efetiva em Windows 10/11, incluindo DPI, permissões Win32, junctions, UNC/SMB e acessibilidade nativa, ainda precisa ocorrer em runners ou máquinas Windows. As conversões exigem `ffmpeg.exe` e `ffprobe.exe`. O Rovex tenta overrides absolutos, `PATH`, PATH persistente do usuário e do sistema no Windows, App Paths, `SearchPathW`, o diretório de trabalho, o diretório do próprio executável, o diretório irmão do FFmpeg, variáveis `FFMPEG_HOME`/`FFMPEG_ROOT`/`FFMPEG_DIR`/`FFMPEG_PATH`, WinGet, Chocolatey, Scoop e outros diretórios seguros conhecidos; `where.exe` é o fallback final. Overrides que apontam para uma pasta também são tratados como raízes que podem conter `ffmpeg.exe`/`ffprobe.exe`. Para diagnóstico controlado, também aceita `ROVEX_FFMPEG_PATH` e `ROVEX_FFPROBE_PATH` com caminhos absolutos. O Rovex não baixa executáveis em runtime.
 
 ## Documentação
 
-A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.5.md`](RELEASE_REPORT-v0.1.5.md) e a pesquisa de descoberta de backends está em [`docs/ffmpeg-discovery-research.md`](docs/ffmpeg-discovery-research.md).
+A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.7.md`](RELEASE_REPORT-v0.1.7.md), o teste gráfico de diretórios separados está em [`scripts/test_ui_jxl_separate_dirs.sh`](scripts/test_ui_jxl_separate_dirs.sh) e a pesquisa de descoberta de backends está em [`docs/ffmpeg-discovery-research.md`](docs/ffmpeg-discovery-research.md).
 
 ## Segurança e dependências
 
