@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.9] — 2026-08-17
+
+A versão 0.1.9 conclui a modularização arquitetural do Rovex sem alterar os fluxos funcionais da v0.1.8.
+
+| Área | Mudança |
+|---|---|
+| Arquitetura Rust | Operações, estado desktop, jobs, conversores e handlers foram divididos em módulos coesos, com fachadas pequenas e encapsulamento preservado. |
+| Interface Slint | `main.slint` foi reduzido a 317 linhas; tokens, controles, modelos, toolbar e overlays agora vivem em módulos próprios. |
+| Compatibilidade | Corrigidos imports do backend Windows após a migração para `converters::backend`; o check `x86_64-pc-windows-gnu` passou. |
+| Build | `build.rs` agora observa todos os módulos Slint importados com `cargo:rerun-if-changed`. |
+| Qualidade | Todos os arquivos de produção ficaram abaixo de 400 linhas; `cargo fmt`, check, testes, Clippy, auditorias, smoke tests e build release passaram. |
+
 ## [0.1.8] — 2026-08-17
 
 A versão 0.1.8 refatora a interface visual sem remover recursos existentes e fecha o issue aberto de navegação com abas reais.

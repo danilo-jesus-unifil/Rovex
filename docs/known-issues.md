@@ -20,4 +20,4 @@ Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pe
 
 O projeto já produz um executável PE32+ x86-64 em build cruzado e a CI deve validar compilação e testes em `windows-latest`. A auditoria adicionou cobertura Linux para caminhos relativos, componentes pai symlink, nomes Unicode inválidos, publicação sem sobrescrita em corrida e mensagens humanizadas. Ainda permanecem pendentes a execução manual em Windows 10/11, paths longos, junctions e demais reparse points, UNC/SMB, permissões negadas, arquivos em uso, DPI por monitor, acessibilidade nativa do Windows, manifesto, instalador, assinatura e desinstalação.
 
-Essas limitações permanecem gates explícitos para declarações de compatibilidade nativa completa no Windows e para futuras funcionalidades de distribuição; a v0.1.8 já foi publicada com o escopo e as limitações descritos neste documento.
+Essas limitações permanecem gates explícitos para declarações de compatibilidade nativa completa no Windows e para futuras funcionalidades de distribuição; a v0.1.9 já foi publicada com o escopo e as limitações descritos neste documento.
