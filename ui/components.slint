@@ -53,26 +53,8 @@ export component RovexButton inherits Rectangle {
             vertical-alignment: center;
             overflow: elide;
         }
-        if root.tooltip != "" && button-touch.has-hover: Rectangle {
-            x: (root.width - max(120px, tooltip-label.preferred-width + 20px)) / 2;
-            y: root.height + 8px;
-            width: max(120px, tooltip-label.preferred-width + 20px);
-            height: 28px;
-            background: DesignTokens.surface-elevated;
-            border-width: 1px;
-            border-color: DesignTokens.border-strong;
-            border-radius: DesignTokens.radius-medium;
-            tooltip-label := Text {
-                x: 10px;
-                width: parent.width - 20px;
-                height: parent.height;
-                text: root.tooltip;
-                color: DesignTokens.text-primary;
-                font-size: 12px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                overflow: elide;
-            }
+        if root.tooltip != "": Tooltip {
+            text: @markdown("\{root.tooltip}");
         }
     }
 }

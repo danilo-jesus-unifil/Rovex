@@ -24,14 +24,14 @@ if [ -z "$window_id" ]; then
     exit 1
 fi
 DISPLAY=":$xvfb_display" xdotool windowfocus "$window_id"
-# A faixa de abas começa abaixo do cabeçalho; o botão + fica aproximadamente em x=230,y=80.
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 230 80 click 1
+# O botão + fica na faixa de abas, logo acima da toolbar de navegação.
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 230 35 click 1
 sleep 0.8
 DISPLAY=":$xvfb_display" import -display ":$xvfb_display" -window root artifacts/rovex-tabs-two.png
 # Selecionar a aba inicial e fechar a segunda aba pelo botão x.
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 90 80 click 1
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 90 35 click 1
 sleep 0.3
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 190 80 click 1
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 190 35 click 1
 sleep 0.8
 if ! kill -0 "$app_pid" 2>/dev/null; then
     cat /tmp/rovex-tabs-app.log >&2

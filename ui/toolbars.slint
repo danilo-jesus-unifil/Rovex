@@ -28,30 +28,6 @@ export component RovexToolbar inherits VerticalLayout {
     spacing: DesignTokens.layout-gap;
 
     HorizontalLayout {
-        height: 32px;
-        spacing: 10px;
-        Text {
-            text: "Rovex";
-            color: DesignTokens.text-primary;
-            font-size: 20px;
-            vertical-alignment: center;
-        }
-        Text {
-            text: "Explorador de arquivos";
-            color: DesignTokens.text-muted;
-            font-size: 12px;
-            vertical-alignment: center;
-        }
-        Rectangle { horizontal-stretch: 1; }
-        Text {
-            text: root.selection-count > 0 ? root.selection-count + " selecionado(s)" : "Pronto";
-            color: DesignTokens.text-secondary;
-            font-size: 12px;
-            vertical-alignment: center;
-        }
-    }
-
-    HorizontalLayout {
         height: 38px;
         spacing: 6px;
         for tab[index] in root.tabs: Rectangle {
