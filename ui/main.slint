@@ -1,195 +1,11 @@
 import { ListView } from "std-widgets.slint";
+import { DesignTokens } from "./design_tokens.slint";
+import { LocationRow, FileRow, TabRow } from "./data.slint";
+import { RovexToolbar } from "./toolbars.slint";
+import { ContextMenuOverlay, OperationDialogOverlay } from "./overlays.slint";
 
-export global DesignTokens {
-    out property <color> window-background: #0f141a;
-    out property <color> surface: #171d24;
-    out property <color> surface-secondary: #1d252e;
-    out property <color> surface-selected: #244a78;
-    out property <color> surface-dialog: #1b232c;
-    out property <color> surface-danger: #42252b;
-    out property <color> surface-menu: #1a222b;
-    out property <color> surface-elevated: #202a35;
-    out property <color> surface-hover: #24303d;
-    out property <color> input-background: #121820;
-    out property <color> control-background: #202a34;
-    out property <color> control-hover: #2d4055;
-    out property <color> control-pressed: #345477;
-    out property <color> control-disabled: #252b32;
-    out property <color> border: #35424f;
-    out property <color> border-subtle: #2a3542;
-    out property <color> border-strong: #4a5a6b;
-    out property <color> overlay: #00000099;
-    out property <color> text-primary: #f1f5f9;
-    out property <color> text-secondary: #adbac8;
-    out property <color> text-muted: #8190a0;
-    out property <color> text-disabled: #647181;
-    out property <color> accent: #79adff;
-    out property <color> accent-strong: #4b8ff5;
-    out property <color> accent-text: #071629;
-    out property <color> danger: #ff858e;
-    out property <color> success: #73d6ad;
-    out property <length> page-padding: 16px;
-    out property <length> layout-gap: 12px;
-    out property <length> control-gap: 8px;
-    out property <length> content-gap: 12px;
-    out property <length> toolbar-height: 40px;
-    out property <length> toolbar-gap: 8px;
-    out property <length> toolbar-button-width: 40px;
-    out property <length> toolbar-refresh-width: 40px;
-    out property <length> sidebar-inner-gap: 6px;
-    out property <length> sidebar-title-height: 24px;
-    out property <length> sidebar-text-inset: 10px;
-    out property <length> status-height: 24px;
-    out property <length> filter-width: 250px;
-    out property <length> sidebar-width: 204px;
-    out property <length> sidebar-padding: 12px;
-    out property <length> sidebar-row-height: 36px;
-    out property <length> operation-toolbar-height: 40px;
-    out property <length> file-row-height: 40px;
-    out property <length> file-row-padding: 14px;
-    out property <length> file-column-gap: 14px;
-    out property <length> radius-small: 6px;
-    out property <length> radius-medium: 9px;
-    out property <length> radius-large: 12px;
-}
-
-component RovexButton inherits Rectangle {
-    in property <string> text;
-    in property <string> tooltip;
-    in property <bool> enabled: true;
-    in property <bool> primary: false;
-    in property <bool> danger: false;
-    in property <bool> icon-only: false;
-    callback clicked;
-
-    height: DesignTokens.operation-toolbar-height;
-    border-width: 1px;
-    border-radius: DesignTokens.radius-medium;
-    border-color: !root.enabled ? DesignTokens.border : (root.primary ? DesignTokens.accent-strong : (root.danger ? DesignTokens.danger : DesignTokens.border-strong));
-    background: !root.enabled ? DesignTokens.control-disabled : (root.primary ? DesignTokens.accent-strong : (root.danger ? DesignTokens.surface-danger : (button-touch.pressed ? DesignTokens.control-pressed : (button-touch.has-hover ? DesignTokens.control-hover : DesignTokens.control-background))));
-    accessible-role: button;
-    accessible-enabled: root.enabled;
-    accessible-action-default => {
-        if (root.enabled) {
-            root.clicked();
-        }
-    }
-
-    forward-focus: button-focus;
-
-    button-focus := FocusScope {
-        width: 100%;
-        height: 100%;
-        focus-on-click: true;
-        key-pressed(event) => {
-            if (root.enabled && (event.text == "\\n" || event.text == Key.Space)) {
-                root.clicked();
-                accept
-            } else {
-                reject
-            }
-        }
-        button-touch := TouchArea {
-            clicked => {
-                if (root.enabled) {
-                    root.clicked();
-                }
-            }
-        }
-        Text {
-            width: 100%;
-            height: 100%;
-            text: root.text;
-            color: root.enabled ? (root.primary ? DesignTokens.accent-text : (root.danger ? DesignTokens.danger : DesignTokens.text-primary)) : DesignTokens.text-disabled;
-            font-size: root.icon-only ? 18px : 13px;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-        if root.tooltip != "" && button-touch.has-hover: Rectangle {
-            x: (root.width - max(120px, tooltip-label.preferred-width + 20px)) / 2;
-            y: root.height + 8px;
-            width: max(120px, tooltip-label.preferred-width + 20px);
-            height: 28px;
-            background: DesignTokens.surface-elevated;
-            border-width: 1px;
-            border-color: DesignTokens.border-strong;
-            border-radius: DesignTokens.radius-medium;
-            tooltip-label := Text {
-                x: 10px;
-                width: parent.width - 20px;
-                height: parent.height;
-                text: root.tooltip;
-                color: DesignTokens.text-primary;
-                font-size: 12px;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                overflow: elide;
-            }
-        }
-    }
-}
-
-component RovexLineEdit inherits Rectangle {
-    in-out property <string> text;
-    in property <string> placeholder-text;
-    callback accepted;
-    callback edited;
-
-    height: DesignTokens.operation-toolbar-height;
-    border-width: 1px;
-    border-radius: DesignTokens.radius-medium;
-    accessible-role: text-input;
-    border-color: editor.has-focus ? DesignTokens.accent : DesignTokens.border;
-    background: DesignTokens.input-background;
-    clip: true;
-
-    editor := TextInput {
-        x: 12px;
-        width: parent.width - 24px;
-        height: parent.height;
-        text <=> root.text;
-        color: DesignTokens.text-primary;
-        selection-foreground-color: DesignTokens.accent-text;
-        selection-background-color: DesignTokens.accent;
-        vertical-alignment: center;
-        accessible-role: text-input;
-        accessible-label: root.accessible-label;
-        accepted => { root.accepted(); }
-        edited => { root.edited(); }
-    }
-
-    if editor.text == "": Text {
-        x: 12px;
-        width: parent.width - 24px;
-        height: parent.height;
-        text: root.placeholder-text;
-        color: DesignTokens.text-muted;
-        vertical-alignment: center;
-        overflow: elide;
-    }
-}
-
-export struct LocationRow {
-    label: string,
-    path: string,
-}
-
-export struct FileRow {
-    key: string,
-    name: string,
-    kind: string,
-    icon: string,
-    details: string,
-    is-directory: bool,
-    selected: bool,
-}
-
-export struct TabRow {
-    label: string,
-    path: string,
-    active: bool,
-}
+export { DesignTokens } from "./design_tokens.slint";
+export { LocationRow, FileRow, TabRow } from "./data.slint";
 
 export component MainWindow inherits Window {
     in-out property <string> current-path;
@@ -262,174 +78,32 @@ export component MainWindow inherits Window {
         padding: DesignTokens.page-padding;
         spacing: DesignTokens.layout-gap;
 
-            HorizontalLayout {
-            height: 32px;
-            spacing: 10px;
-            Text {
-                text: "Rovex";
-                color: DesignTokens.text-primary;
-                font-size: 20px;
-                vertical-alignment: center;
-            }
-            Text {
-                text: "Explorador de arquivos";
-                color: DesignTokens.text-muted;
-                font-size: 12px;
-                vertical-alignment: center;
-            }
-            Rectangle { horizontal-stretch: 1; }
-            Text {
-                text: root.selection-count > 0 ? root.selection-count + " selecionado(s)" : "Pronto";
-                color: DesignTokens.text-secondary;
-                font-size: 12px;
-                vertical-alignment: center;
-            }
-        }
-
-        HorizontalLayout {
-            height: 38px;
-            spacing: 6px;
-            for tab[index] in root.tabs: Rectangle {
-                width: 190px;
-                height: 34px;
-                border-width: 1px;
-                border-radius: DesignTokens.radius-medium;
-                border-color: tab.active ? DesignTokens.accent-strong : DesignTokens.border;
-                background: tab.active ? DesignTokens.surface-selected : DesignTokens.surface-secondary;
-                tab-touch := TouchArea {
-                    width: parent.width - 38px;
-                    height: parent.height;
-                    clicked => { root.select-tab(index); }
-                }
-                Text {
-                    x: 12px;
-                    width: parent.width - 48px;
-                    height: parent.height;
-                    text: tab.label;
-                    color: tab.active ? DesignTokens.text-primary : DesignTokens.text-secondary;
-                    vertical-alignment: center;
-                    overflow: elide;
-                }
-                RovexButton {
-                    x: parent.width - 34px;
-                    y: 3px;
-                    width: 28px;
-                    height: 28px;
-                    text: "×";
-                    icon-only: true;
-                    tooltip: "Fechar aba";
-                    accessible-label: "Fechar aba " + tab.label;
-                    clicked => { root.close-tab(index); }
-                }
-            }
-            RovexButton {
-                width: 38px;
-                text: "+";
-                icon-only: true;
-                tooltip: "Abrir nova aba";
-                accessible-label: "Abrir nova aba";
-                clicked => { root.new-tab-requested(); }
-            }
-        }
-
-        HorizontalLayout {
-            spacing: DesignTokens.toolbar-gap;
-            height: DesignTokens.toolbar-height;
-
-            RovexButton {
-                width: DesignTokens.toolbar-button-width;
-                text: "←";
-                icon-only: true;
-                tooltip: "Voltar no histórico";
-                enabled: root.can-go-back;
-                accessible-label: "Voltar no histórico";
-                clicked => { root.back-requested(); }
-            }
-
-            RovexButton {
-                width: DesignTokens.toolbar-button-width;
-                text: "→";
-                icon-only: true;
-                tooltip: "Avançar no histórico";
-                enabled: root.can-go-forward;
-                accessible-label: "Avançar no histórico";
-                clicked => { root.forward-requested(); }
-            }
-
-            RovexButton {
-                width: DesignTokens.toolbar-button-width;
-                text: "↑";
-                icon-only: true;
-                tooltip: "Subir para a pasta pai";
-                accessible-label: "Subir para a pasta pai";
-                clicked => { root.navigate-up(); }
-            }
-
-            RovexLineEdit {
-                horizontal-stretch: 1;
-                text <=> root.current-path;
-                accessible-label: "Caminho da pasta";
-                placeholder-text: "Caminho da pasta";
-                accepted => { root.navigate-to(self.text); }
-            }
-
-            RovexLineEdit {
-                width: DesignTokens.filter-width;
-                text <=> root.filter-text;
-                placeholder-text: "Filtrar nesta pasta";
-                accessible-label: "Filtrar itens da pasta atual";
-                edited => { root.filter-changed(self.text); }
-            }
-
-            RovexButton {
-                width: DesignTokens.toolbar-refresh-width;
-                text: "↻";
-                icon-only: true;
-                tooltip: "Atualizar listagem";
-                accessible-label: "Atualizar listagem";
-                clicked => { root.refresh-requested(); }
-            }
-        }
-
-        HorizontalLayout {
-            spacing: DesignTokens.control-gap;
-            height: DesignTokens.operation-toolbar-height;
-
-            RovexButton {
-                text: "Copiar";
-                primary: true;
-                enabled: root.selection-count > 0 && !root.operation-busy;
-                accessible-label: "Copiar itens selecionados";
-                clicked => { root.copy-requested(); }
-            }
-
-            RovexButton {
-                text: "Mover";
-                enabled: root.selection-count > 0 && !root.operation-busy;
-                accessible-label: "Mover itens selecionados";
-                clicked => { root.move-requested(); }
-            }
-
-            RovexButton {
-                text: "Renomear";
-                enabled: root.selection-count == 1 && !root.operation-busy;
-                accessible-label: "Renomear item selecionado";
-                clicked => { root.rename-requested(); }
-            }
-
-            RovexButton {
-                text: "Excluir";
-                danger: true;
-                enabled: root.selection-count > 0 && !root.operation-busy;
-                accessible-label: "Excluir itens selecionados";
-                clicked => { root.delete-requested(); }
-            }
+        RovexToolbar {
+            current-path <=> root.current-path;
+            filter-text <=> root.filter-text;
+            tabs <=> root.tabs;
+            selection-count: root.selection-count;
+            can-go-back: root.can-go-back;
+            can-go-forward: root.can-go-forward;
+            operation-busy: root.operation-busy;
+            back-requested => { root.back-requested(); }
+            forward-requested => { root.forward-requested(); }
+            refresh-requested => { root.refresh-requested(); }
+            new-tab-requested => { root.new-tab-requested(); }
+            select-tab(index) => { root.select-tab(index); }
+            close-tab(index) => { root.close-tab(index); }
+            navigate-up => { root.navigate-up(); }
+            navigate-to(path) => { root.navigate-to(path); }
+            filter-changed(text) => { root.filter-changed(text); }
+            copy-requested => { root.copy-requested(); }
+            move-requested => { root.move-requested(); }
+            rename-requested => { root.rename-requested(); }
+            delete-requested => { root.delete-requested(); }
         }
 
         HorizontalLayout {
             spacing: DesignTokens.content-gap;
             vertical-stretch: 1;
-
             Rectangle {
                 width: DesignTokens.sidebar-width;
                 background: DesignTokens.surface;
@@ -507,7 +181,6 @@ export component MainWindow inherits Window {
                     border-color: DesignTokens.border;
                     border-radius: DesignTokens.radius-medium;
                     vertical-stretch: 1;
-
                     focus-scope := FocusScope {
                         width: 100%;
                         height: 100%;
@@ -524,94 +197,85 @@ export component MainWindow inherits Window {
                                 reject
                             }
                         }
-
                         ListView {
                             width: 100%;
                             height: 100%;
                             for entry[index] in root.entries: Rectangle {
-                        height: DesignTokens.file-row-height;
-                        background: entry.selected ? DesignTokens.surface-selected : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary);
-                        accessible-role: list-item;
-                        accessible-label: (entry.selected ? "Selecionado: " : "") + entry.kind + ": " + entry.name;
-
-                        HorizontalLayout {
-                            padding-left: DesignTokens.file-row-padding;
-                            padding-right: DesignTokens.file-row-padding;
-                            spacing: DesignTokens.file-column-gap;
-
-                            Rectangle {
-                                width: 34px;
-                                height: 28px;
-                                border-radius: DesignTokens.radius-medium;
-                                background: entry.is-directory ? DesignTokens.surface-selected : DesignTokens.surface-elevated;
-                                Text {
-                                    width: 100%;
-                                    height: 100%;
-                                    text: entry.icon;
-                                    color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-secondary;
-                                    font-size: 12px;
-                                    horizontal-alignment: center;
-                                    vertical-alignment: center;
+                                height: DesignTokens.file-row-height;
+                                background: entry.selected ? DesignTokens.surface-selected : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary);
+                                accessible-role: list-item;
+                                accessible-label: (entry.selected ? "Selecionado: " : "") + entry.kind + ": " + entry.name;
+                                HorizontalLayout {
+                                    padding-left: DesignTokens.file-row-padding;
+                                    padding-right: DesignTokens.file-row-padding;
+                                    spacing: DesignTokens.file-column-gap;
+                                    Rectangle {
+                                        width: 34px;
+                                        height: 28px;
+                                        border-radius: DesignTokens.radius-medium;
+                                        background: entry.is-directory ? DesignTokens.surface-selected : DesignTokens.surface-elevated;
+                                        Text {
+                                            width: 100%;
+                                            height: 100%;
+                                            text: entry.icon;
+                                            color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-secondary;
+                                            font-size: 12px;
+                                            horizontal-alignment: center;
+                                            vertical-alignment: center;
+                                        }
+                                    }
+                                    Text {
+                                        width: 64px;
+                                        text: entry.kind;
+                                        color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-muted;
+                                        font-size: 12px;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                    }
+                                    Text {
+                                        text: entry.name;
+                                        color: DesignTokens.text-primary;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 1;
+                                        overflow: elide;
+                                    }
+                                    Text {
+                                        text: entry.details;
+                                        color: DesignTokens.text-secondary;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                TouchArea {
+                                    pointer-event(event) => {
+                                        if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
+                                            focus-scope.focus();
+                                            root.focused-row-index = index;
+                                            root.select-row(index, event.modifiers.control, event.modifiers.shift);
+                                        } else if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
+                                            focus-scope.focus();
+                                            root.focused-row-index = index;
+                                            root.select-row(index, false, false);
+                                            root.context-menu-requested(index);
+                                        }
+                                    }
+                                    double-clicked => { root.activate(index); }
                                 }
                             }
-
-                            Text {
-                                width: 64px;
-                                text: entry.kind;
-                                color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-muted;
-                                font-size: 12px;
-                                vertical-alignment: center;
-                                overflow: elide;
-                            }
-
-                            Text {
-                                text: entry.name;
-                                color: DesignTokens.text-primary;
-                                vertical-alignment: center;
-                                horizontal-stretch: 1;
-                                overflow: elide;
-                            }
-
-                            Text {
-                                text: entry.details;
-                                color: DesignTokens.text-secondary;
-                                vertical-alignment: center;
-                            }
                         }
-
-                        TouchArea {
-                            pointer-event(event) => {
-                                if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
-                                    focus-scope.focus();
-                                    root.focused-row-index = index;
-                                    root.select-row(index, event.modifiers.control, event.modifiers.shift);
-                                } else if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
-                                    focus-scope.focus();
-                                    root.focused-row-index = index;
-                                    root.select-row(index, false, false);
-                                    root.context-menu-requested(index);
-                                }
-                            }
-                            double-clicked => {
-                                root.activate(index);
-                            }
+                        Text {
+                            visible: root.empty-state-text != "";
+                            x: 24px;
+                            y: 24px;
+                            width: parent.width - 48px;
+                            text: root.empty-state-text;
+                            color: DesignTokens.text-secondary;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
                         }
-                    }
-                    }
-                    Text {
-                        visible: root.empty-state-text != "";
-                        x: 24px;
-                        y: 24px;
-                        width: parent.width - 48px;
-                        text: root.empty-state-text;
-                        color: DesignTokens.text-secondary;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
                     }
                 }
-            }
-            Text {
-                text: root.status-text;
+                Text {
+                    text: root.status-text;
                     color: DesignTokens.text-secondary;
                     height: DesignTokens.status-height;
                     overflow: elide;
@@ -620,229 +284,34 @@ export component MainWindow inherits Window {
         }
     }
 
-    if root.context-menu-visible && !root.operation-dialog-visible: FocusScope {
-        x: 0px;
-        y: 0px;
-        width: parent.width;
-        height: parent.height;
-        focus-on-click: true;
-        init => { self.focus(); }
-        key-pressed(event) => {
-            if (event.text == Key.Escape) {
-                root.context-menu-dismissed();
-                accept
-            }
-            reject
-        }
-
-        Rectangle {
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            TouchArea {
-                width: 100%;
-                height: 100%;
-                clicked => { root.context-menu-dismissed(); }
-            }
-        }
-
-        Rectangle {
-            x: 16px;
-            y: 58px;
-            width: 330px;
-            height: 408px;
-            background: DesignTokens.surface-menu;
-            border-width: 1px;
-            border-color: DesignTokens.border-strong;
-            border-radius: DesignTokens.radius-medium;
-
-            VerticalLayout {
-                padding: 10px;
-                spacing: 4px;
-
-                Text {
-                    text: "Ações — " + root.context-menu-target-name;
-                    color: DesignTokens.text-primary;
-                    height: 24px;
-                    overflow: elide;
-                }
-                Text {
-                    text: "Backends locais: PATH, Windows ou override";
-                    color: DesignTokens.text-muted;
-                    height: 18px;
-                    overflow: elide;
-                }
-
-                RovexButton {
-                    text: "Copiar";
-                    accessible-label: "Copiar item pelo menu contextual";
-                    clicked => { root.context-menu-copy-requested(); }
-                }
-                RovexButton {
-                    text: "Mover";
-                    accessible-label: "Mover item pelo menu contextual";
-                    clicked => { root.context-menu-move-requested(); }
-                }
-                RovexButton {
-                    text: "Renomear";
-                    accessible-label: "Renomear item pelo menu contextual";
-                    clicked => { root.context-menu-rename-requested(); }
-                }
-                RovexButton {
-                    text: "Excluir";
-                    danger: true;
-                    accessible-label: "Excluir item pelo menu contextual";
-                    clicked => { root.context-menu-delete-requested(); }
-                }
-
-                Rectangle {
-                    height: 1px;
-                    background: DesignTokens.border;
-                }
-
-                RovexButton {
-                    text: "Converter para JPEG XL (.jxl)";
-                    enabled: root.context-menu-can-jxl;
-                    accessible-label: "Converter imagem selecionada para JPEG XL";
-                    clicked => { root.context-menu-convert-jxl-requested(); }
-                }
-                RovexButton {
-                    text: "Converter áudio para Opus (.opus)";
-                    enabled: root.context-menu-can-opus;
-                    accessible-label: "Converter áudio selecionado para Opus";
-                    clicked => { root.context-menu-convert-opus-requested(); }
-                }
-                RovexButton {
-                    text: "Converter imagem para PNG (.png)";
-                    enabled: root.context-menu-can-png;
-                    accessible-label: "Converter imagem selecionada para PNG";
-                    clicked => { root.context-menu-convert-png-requested(); }
-                }
-                RovexButton {
-                    text: "Converter áudio para FLAC (.flac)";
-                    enabled: root.context-menu-can-flac;
-                    accessible-label: "Converter áudio selecionado para FLAC";
-                    clicked => { root.context-menu-convert-flac-requested(); }
-                }
-            }
-        }
+    if root.context-menu-visible && !root.operation-dialog-visible: ContextMenuOverlay {
+        target-name: root.context-menu-target-name;
+        can-jxl: root.context-menu-can-jxl;
+        can-opus: root.context-menu-can-opus;
+        can-png: root.context-menu-can-png;
+        can-flac: root.context-menu-can-flac;
+        dismissed => { root.context-menu-dismissed(); }
+        copy-requested => { root.context-menu-copy-requested(); }
+        move-requested => { root.context-menu-move-requested(); }
+        rename-requested => { root.context-menu-rename-requested(); }
+        delete-requested => { root.context-menu-delete-requested(); }
+        convert-jxl-requested => { root.context-menu-convert-jxl-requested(); }
+        convert-opus-requested => { root.context-menu-convert-opus-requested(); }
+        convert-png-requested => { root.context-menu-convert-png-requested(); }
+        convert-flac-requested => { root.context-menu-convert-flac-requested(); }
     }
 
-    if root.operation-dialog-visible: FocusScope {
-        x: 0px;
-        y: 0px;
-        width: parent.width;
-        height: parent.height;
-        focus-on-click: true;
-        init => { self.focus(); }
-        key-pressed(event) => {
-            if (event.text == Key.Escape) {
-                if (root.operation-busy) {
-                    root.operation-cancelled();
-                } else {
-                    root.operation-dismissed();
-                }
-                accept
-            }
-            reject
-        }
-        Rectangle {
-            width: 100%;
-            height: 100%;
-            background: #00000066;
-            TouchArea {
-                width: 100%;
-                height: 100%;
-            }
-        }
-
-        Rectangle {
-            x: (parent.width - min(parent.width - 32px, 560px)) / 2;
-            y: (parent.height - min(parent.height - 32px, 280px)) / 2;
-            width: min(parent.width - 32px, 560px);
-            height: min(parent.height - 32px, 280px);
-            background: DesignTokens.surface-dialog;
-            border-width: 1px;
-            border-color: DesignTokens.border;
-            border-radius: DesignTokens.radius-medium;
-
-            VerticalLayout {
-                padding: 20px;
-                spacing: 12px;
-
-                Text {
-                    text: root.operation-dialog-title;
-                    color: DesignTokens.text-primary;
-                    font-size: 18px;
-                    height: 26px;
-                }
-
-                Text {
-                    text: root.operation-dialog-message;
-                    color: DesignTokens.text-secondary;
-                    wrap: word-wrap;
-                    vertical-stretch: 1;
-                    overflow: elide;
-                }
-
-                RovexLineEdit {
-                    visible: root.operation-needs-input && !root.operation-busy && !root.operation-close-only;
-                    text <=> root.operation-dialog-input;
-                    placeholder-text: "Caminho ou novo nome";
-                    accessible-label: "Entrada da operação";
-                }
-
-                Rectangle {
-                    visible: root.operation-busy;
-                    height: 54px;
-                    background: DesignTokens.surface-secondary;
-                    VerticalLayout {
-                        padding: 8px;
-                        spacing: 5px;
-                        Text {
-                            text: root.operation-progress-text;
-                            color: DesignTokens.text-secondary;
-                            height: 18px;
-                            overflow: elide;
-                        }
-                        Rectangle {
-                            height: 8px;
-                            background: DesignTokens.border;
-                            Rectangle {
-                                width: parent.width * root.operation-progress / 100;
-                                height: parent.height;
-                                background: DesignTokens.accent;
-                            }
-                        }
-                    }
-                }
-
-                HorizontalLayout {
-                    height: 36px;
-                    spacing: DesignTokens.control-gap;
-                    horizontal-stretch: 1;
-                        RovexButton {
-                            primary: !root.operation-busy && !root.operation-close-only;
-                            danger: root.operation-busy;
-                            text: root.operation-busy ? "Cancelar" : (root.operation-close-only ? "Fechar" : "Confirmar");
-                        accessible-label: root.operation-busy ? "Cancelar operação" : (root.operation-close-only ? "Fechar resultado" : "Confirmar operação");
-                        clicked => {
-                            if (root.operation-busy) {
-                                root.operation-cancelled();
-                            } else if (root.operation-close-only) {
-                                root.operation-dismissed();
-                            } else {
-                                root.operation-confirmed();
-                            }
-                        }
-                    }
-                    RovexButton {
-                        visible: !root.operation-busy && !root.operation-close-only;
-                        text: "Voltar";
-                        clicked => { root.operation-dismissed(); }
-                    }
-                }
-            }
-        }
+    if root.operation-dialog-visible: OperationDialogOverlay {
+        busy: root.operation-busy;
+        close-only: root.operation-close-only;
+        needs-input: root.operation-needs-input;
+        title: root.operation-dialog-title;
+        message: root.operation-dialog-message;
+        input <=> root.operation-dialog-input;
+        progress: root.operation-progress;
+        progress-text: root.operation-progress-text;
+        confirmed => { root.operation-confirmed(); }
+        cancelled => { root.operation-cancelled(); }
+        dismissed => { root.operation-dismissed(); }
     }
 }

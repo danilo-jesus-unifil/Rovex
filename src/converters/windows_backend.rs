@@ -1,10 +1,11 @@
-use super::{
+use super::backend::{
     is_backend_file, push_candidate, push_directory_candidates, push_path_or_directory_candidates,
 };
 use std::ffi::OsString;
 use std::fs;
 use std::os::windows::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 #[cfg(windows)]
 pub(super) fn windows_wide_null(value: &str) -> Vec<u16> {

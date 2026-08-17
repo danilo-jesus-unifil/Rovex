@@ -1,0 +1,183 @@
+import { DesignTokens } from "./design_tokens.slint";
+import { RovexButton, RovexLineEdit } from "./components.slint";
+import { TabRow } from "./data.slint";
+
+export component RovexToolbar inherits VerticalLayout {
+    in-out property <string> current-path;
+    in-out property <string> filter-text;
+    in-out property <[TabRow]> tabs;
+    in property <int> selection-count;
+    in property <bool> can-go-back;
+    in property <bool> can-go-forward;
+    in property <bool> operation-busy;
+
+    callback back-requested;
+    callback forward-requested;
+    callback refresh-requested;
+    callback new-tab-requested;
+    callback select-tab(int);
+    callback close-tab(int);
+    callback navigate-up;
+    callback navigate-to(string);
+    callback filter-changed(string);
+    callback copy-requested;
+    callback move-requested;
+    callback rename-requested;
+    callback delete-requested;
+
+    spacing: DesignTokens.layout-gap;
+
+    HorizontalLayout {
+        height: 32px;
+        spacing: 10px;
+        Text {
+            text: "Rovex";
+            color: DesignTokens.text-primary;
+            font-size: 20px;
+            vertical-alignment: center;
+        }
+        Text {
+            text: "Explorador de arquivos";
+            color: DesignTokens.text-muted;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Text {
+            text: root.selection-count > 0 ? root.selection-count + " selecionado(s)" : "Pronto";
+            color: DesignTokens.text-secondary;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+    }
+
+    HorizontalLayout {
+        height: 38px;
+        spacing: 6px;
+        for tab[index] in root.tabs: Rectangle {
+            width: 190px;
+            height: 34px;
+            border-width: 1px;
+            border-radius: DesignTokens.radius-medium;
+            border-color: tab.active ? DesignTokens.accent-strong : DesignTokens.border;
+            background: tab.active ? DesignTokens.surface-selected : DesignTokens.surface-secondary;
+            tab-touch := TouchArea {
+                width: parent.width - 38px;
+                height: parent.height;
+                clicked => { root.select-tab(index); }
+            }
+            Text {
+                x: 12px;
+                width: parent.width - 48px;
+                height: parent.height;
+                text: tab.label;
+                color: tab.active ? DesignTokens.text-primary : DesignTokens.text-secondary;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            RovexButton {
+                x: parent.width - 34px;
+                y: 3px;
+                width: 28px;
+                height: 28px;
+                text: "×";
+                icon-only: true;
+                tooltip: "Fechar aba";
+                accessible-label: "Fechar aba " + tab.label;
+                clicked => { root.close-tab(index); }
+            }
+        }
+        RovexButton {
+            width: 38px;
+            text: "+";
+            icon-only: true;
+            tooltip: "Abrir nova aba";
+            accessible-label: "Abrir nova aba";
+            clicked => { root.new-tab-requested(); }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: DesignTokens.toolbar-gap;
+        height: DesignTokens.toolbar-height;
+        RovexButton {
+            width: DesignTokens.toolbar-button-width;
+            text: "←";
+            icon-only: true;
+            tooltip: "Voltar no histórico";
+            enabled: root.can-go-back;
+            accessible-label: "Voltar no histórico";
+            clicked => { root.back-requested(); }
+        }
+        RovexButton {
+            width: DesignTokens.toolbar-button-width;
+            text: "→";
+            icon-only: true;
+            tooltip: "Avançar no histórico";
+            enabled: root.can-go-forward;
+            accessible-label: "Avançar no histórico";
+            clicked => { root.forward-requested(); }
+        }
+        RovexButton {
+            width: DesignTokens.toolbar-button-width;
+            text: "↑";
+            icon-only: true;
+            tooltip: "Subir para a pasta pai";
+            accessible-label: "Subir para a pasta pai";
+            clicked => { root.navigate-up(); }
+        }
+        RovexLineEdit {
+            horizontal-stretch: 1;
+            text <=> root.current-path;
+            accessible-label: "Caminho da pasta";
+            placeholder-text: "Caminho da pasta";
+            accepted => { root.navigate-to(self.text); }
+        }
+        RovexLineEdit {
+            width: DesignTokens.filter-width;
+            text <=> root.filter-text;
+            placeholder-text: "Filtrar nesta pasta";
+            accessible-label: "Filtrar itens da pasta atual";
+            edited => { root.filter-changed(self.text); }
+        }
+        RovexButton {
+            width: DesignTokens.toolbar-refresh-width;
+            text: "↻";
+            icon-only: true;
+            tooltip: "Atualizar listagem";
+            accessible-label: "Atualizar listagem";
+            clicked => { root.refresh-requested(); }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: DesignTokens.control-gap;
+        height: DesignTokens.operation-toolbar-height;
+        RovexButton {
+            text: "Copiar";
+            primary: true;
+            enabled: root.selection-count > 0 && !root.operation-busy;
+            accessible-label: "Copiar itens selecionados";
+            clicked => { root.copy-requested(); }
+        }
+        RovexButton {
+            text: "Mover";
+            enabled: root.selection-count > 0 && !root.operation-busy;
+            accessible-label: "Mover itens selecionados";
+            clicked => { root.move-requested(); }
+        }
+        RovexButton {
+            text: "Renomear";
+            enabled: root.selection-count == 1 && !root.operation-busy;
+            accessible-label: "Renomear item selecionado";
+            clicked => { root.rename-requested(); }
+        }
+        RovexButton {
+            text: "Excluir";
+            danger: true;
+            enabled: root.selection-count > 0 && !root.operation-busy;
+            accessible-label: "Excluir itens selecionados";
+            clicked => { root.delete-requested(); }
+        }
+    }
+}

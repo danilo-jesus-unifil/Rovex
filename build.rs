@@ -1,5 +1,9 @@
 fn main() {
     println!("cargo:rerun-if-changed=ui/main.slint");
+    println!("cargo:rerun-if-changed=ui/design_tokens.slint");
+    println!("cargo:rerun-if-changed=ui/components.slint");
+    println!("cargo:rerun-if-changed=ui/data.slint");
+    println!("cargo:rerun-if-changed=ui/overlays.slint");
     println!("cargo:rerun-if-changed=assets/rovex.ico");
     if let Err(error) = slint_build::compile("ui/main.slint") {
         eprintln!("falha ao compilar a interface Slint: {error}");

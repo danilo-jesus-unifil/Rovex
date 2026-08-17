@@ -1,0 +1,118 @@
+import { DesignTokens } from "./design_tokens.slint";
+
+export component RovexButton inherits Rectangle {
+    in property <string> text;
+    in property <string> tooltip;
+    in property <bool> enabled: true;
+    in property <bool> primary: false;
+    in property <bool> danger: false;
+    in property <bool> icon-only: false;
+    callback clicked;
+
+    height: DesignTokens.operation-toolbar-height;
+    border-width: 1px;
+    border-radius: DesignTokens.radius-medium;
+    border-color: !root.enabled ? DesignTokens.border : (root.primary ? DesignTokens.accent-strong : (root.danger ? DesignTokens.danger : DesignTokens.border-strong));
+    background: !root.enabled ? DesignTokens.control-disabled : (root.primary ? DesignTokens.accent-strong : (root.danger ? DesignTokens.surface-danger : (button-touch.pressed ? DesignTokens.control-pressed : (button-touch.has-hover ? DesignTokens.control-hover : DesignTokens.control-background))));
+    accessible-role: button;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if (root.enabled) {
+            root.clicked();
+        }
+    }
+
+    forward-focus: button-focus;
+
+    button-focus := FocusScope {
+        width: 100%;
+        height: 100%;
+        focus-on-click: true;
+        key-pressed(event) => {
+            if (root.enabled && (event.text == "\\n" || event.text == Key.Space)) {
+                root.clicked();
+                accept
+            } else {
+                reject
+            }
+        }
+        button-touch := TouchArea {
+            clicked => {
+                if (root.enabled) {
+                    root.clicked();
+                }
+            }
+        }
+        Text {
+            width: 100%;
+            height: 100%;
+            text: root.text;
+            color: root.enabled ? (root.primary ? DesignTokens.accent-text : (root.danger ? DesignTokens.danger : DesignTokens.text-primary)) : DesignTokens.text-disabled;
+            font-size: root.icon-only ? 18px : 13px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if root.tooltip != "" && button-touch.has-hover: Rectangle {
+            x: (root.width - max(120px, tooltip-label.preferred-width + 20px)) / 2;
+            y: root.height + 8px;
+            width: max(120px, tooltip-label.preferred-width + 20px);
+            height: 28px;
+            background: DesignTokens.surface-elevated;
+            border-width: 1px;
+            border-color: DesignTokens.border-strong;
+            border-radius: DesignTokens.radius-medium;
+            tooltip-label := Text {
+                x: 10px;
+                width: parent.width - 20px;
+                height: parent.height;
+                text: root.tooltip;
+                color: DesignTokens.text-primary;
+                font-size: 12px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+    }
+}
+
+export component RovexLineEdit inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder-text;
+    callback accepted;
+    callback edited;
+
+    height: DesignTokens.operation-toolbar-height;
+    border-width: 1px;
+    border-radius: DesignTokens.radius-medium;
+    accessible-role: text-input;
+    border-color: editor.has-focus ? DesignTokens.accent : DesignTokens.border;
+    background: DesignTokens.input-background;
+    clip: true;
+
+    editor := TextInput {
+        x: 12px;
+        width: parent.width - 24px;
+        height: parent.height;
+        text <=> root.text;
+        color: DesignTokens.text-primary;
+        selection-foreground-color: DesignTokens.accent-text;
+        selection-background-color: DesignTokens.accent;
+        vertical-alignment: center;
+        accessible-role: text-input;
+        accessible-label: root.accessible-label;
+        accepted => { root.accepted(); }
+        edited => { root.edited(); }
+    }
+
+    if editor.text == "": Text {
+        x: 12px;
+        width: parent.width - 24px;
+        height: parent.height;
+        text: root.placeholder-text;
+        color: DesignTokens.text-muted;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}

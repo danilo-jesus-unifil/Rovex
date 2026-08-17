@@ -1,0 +1,256 @@
+import { DesignTokens } from "./design_tokens.slint";
+import { RovexButton, RovexLineEdit } from "./components.slint";
+
+export component ContextMenuOverlay inherits FocusScope {
+    in property <string> target-name;
+    in property <bool> can-jxl;
+    in property <bool> can-opus;
+    in property <bool> can-png;
+    in property <bool> can-flac;
+    callback dismissed;
+    callback copy-requested;
+    callback move-requested;
+    callback rename-requested;
+    callback delete-requested;
+    callback convert-jxl-requested;
+    callback convert-opus-requested;
+    callback convert-png-requested;
+    callback convert-flac-requested;
+
+    x: 0px;
+    y: 0px;
+    width: 100%;
+    height: 100%;
+    focus-on-click: true;
+    init => { self.focus(); }
+    key-pressed(event) => {
+        if (event.text == Key.Escape) {
+            root.dismissed();
+            accept
+        }
+        reject
+    }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        TouchArea {
+            width: 100%;
+            height: 100%;
+            clicked => { root.dismissed(); }
+        }
+    }
+
+    Rectangle {
+        x: 16px;
+        y: 58px;
+        width: 330px;
+        height: 408px;
+        background: DesignTokens.surface-menu;
+        border-width: 1px;
+        border-color: DesignTokens.border-strong;
+        border-radius: DesignTokens.radius-medium;
+
+        VerticalLayout {
+            padding: 10px;
+            spacing: 4px;
+
+            Text {
+                text: "Ações — " + root.target-name;
+                color: DesignTokens.text-primary;
+                height: 24px;
+                overflow: elide;
+            }
+            Text {
+                text: "Backends locais: PATH, Windows ou override";
+                color: DesignTokens.text-muted;
+                height: 18px;
+                overflow: elide;
+            }
+
+            RovexButton {
+                text: "Copiar";
+                accessible-label: "Copiar item pelo menu contextual";
+                clicked => { root.copy-requested(); }
+            }
+            RovexButton {
+                text: "Mover";
+                accessible-label: "Mover item pelo menu contextual";
+                clicked => { root.move-requested(); }
+            }
+            RovexButton {
+                text: "Renomear";
+                accessible-label: "Renomear item pelo menu contextual";
+                clicked => { root.rename-requested(); }
+            }
+            RovexButton {
+                text: "Excluir";
+                danger: true;
+                accessible-label: "Excluir item pelo menu contextual";
+                clicked => { root.delete-requested(); }
+            }
+
+            Rectangle {
+                height: 1px;
+                background: DesignTokens.border;
+            }
+
+            RovexButton {
+                text: "Converter para JPEG XL (.jxl)";
+                enabled: root.can-jxl;
+                accessible-label: "Converter imagem selecionada para JPEG XL";
+                clicked => { root.convert-jxl-requested(); }
+            }
+            RovexButton {
+                text: "Converter áudio para Opus (.opus)";
+                enabled: root.can-opus;
+                accessible-label: "Converter áudio selecionado para Opus";
+                clicked => { root.convert-opus-requested(); }
+            }
+            RovexButton {
+                text: "Converter imagem para PNG (.png)";
+                enabled: root.can-png;
+                accessible-label: "Converter imagem selecionada para PNG";
+                clicked => { root.convert-png-requested(); }
+            }
+            RovexButton {
+                text: "Converter áudio para FLAC (.flac)";
+                enabled: root.can-flac;
+                accessible-label: "Converter áudio selecionado para FLAC";
+                clicked => { root.convert-flac-requested(); }
+            }
+        }
+    }
+}
+
+export component OperationDialogOverlay inherits FocusScope {
+    in property <bool> busy;
+    in property <bool> close-only;
+    in property <bool> needs-input;
+    in property <string> title;
+    in property <string> message;
+    in-out property <string> input;
+    in property <int> progress;
+    in property <string> progress-text;
+    callback confirmed;
+    callback cancelled;
+    callback dismissed;
+
+    x: 0px;
+    y: 0px;
+    width: 100%;
+    height: 100%;
+    focus-on-click: true;
+    init => { self.focus(); }
+    key-pressed(event) => {
+        if (event.text == Key.Escape) {
+            if (root.busy) {
+                root.cancelled();
+            } else {
+                root.dismissed();
+            }
+            accept
+        }
+        reject
+    }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000066;
+        TouchArea {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    Rectangle {
+        x: (parent.width - min(parent.width - 32px, 560px)) / 2;
+        y: (parent.height - min(parent.height - 32px, 280px)) / 2;
+        width: min(parent.width - 32px, 560px);
+        height: min(parent.height - 32px, 280px);
+        background: DesignTokens.surface-dialog;
+        border-width: 1px;
+        border-color: DesignTokens.border;
+        border-radius: DesignTokens.radius-medium;
+
+        VerticalLayout {
+            padding: 20px;
+            spacing: 12px;
+
+            Text {
+                text: root.title;
+                color: DesignTokens.text-primary;
+                font-size: 18px;
+                height: 26px;
+            }
+
+            Text {
+                text: root.message;
+                color: DesignTokens.text-secondary;
+                wrap: word-wrap;
+                vertical-stretch: 1;
+                overflow: elide;
+            }
+
+            RovexLineEdit {
+                visible: root.needs-input && !root.busy && !root.close-only;
+                text <=> root.input;
+                placeholder-text: "Caminho ou novo nome";
+                accessible-label: "Entrada da operação";
+            }
+
+            Rectangle {
+                visible: root.busy;
+                height: 54px;
+                background: DesignTokens.surface-secondary;
+                VerticalLayout {
+                    padding: 8px;
+                    spacing: 5px;
+                    Text {
+                        text: root.progress-text;
+                        color: DesignTokens.text-secondary;
+                        height: 18px;
+                        overflow: elide;
+                    }
+                    Rectangle {
+                        height: 8px;
+                        background: DesignTokens.border;
+                        Rectangle {
+                            width: parent.width * root.progress / 100;
+                            height: parent.height;
+                            background: DesignTokens.accent;
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                height: 36px;
+                spacing: DesignTokens.control-gap;
+                horizontal-stretch: 1;
+                RovexButton {
+                    primary: !root.busy && !root.close-only;
+                    danger: root.busy;
+                    text: root.busy ? "Cancelar" : (root.close-only ? "Fechar" : "Confirmar");
+                    accessible-label: root.busy ? "Cancelar operação" : (root.close-only ? "Fechar resultado" : "Confirmar operação");
+                    clicked => {
+                        if (root.busy) {
+                            root.cancelled();
+                        } else if (root.close-only) {
+                            root.dismissed();
+                        } else {
+                            root.confirmed();
+                        }
+                    }
+                }
+                RovexButton {
+                    visible: !root.busy && !root.close-only;
+                    text: "Voltar";
+                    clicked => { root.dismissed(); }
+                }
+            }
+        }
+    }
+}
