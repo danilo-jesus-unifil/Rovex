@@ -20,6 +20,7 @@ trap cleanup EXIT
 # PNG 1x1 válido; a imagem é criada sem chamar nenhum executável externo.
 printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' | base64 -d >"$root/foto.png"
 printf '%s\n' 'conteúdo inválido' >"$root/falso.jpg"
+printf '\357\273\277Rovex\nPrévia textual com Unicode: ação segura.\n' >"$root/nota.txt"
 Xvfb ":$xvfb_display" -screen 0 1200x800x24 -nolisten tcp >/tmp/rovex-preview-xvfb.log 2>&1 &
 xvfb_pid=$!
 sleep 1
@@ -42,6 +43,10 @@ DISPLAY=":$xvfb_display" import -display ":$xvfb_display" -window root artifacts
 DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 420 286 click 1
 sleep 1
 DISPLAY=":$xvfb_display" import -display ":$xvfb_display" -window root artifacts/rovex-preview-valid.png
+# O terceiro item é texto UTF-8 com BOM e deve usar Flickable sem executar o conteúdo.
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 420 326 click 1
+sleep 1
+DISPLAY=":$xvfb_display" import -display ":$xvfb_display" -window root artifacts/rovex-preview-text.png
 # O X do cabeçalho fecha o painel sem alterar o arquivo selecionado.
 DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 896 220 click 1
 sleep 0.3

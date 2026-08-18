@@ -1,4 +1,7 @@
-use crate::preview::{PreviewError, PreviewImage, PreviewLimits, decode_thumbnail};
+use crate::preview::{
+    PreviewImage, PreviewLimits, PreviewText, TextPreviewError, decode_text_preview,
+    decode_thumbnail,
+};
 use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,9 +19,13 @@ pub(in crate::desktop) enum PreviewEvent {
         generation: u64,
         preview: PreviewImage,
     },
+    ReadyText {
+        generation: u64,
+        preview: PreviewText,
+    },
     Failed {
         generation: u64,
-        error: PreviewError,
+        message: String,
     },
 }
 
@@ -37,31 +44,46 @@ struct CacheKey {
     modified: Option<SystemTime>,
 }
 
+#[derive(Debug, Clone)]
+enum CachedPreview {
+    Image(PreviewImage),
+    Text(PreviewText),
+}
+
+impl CachedPreview {
+    fn memory_bytes(&self) -> usize {
+        match self {
+            Self::Image(preview) => preview.rgba.len(),
+            Self::Text(preview) => preview.text.len(),
+        }
+    }
+}
+
 #[derive(Default)]
 struct PreviewCache {
-    entries: HashMap<CacheKey, PreviewImage>,
+    entries: HashMap<CacheKey, CachedPreview>,
     order: VecDeque<CacheKey>,
     total_bytes: usize,
 }
 
 impl PreviewCache {
-    fn get(&mut self, path: &Path) -> Option<PreviewImage> {
+    fn get(&mut self, path: &Path) -> Option<CachedPreview> {
         let key = cache_key(path)?;
         let preview = self.entries.get(&key)?.clone();
         self.touch(&key);
         Some(preview)
     }
 
-    fn insert(&mut self, path: &Path, preview: PreviewImage) {
+    fn insert(&mut self, path: &Path, preview: CachedPreview) {
         let Some(key) = cache_key(path) else {
             return;
         };
-        let bytes = preview.rgba.len();
+        let bytes = preview.memory_bytes();
         if bytes > MAX_CACHE_BYTES {
             return;
         }
         if let Some(previous) = self.entries.insert(key.clone(), preview) {
-            self.total_bytes = self.total_bytes.saturating_sub(previous.rgba.len());
+            self.total_bytes = self.total_bytes.saturating_sub(previous.memory_bytes());
         }
         self.total_bytes = self.total_bytes.saturating_add(bytes);
         self.touch(&key);
@@ -70,7 +92,7 @@ impl PreviewCache {
                 break;
             };
             if let Some(previous) = self.entries.remove(&oldest) {
-                self.total_bytes = self.total_bytes.saturating_sub(previous.rgba.len());
+                self.total_bytes = self.total_bytes.saturating_sub(previous.memory_bytes());
             }
         }
     }
@@ -137,34 +159,52 @@ impl PreviewScheduler {
                     if request.cancel.load(Ordering::Acquire) {
                         continue;
                     }
-                    if let Ok(mut cache) = worker_cache.lock()
-                        && let Some(preview) = cache.get(&request.path)
-                    {
+                    let cached = worker_cache
+                        .lock()
+                        .ok()
+                        .and_then(|mut cache| cache.get(&request.path));
+                    if let Some(cached) = cached {
                         if !request.cancel.load(Ordering::Acquire) {
-                            (request.callback)(PreviewEvent::Ready {
-                                generation: request.generation,
-                                preview,
-                            });
+                            emit_cached(&request, cached);
                         }
                     } else {
-                        let result = decode_thumbnail(&request.path, request.limits);
+                        let image_result = decode_thumbnail(&request.path, request.limits);
                         if request.cancel.load(Ordering::Acquire) {
                             continue;
                         }
-                        match result {
+                        match image_result {
                             Ok(preview) => {
                                 if let Ok(mut cache) = worker_cache.lock() {
-                                    cache.insert(&request.path, preview.clone());
+                                    cache.insert(
+                                        &request.path,
+                                        CachedPreview::Image(preview.clone()),
+                                    );
                                 }
                                 (request.callback)(PreviewEvent::Ready {
                                     generation: request.generation,
                                     preview,
                                 });
                             }
-                            Err(error) => (request.callback)(PreviewEvent::Failed {
-                                generation: request.generation,
-                                error,
-                            }),
+                            Err(image_error) => match decode_text_preview(&request.path) {
+                                Ok(preview) => {
+                                    if let Ok(mut cache) = worker_cache.lock() {
+                                        cache.insert(
+                                            &request.path,
+                                            CachedPreview::Text(preview.clone()),
+                                        );
+                                    }
+                                    (request.callback)(PreviewEvent::ReadyText {
+                                        generation: request.generation,
+                                        preview,
+                                    });
+                                }
+                                Err(text_error) => {
+                                    (request.callback)(PreviewEvent::Failed {
+                                        generation: request.generation,
+                                        message: format_failure(image_error, text_error),
+                                    });
+                                }
+                            },
                         }
                     }
                     if let Ok(mut active) = worker_active_cancel.lock()
@@ -236,6 +276,23 @@ impl PreviewScheduler {
     }
 }
 
+fn emit_cached(request: &PreviewRequest, cached: CachedPreview) {
+    match cached {
+        CachedPreview::Image(preview) => (request.callback)(PreviewEvent::Ready {
+            generation: request.generation,
+            preview,
+        }),
+        CachedPreview::Text(preview) => (request.callback)(PreviewEvent::ReadyText {
+            generation: request.generation,
+            preview,
+        }),
+    }
+}
+
+fn format_failure(image_error: impl std::fmt::Display, text_error: TextPreviewError) -> String {
+    format!("Prévia de imagem: {image_error}; prévia de texto: {text_error}")
+}
+
 impl Drop for PreviewScheduler {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Release);
@@ -289,6 +346,25 @@ mod tests {
                 .expect("cached event"),
             PreviewEvent::Ready { .. }
         ));
+        fs::remove_file(path).expect("cleanup");
+    }
+
+    #[test]
+    fn worker_falls_back_to_text_preview() {
+        let path =
+            std::env::temp_dir().join(format!("rovex-preview-worker-{}.txt", std::process::id()));
+        fs::write(&path, "Rovex\nprévia segura").expect("write");
+        let scheduler = PreviewScheduler::new().expect("worker");
+        let (sender, receiver) = mpsc::channel();
+        scheduler
+            .request(path.clone(), PreviewLimits::default(), move |event| {
+                sender.send(event).expect("send");
+            })
+            .expect("request");
+        let event = receiver
+            .recv_timeout(Duration::from_secs(2))
+            .expect("text event");
+        assert!(matches!(event, PreviewEvent::ReadyText { .. }));
         fs::remove_file(path).expect("cleanup");
     }
 }

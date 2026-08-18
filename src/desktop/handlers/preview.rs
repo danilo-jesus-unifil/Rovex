@@ -27,6 +27,7 @@ fn hide_preview(ui: &super::super::MainWindow) {
     ui.set_preview_visible(false);
     ui.set_preview_title(SharedString::default());
     ui.set_preview_status(SharedString::default());
+    ui.set_preview_text(SharedString::default());
     ui.set_preview_image(Image::default());
 }
 
@@ -53,6 +54,7 @@ pub(in crate::desktop) fn refresh_selection(
         return;
     };
     ui.set_preview_title(SharedString::from(name));
+    ui.set_preview_text(SharedString::default());
     ui.set_preview_image(Image::default());
     ui.set_preview_visible(true);
     if is_directory {
@@ -68,6 +70,7 @@ pub(in crate::desktop) fn refresh_selection(
                 let _ = ui_weak.upgrade_in_event_loop(move |ui| {
                     let event_generation = match &event {
                         PreviewEvent::Ready { generation, .. }
+                        | PreviewEvent::ReadyText { generation, .. }
                         | PreviewEvent::Failed { generation, .. } => *generation,
                     };
                     if scheduler_for_event.current_generation() != event_generation {
@@ -81,6 +84,7 @@ pub(in crate::desktop) fn refresh_selection(
                                 preview.height,
                             );
                             ui.set_preview_image(Image::from_rgba8(buffer));
+                            ui.set_preview_text(SharedString::default());
                             ui.set_preview_title(SharedString::from(
                                 preview
                                     .source
@@ -94,11 +98,32 @@ pub(in crate::desktop) fn refresh_selection(
                             )));
                             ui.set_preview_visible(true);
                         }
-                        PreviewEvent::Failed { error, .. } => {
+                        PreviewEvent::ReadyText { preview, .. } => {
                             ui.set_preview_image(Image::default());
+                            ui.set_preview_text(SharedString::from(preview.text));
+                            ui.set_preview_title(SharedString::from(
+                                preview
+                                    .source
+                                    .file_name()
+                                    .map(|value| value.to_string_lossy().into_owned())
+                                    .unwrap_or_else(|| "Texto".to_owned()),
+                            ));
                             ui.set_preview_status(SharedString::from(format!(
-                                "Prévia indisponível: {error}"
+                                "{} • {} bytes{}",
+                                preview.encoding,
+                                preview.bytes_read,
+                                if preview.truncated {
+                                    " • truncado"
+                                } else {
+                                    ""
+                                }
                             )));
+                            ui.set_preview_visible(true);
+                        }
+                        PreviewEvent::Failed { message, .. } => {
+                            ui.set_preview_image(Image::default());
+                            ui.set_preview_text(SharedString::default());
+                            ui.set_preview_status(SharedString::from(message));
                             ui.set_preview_visible(true);
                         }
                     }

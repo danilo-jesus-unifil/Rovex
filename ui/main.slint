@@ -20,6 +20,7 @@ export component MainWindow inherits Window {
     in-out property <bool> search-active: false;
     in-out property <bool> preview-visible: false;
     in-out property <image> preview-image;
+    in-out property <string> preview-text;
     in-out property <string> preview-title;
     in-out property <string> preview-status;
     in-out property <int> sidebar-focus-index: -1;
@@ -290,7 +291,22 @@ export component MainWindow inherits Window {
                                     height: 1px;
                                     background: DesignTokens.border-subtle;
                                 }
-                                Image {
+                                if root.preview-text != "": Flickable {
+                                    width: 100%;
+                                    height: 240px;
+                                    viewport-width: self.width;
+                                    viewport-height: self.height;
+                                    Text {
+                                        width: parent.width;
+                                        height: self.preferred-height;
+                                        text: root.preview-text;
+                                        color: DesignTokens.text-primary;
+                                        font-size: 12px;
+                                        wrap: word-wrap;
+                                        vertical-alignment: top;
+                                    }
+                                }
+                                if root.preview-text == "": Image {
                                     width: 100%;
                                     height: 240px;
                                     source: root.preview-image;
