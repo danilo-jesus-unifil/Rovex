@@ -238,6 +238,60 @@ mod tests {
         fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
     }
 
+    #[test]
+    fn lista_preserva_nome_unicode_espacos_e_pontuacao() {
+        let root = temporary_directory();
+        let name = "relatório com espaços — versão 2.0 🧪.txt";
+        let file = root.join(name);
+        fs::write(&file, b"conteudo").expect("o arquivo Unicode deve ser criado");
+
+        let entries = FileSystem
+            .list_directory(&root)
+            .expect("a listagem com nome Unicode deve funcionar");
+        let entry = entries
+            .iter()
+            .find(|entry| entry.path == file)
+            .expect("o arquivo Unicode deve aparecer na listagem");
+        assert_eq!(entry.display_name(), name);
+        assert_eq!(entry.size, Some(8));
+        fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn lista_preserva_ponto_final_em_sistemas_que_o_suportam() {
+        let root = temporary_directory();
+        let file = root.join("nome-com-ponto-final.");
+        fs::write(&file, b"conteudo").expect("o arquivo com ponto final deve ser criado");
+
+        let entries = FileSystem
+            .list_directory(&root)
+            .expect("a listagem do nome com ponto final deve funcionar");
+        assert!(entries.iter().any(|entry| entry.path == file));
+        fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn lista_caminho_com_muitos_componentes_sem_truncar() {
+        let root = temporary_directory();
+        let mut nested = root.clone();
+        for index in 0..24 {
+            nested.push(format!("segmento-{index:02}-abcdefgh"));
+        }
+        fs::create_dir_all(&nested).expect("o caminho aninhado deve ser criado");
+        let file = nested.join("arquivo-final.txt");
+        fs::write(&file, b"conteudo").expect("o arquivo aninhado deve ser criado");
+
+        let entries = FileSystem
+            .list_directory(&nested)
+            .expect("a listagem do caminho aninhado deve funcionar");
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].path, file);
+        assert!(file.as_os_str().len() > 260);
+        fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
+    }
+
     #[cfg(unix)]
     #[test]
     fn identifica_link_sem_seguir_destino() {

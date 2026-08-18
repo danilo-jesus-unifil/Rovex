@@ -39,7 +39,7 @@ Não há chamada Win32 direta nem API exclusiva do Windows 11 no núcleo atual. 
 
 ## Filesystem e Unicode
 
-A camada de segurança recusa caminhos relativos, raízes e componentes pai ambíguos ou simbólicos nas operações sensíveis. Os testes locais cobrem nomes Unicode e preservação de `PathBuf`, mas não substituem testes em NTFS, exFAT, FAT32, USB, UNC/SMB, junctions, reparse points, arquivos em uso, permissões negadas ou caminhos longos no Windows.
+A camada de segurança recusa caminhos relativos, raízes e componentes pai ambíguos ou simbólicos nas operações sensíveis. Os testes locais agora cobrem preservação de nomes Unicode com espaços e pontuação, caminhos aninhados com mais de 260 bytes no host, pontos finais em sistemas que os suportam e nomes reservados via teste condicionado ao Windows. Isso não substitui a execução em NTFS, exFAT, FAT32, USB, UNC/SMB, junctions, reparse points, arquivos em uso, permissões negadas ou long paths nativos no Windows.
 
 A movimentação usa rename no mesmo volume e fallback real de copiar-e-remover entre volumes. A cópia opera em blocos, publica sem sobrescrita e cancela cooperativamente. A UI mostra erro parcial em vez de declarar sucesso agregado quando um item falha.
 

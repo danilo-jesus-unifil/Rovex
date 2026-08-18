@@ -162,6 +162,39 @@ fn renomeia_cria_e_exclui_entrada() {
 }
 
 #[test]
+fn copia_e_renomeia_nomes_unicode_e_com_espacos() {
+    let root = temporary_directory();
+    let source = root.join("origem — relatório 🧪.txt");
+    let copied = root.join("cópia com espaços.txt");
+    let renamed = root.join("resultado final — 2.txt");
+    fs::write(&source, b"conteudo Unicode").expect("a origem Unicode deve ser criada");
+
+    copy_file_atomic(&source, &copied).expect("a cópia Unicode deve funcionar");
+    rename_entry(&copied, &renamed).expect("a renomeação Unicode deve funcionar");
+    assert_eq!(
+        fs::read(&renamed).expect("o destino deve existir"),
+        b"conteudo Unicode"
+    );
+    delete_entry(&source).expect("a origem deve ser excluída");
+    delete_entry(&renamed).expect("o resultado deve ser excluído");
+    fs::remove_dir_all(root).expect("o diretório deve ser removido");
+}
+
+#[cfg(windows)]
+#[test]
+fn nomes_reservados_do_windows_sao_rejeitados_pelo_sistema() {
+    let root = temporary_directory();
+    for name in ["CON", "PRN", "AUX", "NUL", "COM1", "COM9", "LPT1", "LPT9"] {
+        let path = root.join(name);
+        assert!(
+            create_directory(&path).is_err(),
+            "o nome reservado {name} não deve ser criado"
+        );
+    }
+    fs::remove_dir_all(root).expect("o diretório deve ser removido");
+}
+
+#[test]
 fn nao_exclui_diretorio_nao_vazio() {
     let root = temporary_directory();
     let directory = root.join("com-arquivo");
