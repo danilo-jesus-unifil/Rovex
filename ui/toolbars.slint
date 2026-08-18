@@ -10,6 +10,7 @@ export component RovexToolbar inherits VerticalLayout {
     in property <bool> can-go-back;
     in property <bool> can-go-forward;
     in property <bool> operation-busy;
+    in property <bool> show-hidden-files;
 
     callback back-requested;
     callback forward-requested;
@@ -20,6 +21,7 @@ export component RovexToolbar inherits VerticalLayout {
     callback navigate-up;
     callback navigate-to(string);
     callback filter-changed(string);
+    callback toggle-hidden-files-requested;
 
     public function focus-path() {
         path-input.focus-editor();
@@ -166,6 +168,14 @@ export component RovexToolbar inherits VerticalLayout {
             padding: 4px;
             spacing: DesignTokens.control-gap;
             cross-axis-alignment: center;
+            RovexButton {
+                width: 86px;
+                text: "Ocultos";
+                primary: root.show-hidden-files;
+                tooltip: root.show-hidden-files ? "Ocultos visíveis" : "Mostrar arquivos ocultos";
+                accessible-label: root.show-hidden-files ? "Ocultos visíveis" : "Mostrar arquivos ocultos";
+                clicked => { root.toggle-hidden-files-requested(); }
+            }
             RovexButton {
                 text: "Copiar";
                 primary: true;

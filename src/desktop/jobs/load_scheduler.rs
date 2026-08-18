@@ -1,5 +1,6 @@
 use super::super::MainWindow;
 use super::super::state::{self, LoadedRow, SharedRows, SharedSelection, SortSpec};
+use crate::filesystem::ListingOptions;
 use slint::SharedString;
 use std::path::PathBuf;
 use std::sync::{
@@ -27,6 +28,7 @@ impl LoadScheduler {
         selection: SharedSelection,
         filter_generation: Arc<AtomicU64>,
         sort_spec: Arc<Mutex<SortSpec>>,
+        listing_options: Arc<Mutex<ListingOptions>>,
     ) -> Result<Self, ()> {
         let pending = Arc::new((Mutex::new(None::<LoadRequest>), std::sync::Condvar::new()));
         let stop = Arc::new(AtomicBool::new(false));
@@ -38,6 +40,7 @@ impl LoadScheduler {
         let worker_directory_rows = Arc::clone(&directory_rows);
         let worker_selection = Arc::clone(&selection);
         let worker_sort_spec = Arc::clone(&sort_spec);
+        let worker_listing_options = Arc::clone(&listing_options);
         thread::Builder::new()
             .name("rovex-filesystem-loader".to_owned())
             .spawn(move || {
@@ -62,7 +65,11 @@ impl LoadScheduler {
                     let Some(request) = request else {
                         continue;
                     };
-                    let loaded = state::load_directory(request.path);
+                    let current_options = worker_listing_options
+                        .lock()
+                        .map(|options| *options)
+                        .unwrap_or_default();
+                    let loaded = state::load_directory(request.path, current_options);
                     let ui_load_generation = Arc::clone(&worker_load_generation);
                     let ui_filter_generation = Arc::clone(&worker_filter_generation);
                     let ui_directory_rows = Arc::clone(&worker_directory_rows);

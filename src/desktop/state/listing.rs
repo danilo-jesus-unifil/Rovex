@@ -1,5 +1,5 @@
 use super::{LoadedDirectory, LoadedRow};
-use crate::filesystem::{DirectoryEntry, EntryKind, FileSystem};
+use crate::filesystem::{DirectoryEntry, EntryKind, FileSystem, ListingOptions};
 use std::path::{Path, PathBuf};
 
 pub(crate) fn row_icon(name: &str, kind: EntryKind) -> (&'static str, &'static str, bool) {
@@ -32,7 +32,18 @@ pub(crate) fn row_icon(name: &str, kind: EntryKind) -> (&'static str, &'static s
 }
 
 fn row_from_entry(entry: &DirectoryEntry, index: usize) -> LoadedRow {
-    let (icon, kind, is_directory) = row_icon(&entry.display_name(), entry.kind);
+    let (icon, default_kind, is_directory) = row_icon(&entry.display_name(), entry.kind);
+    let kind = if entry.is_system {
+        "Item do sistema"
+    } else if entry.is_hidden {
+        if is_directory {
+            "Pasta oculta"
+        } else {
+            "Arquivo oculto"
+        }
+    } else {
+        default_kind
+    };
 
     let details = entry
         .size
@@ -105,8 +116,11 @@ pub(crate) fn format_size(bytes: u64) -> String {
     }
 }
 
-pub(in crate::desktop) fn load_directory(path: PathBuf) -> LoadedDirectory {
-    match FileSystem.list_directory(&path) {
+pub(in crate::desktop) fn load_directory(
+    path: PathBuf,
+    options: ListingOptions,
+) -> LoadedDirectory {
+    match FileSystem.list_directory_with_options(&path, options) {
         Ok(entries) => LoadedDirectory {
             path,
             rows: entries

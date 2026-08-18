@@ -4,7 +4,7 @@ use super::{
     filter_rows, filter_status, format_size, load_directory, parent_directory, row_icon,
     validate_rename_name,
 };
-use crate::filesystem::EntryKind;
+use crate::filesystem::{EntryKind, ListingOptions};
 
 use std::path::{Path, PathBuf};
 
@@ -221,7 +221,7 @@ fn encontra_pasta_pai_sem_transformar_raiz_em_pasta_vazia() {
 #[test]
 fn carrega_diretorio_real_sem_fingir_sucesso() {
     let path = std::env::current_dir().expect("o diretório atual deve existir");
-    let loaded = load_directory(path);
+    let loaded = load_directory(path, ListingOptions::default());
     assert!(!loaded.rows.is_empty());
     assert!(loaded.status.ends_with("itens"));
 }
@@ -241,7 +241,7 @@ fn preserva_caminhos_de_nomes_invalidos_sem_colidir_chaves() {
     fs::write(&first, b"a").expect("o primeiro arquivo deve ser criado");
     fs::write(&second, b"b").expect("o segundo arquivo deve ser criado");
 
-    let loaded = load_directory(root.clone());
+    let loaded = load_directory(root.clone(), ListingOptions::default());
     assert_eq!(loaded.rows.len(), 2);
     assert_ne!(loaded.rows[0].key, loaded.rows[1].key);
     assert_ne!(loaded.rows[0].path, loaded.rows[1].path);
@@ -251,7 +251,7 @@ fn preserva_caminhos_de_nomes_invalidos_sem_colidir_chaves() {
 #[test]
 fn erro_de_diretorio_inexistente_vira_status_controlado() {
     let path = std::env::temp_dir().join("rovex-path-that-does-not-exist");
-    let loaded = load_directory(path);
+    let loaded = load_directory(path, ListingOptions::default());
     assert!(loaded.rows.is_empty());
     assert!(loaded.is_error);
     assert!(

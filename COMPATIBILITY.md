@@ -37,6 +37,8 @@ O manifesto `assets/rovex.manifest` agora é incorporado pelo `build.rs` via `wi
 
 Não há chamada Win32 direta nem API exclusiva do Windows 11 no núcleo atual. A interface usa tokens próprios do Design System e não depende do tema do sistema para determinar cores essenciais. Os atalhos P1 de teclado — F2, Delete, Backspace, Alt+Left/Right, Ctrl+F, Ctrl+L, setas, Ctrl+A e Enter — estão implementados na listagem e foram exercitados sob Xvfb; leitor de tela, alto contraste, escalas de 100%, 125%, 150%, 175% e 200% e múltiplos monitores continuam pendentes de validação nativa em Windows 10 e Windows 11.
 
+O P1 de arquivos ocultos agora usa `symlink_metadata`: no host, nomes iniciados por ponto são ocultos; no Windows, os atributos `HIDDEN` e `SYSTEM` também são lidos sem seguir links ou reparse points. O botão Ocultos alterna a visibilidade e identifica entradas como `Arquivo oculto`, `Pasta oculta` ou `Item do sistema`; nenhuma operação protegida é disparada automaticamente. O fluxo foi testado sob Xvfb, mas a confirmação de atributos NTFS reais e a validação nativa Windows 10/11 continuam pendentes.
+
 ## Filesystem e Unicode
 
 A camada de segurança recusa caminhos relativos, raízes e componentes pai ambíguos ou simbólicos nas operações sensíveis. Os testes locais agora cobrem preservação de nomes Unicode com espaços e pontuação, caminhos aninhados com mais de 260 bytes no host, pontos finais em sistemas que os suportam e nomes reservados via teste condicionado ao Windows. Isso não substitui a execução em NTFS, exFAT, FAT32, USB, UNC/SMB, junctions, reparse points, arquivos em uso, permissões negadas ou long paths nativos no Windows.
