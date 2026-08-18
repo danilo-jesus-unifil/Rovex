@@ -31,7 +31,7 @@ pub(crate) fn row_icon(name: &str, kind: EntryKind) -> (&'static str, &'static s
     }
 }
 
-fn row_from_entry(entry: &DirectoryEntry, index: usize) -> LoadedRow {
+pub(crate) fn row_from_entry(entry: &DirectoryEntry, index: usize) -> LoadedRow {
     let (icon, default_kind, is_directory) = row_icon(&entry.display_name(), entry.kind);
     let kind = if entry.is_system {
         "Item do sistema"

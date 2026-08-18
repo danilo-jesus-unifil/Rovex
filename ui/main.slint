@@ -17,6 +17,7 @@ export component MainWindow inherits Window {
     in-out property <string> status-text;
     in-out property <string> empty-state-text;
     in-out property <bool> external-drop-active: false;
+    in-out property <bool> search-active: false;
     in-out property <int> sidebar-focus-index: -1;
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
@@ -54,6 +55,8 @@ export component MainWindow inherits Window {
     callback navigate-up();
     callback navigate-to(string);
     callback filter-changed(string);
+    callback recursive-search-requested();
+    callback recursive-search-cancelled();
     callback select-row(int, bool, bool);
     callback sort-requested(int);
     callback toggle-hidden-files-requested();
@@ -104,6 +107,7 @@ export component MainWindow inherits Window {
             can-go-forward: root.can-go-forward;
             operation-busy: root.operation-busy;
             show-hidden-files: root.show-hidden-files;
+            search-active: root.search-active;
             back-requested => { root.back-requested(); }
             forward-requested => { root.forward-requested(); }
             refresh-requested => { root.refresh-requested(); }
@@ -113,6 +117,8 @@ export component MainWindow inherits Window {
             navigate-up => { root.navigate-up(); }
             navigate-to(path) => { root.navigate-to(path); }
             filter-changed(text) => { root.filter-changed(text); }
+            recursive-search-requested => { root.recursive-search-requested(); }
+            recursive-search-cancelled => { root.recursive-search-cancelled(); }
             toggle-hidden-files-requested => { root.toggle-hidden-files-requested(); }
             new-folder-requested => { root.new-folder-requested(); }
             copy-requested => { root.copy-requested(); }

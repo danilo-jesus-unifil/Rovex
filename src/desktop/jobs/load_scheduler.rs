@@ -1,5 +1,6 @@
 use super::super::MainWindow;
 use super::super::state::{self, LoadedRow, SharedRows, SharedSelection, SortSpec};
+use super::search_scheduler::SearchScheduler;
 use crate::filesystem::ListingOptions;
 use slint::SharedString;
 use std::path::PathBuf;
@@ -19,6 +20,7 @@ pub(in crate::desktop) struct LoadScheduler {
     stop: Arc<AtomicBool>,
     load_generation: Arc<AtomicU64>,
     filter_generation: Arc<AtomicU64>,
+    search_scheduler: Option<Arc<SearchScheduler>>,
 }
 
 impl LoadScheduler {
@@ -29,6 +31,7 @@ impl LoadScheduler {
         filter_generation: Arc<AtomicU64>,
         sort_spec: Arc<Mutex<SortSpec>>,
         listing_options: Arc<Mutex<ListingOptions>>,
+        search_scheduler: Option<Arc<SearchScheduler>>,
     ) -> Result<Self, ()> {
         let pending = Arc::new((Mutex::new(None::<LoadRequest>), std::sync::Condvar::new()));
         let stop = Arc::new(AtomicBool::new(false));
@@ -123,10 +126,14 @@ impl LoadScheduler {
             stop,
             load_generation,
             filter_generation,
+            search_scheduler,
         })
     }
 
     pub(in crate::desktop) fn schedule(&self, path: PathBuf) -> Result<(), ()> {
+        if let Some(search_scheduler) = self.search_scheduler.as_ref() {
+            search_scheduler.cancel();
+        }
         let generation = self.load_generation.fetch_add(1, Ordering::AcqRel) + 1;
         self.filter_generation.fetch_add(1, Ordering::AcqRel);
         let (lock, condition) = &*self.pending;
@@ -152,6 +159,11 @@ pub(in crate::desktop) fn start_load(
     path: PathBuf,
     scheduler: Option<&Arc<LoadScheduler>>,
 ) {
+    if let Some(ui) = ui_weak.upgrade()
+        && ui.get_search_active()
+    {
+        ui.set_search_active(false);
+    }
     let Some(scheduler) = scheduler else {
         let _ = ui_weak.upgrade_in_event_loop(|ui| {
             ui.set_status_text("Carregador indisponível".into());

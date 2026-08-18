@@ -11,6 +11,7 @@ export component RovexToolbar inherits VerticalLayout {
     in property <bool> can-go-forward;
     in property <bool> operation-busy;
     in property <bool> show-hidden-files;
+    in property <bool> search-active;
 
     callback back-requested;
     callback forward-requested;
@@ -21,6 +22,8 @@ export component RovexToolbar inherits VerticalLayout {
     callback navigate-up;
     callback navigate-to(string);
     callback filter-changed(string);
+    callback recursive-search-requested;
+    callback recursive-search-cancelled;
     callback toggle-hidden-files-requested;
     callback new-folder-requested;
 
@@ -145,6 +148,20 @@ export component RovexToolbar inherits VerticalLayout {
                 placeholder-text: "Filtrar nesta pasta";
                 accessible-label: "Filtrar itens da pasta atual";
                 edited => { root.filter-changed(self.text); }
+            }
+            RovexButton {
+                width: 78px;
+                text: root.search-active ? "Cancelar" : "Buscar";
+                tooltip: root.search-active ? "Cancelar busca recursiva" : "Buscar nas subpastas";
+                accessible-label: root.search-active ? "Cancelar busca recursiva" : "Iniciar busca recursiva";
+                enabled: root.search-active || root.filter-text != "";
+                clicked => {
+                    if root.search-active {
+                        root.recursive-search-cancelled();
+                    } else {
+                        root.recursive-search-requested();
+                    }
+                }
             }
             RovexButton {
                 width: DesignTokens.toolbar-refresh-width;

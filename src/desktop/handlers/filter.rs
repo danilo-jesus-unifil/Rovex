@@ -8,15 +8,26 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
     let ui_weak = ctx.ui_weak.clone();
     let filter_generation = Arc::clone(&ctx.filter_generation);
     let filter_scheduler = ctx.filter_scheduler.clone();
+    let search_scheduler = ctx.search_scheduler.clone();
     let selection = Arc::clone(&ctx.selection);
     let sort_spec = Arc::clone(&ctx.sort_spec);
     {
         let ui_weak = ui_weak.clone();
         let filter_generation = Arc::clone(&filter_generation);
         let filter_scheduler = filter_scheduler.clone();
+        let search_scheduler = search_scheduler.clone();
         let selection = Arc::clone(&selection);
         let sort_spec = Arc::clone(&sort_spec);
         ui.on_filter_changed(move |text| {
+            if let Some(search_scheduler) = search_scheduler.as_ref()
+                && ui_weak.upgrade().is_some_and(|ui| ui.get_search_active())
+            {
+                search_scheduler.cancel();
+                if let Some(ui) = ui_weak.upgrade() {
+                    ui.set_search_active(false);
+                    ui.set_status_text("Pesquisa cancelada; filtro local aplicado.".into());
+                }
+            }
             if let Ok(mut state) = selection.lock() {
                 state.clear();
                 if let Some(ui) = ui_weak.upgrade() {
