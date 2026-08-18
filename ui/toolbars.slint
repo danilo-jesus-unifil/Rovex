@@ -27,133 +27,163 @@ export component RovexToolbar inherits VerticalLayout {
 
     spacing: DesignTokens.layout-gap;
 
-    HorizontalLayout {
-        height: 38px;
-        spacing: 6px;
-        for tab[index] in root.tabs: Rectangle {
-            width: 190px;
-            height: 34px;
-            border-width: 1px;
-            border-radius: DesignTokens.radius-medium;
-            border-color: tab.active ? DesignTokens.accent-strong : DesignTokens.border;
-            background: tab.active ? DesignTokens.surface-selected : DesignTokens.surface-secondary;
-            tab-touch := TouchArea {
-                width: parent.width - 38px;
-                height: parent.height;
-                clicked => { root.select-tab(index); }
-            }
-            Text {
-                x: 12px;
-                width: parent.width - 48px;
-                height: parent.height;
-                text: tab.label;
-                color: tab.active ? DesignTokens.text-primary : DesignTokens.text-secondary;
-                vertical-alignment: center;
-                overflow: elide;
+    Rectangle {
+        height: 46px;
+        background: DesignTokens.surface;
+        border-width: 1px;
+        border-color: DesignTokens.border-subtle;
+        border-radius: DesignTokens.radius-medium;
+        HorizontalLayout {
+            width: 100%;
+            height: 100%;
+            padding: 5px;
+            spacing: 6px;
+            cross-axis-alignment: center;
+            for tab[index] in root.tabs: Rectangle {
+                width: 190px;
+                height: 34px;
+                border-width: 1px;
+                border-radius: DesignTokens.radius-medium;
+                border-color: tab.active ? DesignTokens.accent-strong : DesignTokens.border;
+                background: tab.active ? DesignTokens.surface-selected : DesignTokens.surface-secondary;
+                tab-touch := TouchArea {
+                    width: parent.width - 38px;
+                    height: parent.height;
+                    clicked => { root.select-tab(index); }
+                }
+                Text {
+                    x: 12px;
+                    width: parent.width - 48px;
+                    height: parent.height;
+                    text: tab.label;
+                    color: tab.active ? DesignTokens.text-primary : DesignTokens.text-secondary;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                RovexButton {
+                    x: parent.width - 34px;
+                    y: 3px;
+                    width: 28px;
+                    height: 28px;
+                    text: "×";
+                    icon-only: true;
+                    tooltip: "Fechar aba";
+                    accessible-label: "Fechar aba " + tab.label;
+                    clicked => { root.close-tab(index); }
+                }
             }
             RovexButton {
-                x: parent.width - 34px;
-                y: 3px;
-                width: 28px;
-                height: 28px;
-                text: "×";
+                width: 38px;
+                text: "+";
                 icon-only: true;
-                tooltip: "Fechar aba";
-                accessible-label: "Fechar aba " + tab.label;
-                clicked => { root.close-tab(index); }
+                tooltip: "Abrir nova aba";
+                accessible-label: "Abrir nova aba";
+                clicked => { root.new-tab-requested(); }
             }
         }
-        RovexButton {
-            width: 38px;
-            text: "+";
-            icon-only: true;
-            tooltip: "Abrir nova aba";
-            accessible-label: "Abrir nova aba";
-            clicked => { root.new-tab-requested(); }
+    }
+
+    Rectangle {
+        height: 48px;
+        background: DesignTokens.surface;
+        border-width: 1px;
+        border-color: DesignTokens.border-subtle;
+        border-radius: DesignTokens.radius-medium;
+        HorizontalLayout {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            spacing: DesignTokens.toolbar-gap;
+            cross-axis-alignment: center;
+            RovexButton {
+                width: DesignTokens.toolbar-button-width;
+                text: "←";
+                icon-only: true;
+                tooltip: "Voltar no histórico";
+                enabled: root.can-go-back;
+                accessible-label: "Voltar no histórico";
+                clicked => { root.back-requested(); }
+            }
+            RovexButton {
+                width: DesignTokens.toolbar-button-width;
+                text: "→";
+                icon-only: true;
+                tooltip: "Avançar no histórico";
+                enabled: root.can-go-forward;
+                accessible-label: "Avançar no histórico";
+                clicked => { root.forward-requested(); }
+            }
+            RovexButton {
+                width: DesignTokens.toolbar-button-width;
+                text: "↑";
+                icon-only: true;
+                tooltip: "Subir para a pasta pai";
+                accessible-label: "Subir para a pasta pai";
+                clicked => { root.navigate-up(); }
+            }
+            RovexLineEdit {
+                horizontal-stretch: 1;
+                text <=> root.current-path;
+                accessible-label: "Caminho da pasta";
+                placeholder-text: "Caminho da pasta";
+                accepted => { root.navigate-to(self.text); }
+            }
+            RovexLineEdit {
+                width: DesignTokens.filter-width;
+                text <=> root.filter-text;
+                placeholder-text: "Filtrar nesta pasta";
+                accessible-label: "Filtrar itens da pasta atual";
+                edited => { root.filter-changed(self.text); }
+            }
+            RovexButton {
+                width: DesignTokens.toolbar-refresh-width;
+                text: "↻";
+                icon-only: true;
+                tooltip: "Atualizar listagem";
+                accessible-label: "Atualizar listagem";
+                clicked => { root.refresh-requested(); }
+            }
         }
     }
 
-    HorizontalLayout {
-        spacing: DesignTokens.toolbar-gap;
-        height: DesignTokens.toolbar-height;
-        RovexButton {
-            width: DesignTokens.toolbar-button-width;
-            text: "←";
-            icon-only: true;
-            tooltip: "Voltar no histórico";
-            enabled: root.can-go-back;
-            accessible-label: "Voltar no histórico";
-            clicked => { root.back-requested(); }
-        }
-        RovexButton {
-            width: DesignTokens.toolbar-button-width;
-            text: "→";
-            icon-only: true;
-            tooltip: "Avançar no histórico";
-            enabled: root.can-go-forward;
-            accessible-label: "Avançar no histórico";
-            clicked => { root.forward-requested(); }
-        }
-        RovexButton {
-            width: DesignTokens.toolbar-button-width;
-            text: "↑";
-            icon-only: true;
-            tooltip: "Subir para a pasta pai";
-            accessible-label: "Subir para a pasta pai";
-            clicked => { root.navigate-up(); }
-        }
-        RovexLineEdit {
-            horizontal-stretch: 1;
-            text <=> root.current-path;
-            accessible-label: "Caminho da pasta";
-            placeholder-text: "Caminho da pasta";
-            accepted => { root.navigate-to(self.text); }
-        }
-        RovexLineEdit {
-            width: DesignTokens.filter-width;
-            text <=> root.filter-text;
-            placeholder-text: "Filtrar nesta pasta";
-            accessible-label: "Filtrar itens da pasta atual";
-            edited => { root.filter-changed(self.text); }
-        }
-        RovexButton {
-            width: DesignTokens.toolbar-refresh-width;
-            text: "↻";
-            icon-only: true;
-            tooltip: "Atualizar listagem";
-            accessible-label: "Atualizar listagem";
-            clicked => { root.refresh-requested(); }
-        }
-    }
-
-    HorizontalLayout {
-        spacing: DesignTokens.control-gap;
-        height: DesignTokens.operation-toolbar-height;
-        RovexButton {
-            text: "Copiar";
-            primary: true;
-            enabled: root.selection-count > 0 && !root.operation-busy;
-            accessible-label: "Copiar itens selecionados";
-            clicked => { root.copy-requested(); }
-        }
-        RovexButton {
-            text: "Mover";
-            enabled: root.selection-count > 0 && !root.operation-busy;
-            accessible-label: "Mover itens selecionados";
-            clicked => { root.move-requested(); }
-        }
-        RovexButton {
-            text: "Renomear";
-            enabled: root.selection-count == 1 && !root.operation-busy;
-            accessible-label: "Renomear item selecionado";
-            clicked => { root.rename-requested(); }
-        }
-        RovexButton {
-            text: "Excluir";
-            danger: true;
-            enabled: root.selection-count > 0 && !root.operation-busy;
-            accessible-label: "Excluir itens selecionados";
-            clicked => { root.delete-requested(); }
+    Rectangle {
+        height: 48px;
+        background: DesignTokens.surface;
+        border-width: 1px;
+        border-color: DesignTokens.border-subtle;
+        border-radius: DesignTokens.radius-medium;
+        HorizontalLayout {
+            width: 100%;
+            height: 100%;
+            padding: 4px;
+            spacing: DesignTokens.control-gap;
+            cross-axis-alignment: center;
+            RovexButton {
+                text: "Copiar";
+                primary: true;
+                enabled: root.selection-count > 0 && !root.operation-busy;
+                accessible-label: "Copiar itens selecionados";
+                clicked => { root.copy-requested(); }
+            }
+            RovexButton {
+                text: "Mover";
+                enabled: root.selection-count > 0 && !root.operation-busy;
+                accessible-label: "Mover itens selecionados";
+                clicked => { root.move-requested(); }
+            }
+            RovexButton {
+                text: "Renomear";
+                enabled: root.selection-count == 1 && !root.operation-busy;
+                accessible-label: "Renomear item selecionado";
+                clicked => { root.rename-requested(); }
+            }
+            RovexButton {
+                text: "Excluir";
+                danger: true;
+                enabled: root.selection-count > 0 && !root.operation-busy;
+                accessible-label: "Excluir itens selecionados";
+                clicked => { root.delete-requested(); }
+            }
         }
     }
 }

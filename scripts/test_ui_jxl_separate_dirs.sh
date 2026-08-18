@@ -38,7 +38,7 @@ if [ -z "$window_id" ]; then
     exit 1
 fi
 DISPLAY=":$xvfb_display" xdotool windowfocus "$window_id"
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 520 190 click 3
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 520 246 click 3
 sleep 0.4
 DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 180 320 click 1
 sleep 0.5
