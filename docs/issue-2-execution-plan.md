@@ -25,7 +25,9 @@ A UI deve emitir comandos/eventos; o core deve decidir; adapters devem executar;
 
 ## Próxima etapa isolada
 
-A próxima etapa é exclusivamente a **Fase 1 — Foundation / auditoria**. Antes de escrever código, serão lidos README, `docs/architecture.md`, `docs/implementation-plan.md`, `docs/testing.md`, `COMPATIBILITY.md`, `DEPENDENCIES.md`, relatórios existentes e a árvore do projeto. Em seguida será produzido o formato exigido pelo issue:
+A auditoria Foundation e o roadmap P0–P3 já foram produzidos em `ROVEX-ENGINEERING-AUDIT-ISSUE-2-2026-08-18.md`. O primeiro lote P0, manifesto Windows, foi implementado em `assets/rovex.manifest`, integrado pelo `build.rs` e validado no PE release com `scripts/verify_windows_manifest.sh`. O próximo lote isolado é a expansão de testes adversariais de filesystem para nomes reservados, Unicode extremo, espaços, pontos finais, caminhos longos, UNC e reparse points; esses testes não devem declarar compatibilidade nativa sem execução em Windows.
+
+O formato exigido pelo issue para a auditoria foi registrado como:
 
 ```text
 ROVEX ENGINEERING AUDIT
@@ -52,7 +54,7 @@ P2 — Medium
 P3 — Experimental
 ```
 
-Nenhuma feature da Fase 2 ou posterior será marcada como iniciada antes de essa auditoria ser concluída e validada. Problemas P0 descobertos na auditoria serão tratados em mudanças pequenas, com branch/commit próprio e validação incremental.
+Nenhuma feature da Fase 2 ou posterior será marcada como iniciada antes de essa auditoria ser concluída e validada. Problemas P0 descobertos na auditoria são tratados em mudanças pequenas, com branch/commit próprio e validação incremental; o manifesto Windows é o primeiro lote concluído sob essa regra.
 
 ## Workflow de cada lote
 

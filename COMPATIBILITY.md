@@ -29,11 +29,11 @@ A UI usa Slint 1.17.1 com renderer de software, acessibilidade, `compat-1-2` e b
 | Linux CI | `backend-winit-x11` | Wayland não é compilado nesse alvo; isso não define suporte de produto Linux |
 | Windows | `backend-winit` no target Windows | APIs específicas de versão não são chamadas diretamente pelo núcleo Rovex |
 | Filesystem | `std::fs` e `PathBuf` | UNC, reparse points, long paths e permissões Windows ainda exigem execução nativa |
-| Privilégios | Nenhum pedido de administrador no código atual | Manifesto Windows ainda não está embutido; `asInvoker`, DPI e long-path awareness são gate de distribuição |
+| Privilégios | Nenhum pedido de administrador no código atual | Manifesto embutido no PE cross-compiled com `asInvoker`, DPI e long-path awareness; execução nativa ainda pendente |
 
 ## Manifesto, DPI e temas
 
-A auditoria encontrou `build.rs`, `Cargo.toml` e código Rust, mas **não encontrou um manifesto Windows embutido**. Portanto, o projeto não declara neste momento conformidade com `asInvoker`, DPI awareness ou long-path awareness. Esses itens não serão considerados resolvidos por documentação; precisam de um manifesto efetivamente incorporado ao PE e de testes nativos.
+O manifesto `assets/rovex.manifest` agora é incorporado pelo `build.rs` via `winres`. O executável Windows GNU release foi inspecionado e contém a seção `.rsrc` com `asInvoker`, DPI awareness (`PerMonitorV2`, `PerMonitor`, `System`) e `longPathAware`; `scripts/verify_windows_manifest.sh` reproduz essa verificação. Isso prova a incorporação no artefato cross-compiled, mas não substitui a execução nativa em Windows 10/11 nem a validação visual por escala e múltiplos monitores.
 
 Não há chamada Win32 direta nem API exclusiva do Windows 11 no núcleo atual. A interface usa tokens próprios do Design System e não depende do tema do sistema para determinar cores essenciais. Tema claro/escuro, alto contraste, escalas de 100%, 125%, 150%, 175% e 200% e múltiplos monitores continuam pendentes de validação visual em Windows 10 e Windows 11.
 
@@ -45,7 +45,7 @@ A movimentação usa rename no mesmo volume e fallback real de copiar-e-remover 
 
 ## Gaps de compatibilidade
 
-A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. Também deve verificar o PE final, o manifesto efetivamente incorporado, execução sem privilégios administrativos e comportamento de instalação.
+A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.
 
 > **Conclusão:** o Rovex possui uma stack compilável e uma política de fallback coerente para Windows 10/11, mas a conformidade nativa do sistema operacional permanece parcialmente não verificada. Isso é uma limitação registrada, não uma afirmação implícita de suporte já provado.
 
