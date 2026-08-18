@@ -3,6 +3,7 @@ import { DesignTokens } from "./design_tokens.slint";
 import { LocationRow, FileRow, TabRow } from "./data.slint";
 import { RovexToolbar } from "./toolbars.slint";
 import { ContextMenuOverlay, OperationDialogOverlay } from "./overlays.slint";
+import { RovexFileList } from "./file_list.slint";
 
 export { DesignTokens } from "./design_tokens.slint";
 export { LocationRow, FileRow, TabRow } from "./data.slint";
@@ -20,6 +21,8 @@ export component MainWindow inherits Window {
     in-out property <bool> can-go-forward: false;
     in-out property <int> selection-count: 0;
     in-out property <int> focused-row-index: -1;
+    in-out property <int> sort-column: 1;
+    in-out property <bool> sort-ascending: true;
     in-out property <bool> operation-dialog-visible: false;
     in-out property <bool> operation-busy: false;
     in-out property <bool> operation-close-only: false;
@@ -47,6 +50,7 @@ export component MainWindow inherits Window {
     callback navigate-to(string);
     callback filter-changed(string);
     callback select-row(int, bool, bool);
+    callback sort-requested(int);
     callback select-all();
     callback activate(int);
     callback copy-requested();
@@ -182,196 +186,27 @@ export component MainWindow inherits Window {
             VerticalLayout {
                 spacing: DesignTokens.content-gap;
                 horizontal-stretch: 1;
-                Rectangle {
-                    background: DesignTokens.surface;
-                    border-width: 1px;
-                    border-color: DesignTokens.border;
-                    border-radius: DesignTokens.radius-medium;
-                    vertical-stretch: 1;
-                    VerticalLayout {
-                        spacing: 0px;
-                        width: 100%;
-                        height: 100%;
-                        Rectangle {
-                            height: 32px;
-                            background: DesignTokens.surface-secondary;
-                            border-width: 1px;
-                            border-color: DesignTokens.border-subtle;
-                            HorizontalLayout {
-                                cross-axis-alignment: center;
-                                padding-left: DesignTokens.file-row-padding;
-                                padding-right: DesignTokens.file-row-padding;
-                                spacing: DesignTokens.file-column-gap;
-                                Rectangle {
-                                    width: 34px;
-                                }
-                                Text {
-                                    width: 64px;
-                                    text: "Tipo";
-                                    color: DesignTokens.text-muted;
-                                    font-size: 11px;
-                                    vertical-alignment: center;
-                                }
-                                Text {
-                                    text: "Nome";
-                                    color: DesignTokens.text-muted;
-                                    font-size: 11px;
-                                    font-weight: 600;
-                                    horizontal-stretch: 1;
-                                    vertical-alignment: center;
-                                }
-                                Text {
-                                    text: "Detalhes";
-                                    color: DesignTokens.text-muted;
-                                    font-size: 11px;
-                                    vertical-alignment: center;
-                                }
-                            }
-                        }
-                        focus-scope := FocusScope {
-                        width: 100%;
-                        height: 100%;
-                        focus-on-click: true;
-                        key-pressed(event) => {
-                            if (event.modifiers.control && (event.text == "a" || event.text == "A")) {
-                                root.select-all();
-                                root.focused-row-index = -1;
-                                accept
-                            } else if (event.modifiers.control && (event.text == "f" || event.text == "F")) {
-                                toolbar.focus-filter();
-                                accept
-                            } else if (event.modifiers.control && (event.text == "l" || event.text == "L")) {
-                                toolbar.focus-path();
-                                accept
-                            } else if (event.modifiers.alt && event.text == Key.LeftArrow) {
-                                root.back-requested();
-                                accept
-                            } else if (event.modifiers.alt && event.text == Key.RightArrow) {
-                                root.forward-requested();
-                                accept
-                            } else if (event.text == Key.F2) {
-                                root.rename-requested();
-                                accept
-                            } else if (event.text == Key.Delete) {
-                                root.delete-requested();
-                                accept
-                            } else if (event.text == Key.Backspace) {
-                                root.navigate-up();
-                                accept
-                            } else if (event.text == Key.UpArrow && root.entries.length > 0) {
-                                if (root.focused-row-index <= 0) {
-                                    root.focused-row-index = 0;
-                                } else {
-                                    root.focused-row-index -= 1;
-                                }
-                                root.select-row(root.focused-row-index, false, false);
-                                accept
-                            } else if (event.text == Key.DownArrow && root.entries.length > 0) {
-                                if (root.focused-row-index < 0) {
-                                    root.focused-row-index = 0;
-                                } else if (root.focused-row-index < root.entries.length - 1) {
-                                    root.focused-row-index += 1;
-                                }
-                                root.select-row(root.focused-row-index, false, false);
-                                accept
-                            } else if (event.text == "\n" && root.focused-row-index >= 0) {
-                                root.activate(root.focused-row-index);
-                                accept
-                            } else {
-                                reject
-                            }
-                        }
-                        ListView {
-                            width: 100%;
-                            height: 100%;
-                            for entry[index] in root.entries: Rectangle {
-                                height: DesignTokens.file-row-height;
-                                background: entry.selected ? DesignTokens.surface-selected : ((focus-scope.has-focus && root.focused-row-index == index) ? DesignTokens.surface-hover : (row-touch.has-hover ? DesignTokens.surface-hover : (Math.mod(index, 2) == 0 ? DesignTokens.surface : DesignTokens.surface-secondary)));
-                                border-width: focus-scope.has-focus && root.focused-row-index == index ? 1px : 0px;
-                                border-color: DesignTokens.accent;
-                                accessible-role: list-item;
-                                accessible-label: (entry.selected ? "Selecionado: " : "") + entry.kind + ": " + entry.name;
-                                HorizontalLayout {
-                                    cross-axis-alignment: center;
-                                    padding-left: DesignTokens.file-row-padding;
-                                    padding-right: DesignTokens.file-row-padding;
-                                    spacing: DesignTokens.file-column-gap;
-                                    Rectangle {
-                                        width: 34px;
-                                        height: 28px;
-                                        border-radius: DesignTokens.radius-medium;
-                                        background: entry.is-directory ? DesignTokens.surface-selected : DesignTokens.surface-elevated;
-                                        Text {
-                                            width: 100%;
-                                            height: 100%;
-                                            text: entry.icon;
-                                            color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-secondary;
-                                            font-size: 12px;
-                                            horizontal-alignment: center;
-                                            vertical-alignment: center;
-                                        }
-                                    }
-                                    Text {
-                                        width: 64px;
-                                        text: entry.kind;
-                                        color: entry.is-directory ? DesignTokens.accent : DesignTokens.text-muted;
-                                        font-size: 12px;
-                                        vertical-alignment: center;
-                                        overflow: elide;
-                                    }
-                                    Text {
-                                        text: entry.name;
-                                        color: DesignTokens.text-primary;
-                                        vertical-alignment: center;
-                                        horizontal-stretch: 1;
-                                        overflow: elide;
-                                    }
-                                    Text {
-                                        text: entry.details;
-                                        color: DesignTokens.text-secondary;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                                row-touch := TouchArea {
-                                    pointer-event(event) => {
-                                        if (event.button == PointerEventButton.left && event.kind == PointerEventKind.up) {
-                                            focus-scope.focus();
-                                            root.focused-row-index = index;
-                                            root.select-row(index, event.modifiers.control, event.modifiers.shift);
-                                        } else if (event.button == PointerEventButton.right && event.kind == PointerEventKind.up) {
-                                            focus-scope.focus();
-                                            root.focused-row-index = index;
-                                            root.select-row(index, false, false);
-                                            root.context-menu-requested(index);
-                                        }
-                                    }
-                                    double-clicked => { root.activate(index); }
-                                }
-                            }
-                        }
-                        Text {
-                            visible: root.empty-state-text != "";
-                            x: 24px;
-                            y: 24px;
-                            width: parent.width - 48px;
-                            text: root.empty-state-text;
-                            color: DesignTokens.text-secondary;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-                    }
-                    }
-                }
-                Rectangle {
-                    height: 1px;
-                    background: DesignTokens.border-subtle;
-                }
-                Text {
-                    text: root.status-text;
-                    color: DesignTokens.text-secondary;
-                    height: DesignTokens.status-height;
-                    overflow: elide;
-                }
+            RovexFileList {
+                vertical-stretch: 1;
+                entries <=> root.entries;
+                status-text <=> root.status-text;
+                empty-state-text <=> root.empty-state-text;
+                focused-row-index <=> root.focused-row-index;
+                sort-column <=> root.sort-column;
+                sort-ascending <=> root.sort-ascending;
+                back-requested => { root.back-requested(); }
+                forward-requested => { root.forward-requested(); }
+                navigate-up => { root.navigate-up(); }
+                focus-path-requested => { toolbar.focus-path(); }
+                focus-filter-requested => { toolbar.focus-filter(); }
+                sort-requested(column) => { root.sort-requested(column); }
+                select-row(index, control, shift) => { root.select-row(index, control, shift); }
+                select-all => { root.select-all(); }
+                activate(index) => { root.activate(index); }
+                rename-requested => { root.rename-requested(); }
+                delete-requested => { root.delete-requested(); }
+                context-menu-requested(index) => { root.context-menu-requested(index); }
+            }
             }
         }
     }

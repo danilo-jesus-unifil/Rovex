@@ -1,5 +1,5 @@
 use super::super::MainWindow;
-use super::super::state::{self, SharedRows, SharedSelection};
+use super::super::state::{self, SharedRows, SharedSelection, SortSpec};
 use slint::SharedString;
 use std::sync::{
     Arc, Mutex,
@@ -10,6 +10,7 @@ use std::thread;
 struct FilterRequest {
     generation: u64,
     query: String,
+    sort_spec: SortSpec,
 }
 
 pub(in crate::desktop) struct FilterScheduler {
@@ -58,7 +59,11 @@ impl FilterScheduler {
                     };
                     let result = match rows {
                         Some(rows) => {
-                            let filtered = state::filter_rows(rows.as_ref(), &request.query);
+                            let filtered = state::filter_rows(
+                                rows.as_ref(),
+                                &request.query,
+                                request.sort_spec,
+                            );
                             let status =
                                 state::filter_status(rows.len(), filtered.len(), &request.query);
                             let empty_state =
@@ -93,12 +98,21 @@ impl FilterScheduler {
         Ok(Self { pending, stop })
     }
 
-    pub(in crate::desktop) fn schedule(&self, generation: u64, query: String) -> Result<(), ()> {
+    pub(in crate::desktop) fn schedule(
+        &self,
+        generation: u64,
+        query: String,
+        sort_spec: SortSpec,
+    ) -> Result<(), ()> {
         let (lock, condition) = &*self.pending;
         let Ok(mut pending) = lock.lock() else {
             return Err(());
         };
-        *pending = Some(FilterRequest { generation, query });
+        *pending = Some(FilterRequest {
+            generation,
+            query,
+            sort_spec,
+        });
         condition.notify_one();
         Ok(())
     }

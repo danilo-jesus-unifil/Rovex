@@ -20,6 +20,8 @@ pub struct DirectoryEntry {
     pub kind: EntryKind,
     pub size: Option<u64>,
     pub modified: Option<SystemTime>,
+    pub created: Option<SystemTime>,
+    pub accessed: Option<SystemTime>,
 }
 
 impl DirectoryEntry {
@@ -43,6 +45,8 @@ impl DirectoryEntry {
             kind,
             size: (kind == EntryKind::File).then_some(metadata.len()),
             modified: metadata.modified().ok(),
+            created: metadata.created().ok(),
+            accessed: metadata.accessed().ok(),
         })
     }
 

@@ -10,6 +10,10 @@ pub(in crate::desktop) struct LoadedRow {
     pub(in crate::desktop) kind: String,
     pub(in crate::desktop) icon: String,
     pub(in crate::desktop) details: String,
+    pub(in crate::desktop) size: Option<u64>,
+    pub(in crate::desktop) modified: Option<std::time::SystemTime>,
+    pub(in crate::desktop) created: Option<std::time::SystemTime>,
+    pub(in crate::desktop) accessed: Option<std::time::SystemTime>,
     pub(in crate::desktop) is_directory: bool,
 }
 

@@ -3,7 +3,7 @@ use super::jobs::{
     OperationScheduler,
 };
 use super::locations::default_locations;
-use super::state::{LoadedRow, SelectionState, SharedRows, SharedSelection, TabManager};
+use super::state::{LoadedRow, SelectionState, SharedRows, SharedSelection, SortSpec, TabManager};
 use super::{FileRow, LocationRow, MainWindow, TabRow};
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::path::PathBuf;
@@ -19,6 +19,7 @@ pub(in crate::desktop) struct AppContext {
     pub(in crate::desktop) directory_rows: SharedRows,
     pub(in crate::desktop) selection: SharedSelection,
     pub(in crate::desktop) filter_generation: Arc<AtomicU64>,
+    pub(in crate::desktop) sort_spec: Arc<Mutex<SortSpec>>,
     pub(in crate::desktop) load_scheduler: Option<Arc<LoadScheduler>>,
     pub(in crate::desktop) filter_scheduler: Option<Arc<FilterScheduler>>,
     pub(in crate::desktop) operation_scheduler: Option<Arc<OperationScheduler>>,
@@ -55,11 +56,13 @@ impl AppContext {
         let directory_rows: SharedRows = Arc::new(Mutex::new(Arc::from(Vec::<LoadedRow>::new())));
         let selection: SharedSelection = Arc::new(Mutex::new(SelectionState::default()));
         let filter_generation = Arc::new(AtomicU64::new(0));
+        let sort_spec = Arc::new(Mutex::new(SortSpec::default()));
         let load_scheduler = LoadScheduler::new(
             ui_weak.clone(),
             Arc::clone(&directory_rows),
             Arc::clone(&selection),
             Arc::clone(&filter_generation),
+            Arc::clone(&sort_spec),
         )
         .map(Arc::new)
         .ok();
@@ -90,6 +93,7 @@ impl AppContext {
             directory_rows,
             selection,
             filter_generation,
+            sort_spec,
             load_scheduler,
             filter_scheduler,
             operation_scheduler,

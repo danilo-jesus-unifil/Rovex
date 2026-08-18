@@ -6,6 +6,7 @@ mod lifecycle;
 mod navigation;
 mod operations;
 mod selection;
+mod sorting;
 
 use super::context::AppContext;
 
@@ -19,4 +20,5 @@ pub(in crate::desktop) fn register_all(ctx: &AppContext) {
     confirmation::register(ctx);
     lifecycle::register(ctx);
     filter::register(ctx);
+    sorting::register(ctx);
 }

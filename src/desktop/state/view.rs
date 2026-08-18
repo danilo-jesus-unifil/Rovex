@@ -1,18 +1,25 @@
 use super::super::{FileRow, MainWindow};
-use super::{LoadedRow, SelectionState, SharedRows, SharedSelection};
+use super::listing::format_timestamp;
+use super::{LoadedRow, SelectionState, SharedRows, SharedSelection, SortSpec, sort_rows};
 use slint::{Model, SharedString, VecModel};
 use std::path::PathBuf;
 
-pub(in crate::desktop) fn filter_rows(rows: &[LoadedRow], query: &str) -> Vec<LoadedRow> {
+pub(in crate::desktop) fn filter_rows(
+    rows: &[LoadedRow],
+    query: &str,
+    sort_spec: SortSpec,
+) -> Vec<LoadedRow> {
     let normalized_query = query.trim().to_lowercase();
-    if normalized_query.is_empty() {
-        return rows.to_vec();
-    }
-
-    rows.iter()
-        .filter(|row| row.name.to_lowercase().contains(&normalized_query))
-        .cloned()
-        .collect()
+    let mut filtered = if normalized_query.is_empty() {
+        rows.to_vec()
+    } else {
+        rows.iter()
+            .filter(|row| row.name.to_lowercase().contains(&normalized_query))
+            .cloned()
+            .collect()
+    };
+    sort_rows(&mut filtered, sort_spec);
+    filtered
 }
 
 pub(in crate::desktop) fn empty_state_text(
@@ -60,6 +67,9 @@ pub(in crate::desktop) fn set_rows(
                 kind: SharedString::from(row.kind),
                 icon: SharedString::from(row.icon),
                 details: SharedString::from(row.details),
+                modified: SharedString::from(format_timestamp(row.modified)),
+                created: SharedString::from(format_timestamp(row.created)),
+                accessed: SharedString::from(format_timestamp(row.accessed)),
                 is_directory: row.is_directory,
             })
             .collect::<Vec<_>>(),

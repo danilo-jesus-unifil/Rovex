@@ -46,8 +46,47 @@ fn row_from_entry(entry: &DirectoryEntry, index: usize) -> LoadedRow {
         kind: kind.to_owned(),
         icon: icon.to_owned(),
         details,
+        size: entry.size,
+        modified: entry.modified,
+        created: entry.created,
+        accessed: entry.accessed,
         is_directory,
     }
+}
+
+pub(crate) fn format_timestamp(time: Option<std::time::SystemTime>) -> String {
+    let Some(time) = time else {
+        return "—".to_owned();
+    };
+    let Ok(seconds) = time.duration_since(std::time::UNIX_EPOCH) else {
+        return "—".to_owned();
+    };
+    let total_minutes = seconds.as_secs() / 60;
+    let minute = total_minutes % 60;
+    let total_hours = total_minutes / 60;
+    let hour = total_hours % 24;
+    let days_since_epoch = total_hours / 24;
+    let (year, month, day) = civil_date(days_since_epoch as i64);
+    format!("{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}")
+}
+
+fn civil_date(days_since_epoch: i64) -> (i64, i64, i64) {
+    let shifted = days_since_epoch + 719_468;
+    let era = if shifted >= 0 {
+        shifted / 146_097
+    } else {
+        (shifted - 146_096) / 146_097
+    };
+    let day_of_era = shifted - era * 146_097;
+    let year_of_era =
+        (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let year = year_of_era + era * 400;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let month_part = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_part + 2) / 5 + 1;
+    let month = month_part + if month_part < 10 { 3 } else { -9 };
+    let year = year + if month <= 2 { 1 } else { 0 };
+    (year, month, day)
 }
 
 pub(crate) fn format_size(bytes: u64) -> String {

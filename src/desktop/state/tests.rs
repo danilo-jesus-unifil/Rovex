@@ -1,7 +1,8 @@
 use super::super::locations::default_locations;
 use super::{
-    LoadedRow, NavigationHistory, SelectionState, TabManager, empty_state_text, filter_rows,
-    filter_status, format_size, load_directory, parent_directory, row_icon, validate_rename_name,
+    LoadedRow, NavigationHistory, SelectionState, SortSpec, TabManager, empty_state_text,
+    filter_rows, filter_status, format_size, load_directory, parent_directory, row_icon,
+    validate_rename_name,
 };
 use crate::filesystem::EntryKind;
 
@@ -126,6 +127,10 @@ fn filtro_localiza_nome_sem_varrer_subpastas() {
             kind: "Arquivo".to_owned(),
             icon: "●".to_owned(),
             details: "4 KB".to_owned(),
+            size: Some(4 * 1024),
+            modified: None,
+            created: None,
+            accessed: None,
             is_directory: false,
         },
         LoadedRow {
@@ -135,14 +140,18 @@ fn filtro_localiza_nome_sem_varrer_subpastas() {
             kind: "Pasta".to_owned(),
             icon: "▰".to_owned(),
             details: "—".to_owned(),
+            size: None,
+            modified: None,
+            created: None,
+            accessed: None,
             is_directory: true,
         },
     ];
 
-    let filtered = filter_rows(&rows, "jpg");
+    let filtered = filter_rows(&rows, "jpg", SortSpec::default());
     assert_eq!(filtered.len(), 1);
     assert_eq!(filtered[0].name, "Foto.JPG");
-    assert_eq!(filter_rows(&rows, "   ").len(), 2);
+    assert_eq!(filter_rows(&rows, "   ", SortSpec::default()).len(), 2);
     assert_eq!(filter_status(2, 1, "jpg"), "1 de 2 itens");
 }
 
@@ -159,11 +168,15 @@ fn benchmark_filtro_100k() {
             kind: "Arquivo".to_owned(),
             icon: "●".to_owned(),
             details: "1 B".to_owned(),
+            size: Some(1),
+            modified: None,
+            created: None,
+            accessed: None,
             is_directory: false,
         })
         .collect::<Vec<_>>();
     let started = Instant::now();
-    let filtered = filter_rows(&rows, "99999");
+    let filtered = filter_rows(&rows, "99999", SortSpec::default());
     let elapsed = started.elapsed();
     eprintln!(
         "benchmark_filter_100k elapsed_ms={} matches={}",

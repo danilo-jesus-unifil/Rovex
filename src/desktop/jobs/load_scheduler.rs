@@ -1,5 +1,5 @@
 use super::super::MainWindow;
-use super::super::state::{self, LoadedRow, SharedRows, SharedSelection};
+use super::super::state::{self, LoadedRow, SharedRows, SharedSelection, SortSpec};
 use slint::SharedString;
 use std::path::PathBuf;
 use std::sync::{
@@ -26,6 +26,7 @@ impl LoadScheduler {
         directory_rows: SharedRows,
         selection: SharedSelection,
         filter_generation: Arc<AtomicU64>,
+        sort_spec: Arc<Mutex<SortSpec>>,
     ) -> Result<Self, ()> {
         let pending = Arc::new((Mutex::new(None::<LoadRequest>), std::sync::Condvar::new()));
         let stop = Arc::new(AtomicBool::new(false));
@@ -36,6 +37,7 @@ impl LoadScheduler {
         let worker_filter_generation = Arc::clone(&filter_generation);
         let worker_directory_rows = Arc::clone(&directory_rows);
         let worker_selection = Arc::clone(&selection);
+        let worker_sort_spec = Arc::clone(&sort_spec);
         thread::Builder::new()
             .name("rovex-filesystem-loader".to_owned())
             .spawn(move || {
@@ -65,10 +67,17 @@ impl LoadScheduler {
                     let ui_filter_generation = Arc::clone(&worker_filter_generation);
                     let ui_directory_rows = Arc::clone(&worker_directory_rows);
                     let ui_selection = Arc::clone(&worker_selection);
+                    let ui_sort_spec = Arc::clone(&worker_sort_spec);
                     let _ = ui_weak.upgrade_in_event_loop(move |ui| {
                         if ui_load_generation.load(Ordering::Acquire) != request.generation {
                             return;
                         }
+                        let current_sort =
+                            ui_sort_spec.lock().map(|sort| *sort).unwrap_or_default();
+                        let mut loaded_rows = loaded.rows;
+                        state::sort_rows(&mut loaded_rows, current_sort);
+                        ui.set_sort_column(current_sort.field.column());
+                        ui.set_sort_ascending(current_sort.direction.is_ascending());
                         ui.set_current_path(SharedString::from(
                             loaded.path.to_string_lossy().to_string(),
                         ));
@@ -77,7 +86,7 @@ impl LoadScheduler {
                         let empty_state = if loaded.is_error {
                             ""
                         } else {
-                            state::empty_state_text(loaded.rows.len(), loaded.rows.len(), "")
+                            state::empty_state_text(loaded_rows.len(), loaded_rows.len(), "")
                         };
                         ui.set_empty_state_text(SharedString::from(empty_state));
                         ui.set_focused_row_index(-1);
@@ -87,7 +96,7 @@ impl LoadScheduler {
                         };
                         selection_state.clear();
                         ui.set_selection_count(0);
-                        let snapshot: Arc<[LoadedRow]> = Arc::from(loaded.rows);
+                        let snapshot: Arc<[LoadedRow]> = Arc::from(loaded_rows);
                         let Ok(mut rows) = ui_directory_rows.lock() else {
                             ui.set_status_text("Falha interna ao armazenar a listagem".into());
                             return;

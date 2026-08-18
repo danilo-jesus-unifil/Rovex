@@ -9,11 +9,13 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
     let filter_generation = Arc::clone(&ctx.filter_generation);
     let filter_scheduler = ctx.filter_scheduler.clone();
     let selection = Arc::clone(&ctx.selection);
+    let sort_spec = Arc::clone(&ctx.sort_spec);
     {
         let ui_weak = ui_weak.clone();
         let filter_generation = Arc::clone(&filter_generation);
         let filter_scheduler = filter_scheduler.clone();
         let selection = Arc::clone(&selection);
+        let sort_spec = Arc::clone(&sort_spec);
         ui.on_filter_changed(move |text| {
             if let Ok(mut state) = selection.lock() {
                 state.clear();
@@ -24,13 +26,14 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
             }
             let generation = filter_generation.fetch_add(1, Ordering::AcqRel) + 1;
             let query = text.to_string();
+            let current_sort = sort_spec.lock().map(|sort| *sort).unwrap_or_default();
             let Some(scheduler) = filter_scheduler.as_ref() else {
                 let _ = ui_weak.upgrade_in_event_loop(|ui| {
                     ui.set_status_text("Filtro indisponível".into());
                 });
                 return;
             };
-            if scheduler.schedule(generation, query).is_err() {
+            if scheduler.schedule(generation, query, current_sort).is_err() {
                 let _ = ui_weak.upgrade_in_event_loop(|ui| {
                     ui.set_status_text("Falha ao agendar o filtro".into());
                 });
