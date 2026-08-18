@@ -35,7 +35,7 @@ A UI usa Slint 1.17.1 com renderer de software, acessibilidade, `compat-1-2` e b
 
 O manifesto `assets/rovex.manifest` agora é incorporado pelo `build.rs` via `winres`. O executável Windows GNU release foi inspecionado e contém a seção `.rsrc` com `asInvoker`, DPI awareness (`PerMonitorV2`, `PerMonitor`, `System`) e `longPathAware`; `scripts/verify_windows_manifest.sh` reproduz essa verificação. Isso prova a incorporação no artefato cross-compiled, mas não substitui a execução nativa em Windows 10/11 nem a validação visual por escala e múltiplos monitores.
 
-Não há chamada Win32 direta nem API exclusiva do Windows 11 no núcleo atual. A interface usa tokens próprios do Design System e não depende do tema do sistema para determinar cores essenciais. Tema claro/escuro, alto contraste, escalas de 100%, 125%, 150%, 175% e 200% e múltiplos monitores continuam pendentes de validação visual em Windows 10 e Windows 11.
+Não há chamada Win32 direta nem API exclusiva do Windows 11 no núcleo atual. A interface usa tokens próprios do Design System e não depende do tema do sistema para determinar cores essenciais. Os atalhos P1 de teclado — F2, Delete, Backspace, Alt+Left/Right, Ctrl+F, Ctrl+L, setas, Ctrl+A e Enter — estão implementados na listagem e foram exercitados sob Xvfb; leitor de tela, alto contraste, escalas de 100%, 125%, 150%, 175% e 200% e múltiplos monitores continuam pendentes de validação nativa em Windows 10 e Windows 11.
 
 ## Filesystem e Unicode
 

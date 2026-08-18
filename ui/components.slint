@@ -91,6 +91,10 @@ export component RovexLineEdit inherits Rectangle {
     background: DesignTokens.input-background;
     clip: true;
 
+    public function focus-editor() {
+        editor.focus();
+    }
+
     editor := TextInput {
         x: 12px;
         width: parent.width - 24px;

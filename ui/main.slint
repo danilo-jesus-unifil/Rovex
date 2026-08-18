@@ -78,7 +78,7 @@ export component MainWindow inherits Window {
         padding: DesignTokens.page-padding;
         spacing: DesignTokens.layout-gap;
 
-        RovexToolbar {
+        toolbar := RovexToolbar {
             current-path <=> root.current-path;
             filter-text <=> root.filter-text;
             tabs <=> root.tabs;
@@ -236,6 +236,43 @@ export component MainWindow inherits Window {
                             if (event.modifiers.control && (event.text == "a" || event.text == "A")) {
                                 root.select-all();
                                 root.focused-row-index = -1;
+                                accept
+                            } else if (event.modifiers.control && (event.text == "f" || event.text == "F")) {
+                                toolbar.focus-filter();
+                                accept
+                            } else if (event.modifiers.control && (event.text == "l" || event.text == "L")) {
+                                toolbar.focus-path();
+                                accept
+                            } else if (event.modifiers.alt && event.text == Key.LeftArrow) {
+                                root.back-requested();
+                                accept
+                            } else if (event.modifiers.alt && event.text == Key.RightArrow) {
+                                root.forward-requested();
+                                accept
+                            } else if (event.text == Key.F2) {
+                                root.rename-requested();
+                                accept
+                            } else if (event.text == Key.Delete) {
+                                root.delete-requested();
+                                accept
+                            } else if (event.text == Key.Backspace) {
+                                root.navigate-up();
+                                accept
+                            } else if (event.text == Key.UpArrow && root.entries.length > 0) {
+                                if (root.focused-row-index <= 0) {
+                                    root.focused-row-index = 0;
+                                } else {
+                                    root.focused-row-index -= 1;
+                                }
+                                root.select-row(root.focused-row-index, false, false);
+                                accept
+                            } else if (event.text == Key.DownArrow && root.entries.length > 0) {
+                                if (root.focused-row-index < 0) {
+                                    root.focused-row-index = 0;
+                                } else if (root.focused-row-index < root.entries.length - 1) {
+                                    root.focused-row-index += 1;
+                                }
+                                root.select-row(root.focused-row-index, false, false);
                                 accept
                             } else if (event.text == "\n" && root.focused-row-index >= 0) {
                                 root.activate(root.focused-row-index);

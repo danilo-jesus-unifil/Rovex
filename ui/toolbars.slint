@@ -20,6 +20,14 @@ export component RovexToolbar inherits VerticalLayout {
     callback navigate-up;
     callback navigate-to(string);
     callback filter-changed(string);
+
+    public function focus-path() {
+        path-input.focus-editor();
+    }
+
+    public function focus-filter() {
+        filter-input.focus-editor();
+    }
     callback copy-requested;
     callback move-requested;
     callback rename-requested;
@@ -121,14 +129,14 @@ export component RovexToolbar inherits VerticalLayout {
                 accessible-label: "Subir para a pasta pai";
                 clicked => { root.navigate-up(); }
             }
-            RovexLineEdit {
+            path-input := RovexLineEdit {
                 horizontal-stretch: 1;
                 text <=> root.current-path;
                 accessible-label: "Caminho da pasta";
                 placeholder-text: "Caminho da pasta";
                 accepted => { root.navigate-to(self.text); }
             }
-            RovexLineEdit {
+            filter-input := RovexLineEdit {
                 width: DesignTokens.filter-width;
                 text <=> root.filter-text;
                 placeholder-text: "Filtrar nesta pasta";
