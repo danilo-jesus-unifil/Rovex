@@ -9,6 +9,7 @@ pub mod converters;
 pub mod desktop;
 pub mod filesystem;
 pub mod operations;
+pub mod search;
 pub mod security;
 
 pub use converters::{
@@ -18,5 +19,9 @@ pub use filesystem::{DirectoryEntry, EntryKind, FileSystem, FileSystemError};
 pub use operations::{
     CopyProgress, CopyReport, OperationError, copy_file_atomic, copy_file_atomic_with_progress,
     create_directory, delete_entry, rename_entry,
+};
+pub use search::{
+    SearchError, SearchLimit, SearchLimits, SearchReport, SearchStatus, SearchUpdate,
+    search_by_name,
 };
 pub use security::{DestinationPolicy, validate_destination};

@@ -27,7 +27,7 @@ pub struct DirectoryEntry {
 }
 
 impl DirectoryEntry {
-    fn from_path(path: PathBuf, name: OsString) -> Result<Self, FileSystemError> {
+    pub(crate) fn from_path(path: PathBuf, name: OsString) -> Result<Self, FileSystemError> {
         let metadata = fs::symlink_metadata(&path)
             .map_err(|error| FileSystemError::from_io("ler metadados", &path, error))?;
         let file_type = metadata.file_type();
