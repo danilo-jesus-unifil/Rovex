@@ -2,7 +2,7 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é a release portable `v0.1.9` de um protótipo desktop funcional. Ele abre uma janela Slint com tema escuro, abas reais e ícone próprio, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. A branch principal também contém refinamentos visuais posteriores à tag, sem alterar o escopo funcional. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
+> O estado atual é a release portable `v0.1.10` de um protótipo desktop funcional. Ele abre uma janela Slint com tema escuro, abas reais e ícone próprio, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, oferece menu contextual com conversões reais via FFmpeg/ffprobe e exibe erros controlados. A branch principal também pode conter refinamentos posteriores à tag, sem alterar o escopo funcional. Ainda não é um Explorer completo e não possui instalador, assinatura ou atualização automática.
 
 ## Estado atual
 

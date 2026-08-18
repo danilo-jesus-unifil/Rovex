@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.10] — 2026-08-18
+
+A versão 0.1.10 publica a primeira etapa do master prompt do issue #2: auditoria Foundation, plano incremental e documentação reconciliada, sem adicionar funcionalidades não auditadas.
+
+| Área | Mudança |
+|---|---|
+| Auditoria | Criado `ROVEX-ENGINEERING-AUDIT-ISSUE-2-2026-08-18.md` com arquitetura, módulos, recursos, lacunas, riscos, testes, dependências e ordem recomendada. |
+| Roadmap | Criado `docs/issue-2-execution-plan.md` com fases Foundation, Core Explorer, Search, Preview, Advanced Tools, Windows Integration e Distribution. |
+| Documentação | README atualizado para refletir a release pública v0.1.9 e diferenciar o estado da tag dos refinamentos posteriores da branch principal. |
+| Qualidade | Auditoria, `cargo fmt`, `cargo check` e suíte de testes executados antes da publicação. |
+
 ## [0.1.9] — 2026-08-17
 
 A versão 0.1.9 conclui a modularização arquitetural do Rovex sem alterar os fluxos funcionais da v0.1.8.
