@@ -2,6 +2,7 @@ mod clipboard;
 mod confirmation;
 mod conversions;
 mod dialogs;
+mod dragdrop;
 mod filter;
 mod lifecycle;
 mod navigation;
@@ -17,6 +18,7 @@ pub(in crate::desktop) use navigation::update_tab_visuals;
 
 pub(in crate::desktop) fn register_all(ctx: &AppContext) {
     navigation::register(ctx);
+    dragdrop::register(ctx);
     selection::register(ctx);
     operations::register(ctx);
     properties::register(ctx);

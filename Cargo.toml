@@ -14,15 +14,15 @@ copypasta = "=0.10.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # O CI Linux e os smoke tests usam Xvfb/X11; Wayland não é compilado nesse alvo.
-slint = { version = "=1.17.1", default-features = false, features = ["backend-winit-x11", "renderer-software", "accessibility", "compat-1-2"] }
+slint = { version = "=1.17.1", default-features = false, features = ["backend-winit-x11", "renderer-software", "accessibility", "compat-1-2", "unstable-winit-030"] }
 
 [target.'cfg(all(unix, not(target_os = "linux")))'.dependencies]
 # Preserve o backend completo para Unix não-Linux, sem restringir plataformas não testadas.
-slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
+slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2", "unstable-winit-030"] }
 
 [target.'cfg(windows)'.dependencies]
 # Windows 10/11 continua com X11/Wayland desativados pelo próprio target e backend Winit nativo.
-slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2"] }
+slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2", "unstable-winit-030"] }
 # SHGetKnownFolderPath oferece os caminhos redirecionados pelo Windows sem depender de nomes localizados.
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Environment", "Win32_System_Registry", "Win32_Storage_FileSystem", "Win32_UI_Shell"] }
 

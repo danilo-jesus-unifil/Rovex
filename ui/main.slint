@@ -16,6 +16,7 @@ export component MainWindow inherits Window {
     in-out property <[LocationRow]> locations;
     in-out property <string> status-text;
     in-out property <string> empty-state-text;
+    in-out property <bool> external-drop-active: false;
     in-out property <int> sidebar-focus-index: -1;
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
@@ -76,6 +77,8 @@ export component MainWindow inherits Window {
     callback context-menu-rename-requested();
     callback context-menu-delete-requested();
     callback context-menu-properties-requested();
+    callback drop-can-drop(data-transfer) -> DragAction;
+    callback drop-received(data-transfer) -> DragAction;
     callback context-menu-convert-jxl-requested();
     callback context-menu-convert-opus-requested();
     callback context-menu-convert-png-requested();
@@ -199,31 +202,68 @@ export component MainWindow inherits Window {
             VerticalLayout {
                 spacing: DesignTokens.content-gap;
                 horizontal-stretch: 1;
-            RovexFileList {
-                vertical-stretch: 1;
-                entries <=> root.entries;
-                status-text <=> root.status-text;
-                empty-state-text <=> root.empty-state-text;
-                focused-row-index <=> root.focused-row-index;
-                sort-column <=> root.sort-column;
-                sort-ascending <=> root.sort-ascending;
-                back-requested => { root.back-requested(); }
-                forward-requested => { root.forward-requested(); }
-                navigate-up => { root.navigate-up(); }
-                focus-path-requested => { toolbar.focus-path(); }
-                focus-filter-requested => { toolbar.focus-filter(); }
-                sort-requested(column) => { root.sort-requested(column); }
-                select-row(index, control, shift) => { root.select-row(index, control, shift); }
-                select-all => { root.select-all(); }
-                activate(index) => { root.activate(index); }
-                rename-requested => { root.rename-requested(); }
-                delete-requested => { root.delete-requested(); }
-                new-folder-requested => { root.new-folder-requested(); }
-                clipboard-copy-requested => { root.clipboard-copy-requested(); }
-                clipboard-cut-requested => { root.clipboard-cut-requested(); }
-                clipboard-paste-requested => { root.clipboard-paste-requested(); }
-                context-menu-requested(index) => { root.context-menu-requested(index); }
-            }
+                Rectangle {
+                    vertical-stretch: 1;
+                    background: DesignTokens.surface;
+                    border-width: 1px;
+                    border-color: DesignTokens.border;
+                    border-radius: DesignTokens.radius-medium;
+                    clip: true;
+                    RovexFileList {
+                        width: 100%;
+                        height: 100%;
+                        entries <=> root.entries;
+                        status-text <=> root.status-text;
+                        empty-state-text <=> root.empty-state-text;
+                        focused-row-index <=> root.focused-row-index;
+                        sort-column <=> root.sort-column;
+                        sort-ascending <=> root.sort-ascending;
+                        back-requested => { root.back-requested(); }
+                        forward-requested => { root.forward-requested(); }
+                        navigate-up => { root.navigate-up(); }
+                        focus-path-requested => { toolbar.focus-path(); }
+                        focus-filter-requested => { toolbar.focus-filter(); }
+                        sort-requested(column) => { root.sort-requested(column); }
+                        select-row(index, control, shift) => { root.select-row(index, control, shift); }
+                        select-all => { root.select-all(); }
+                        activate(index) => { root.activate(index); }
+                        rename-requested => { root.rename-requested(); }
+                        delete-requested => { root.delete-requested(); }
+                        new-folder-requested => { root.new-folder-requested(); }
+                        clipboard-copy-requested => { root.clipboard-copy-requested(); }
+                        clipboard-cut-requested => { root.clipboard-cut-requested(); }
+                        clipboard-paste-requested => { root.clipboard-paste-requested(); }
+                        context-menu-requested(index) => { root.context-menu-requested(index); }
+                    }
+                    drop-target := DropArea {
+                        width: 100%;
+                        height: 100%;
+                        enabled: !root.operation-dialog-visible;
+                        can-drop(event) => { root.drop-can-drop(event.data); }
+                        dropped(event) => {
+                            root.drop-received(event.data);
+                            return event.proposed-action;
+                        }
+                    }
+                    if root.external-drop-active: Rectangle {
+                        x: 12px;
+                        y: 12px;
+                        width: parent.width - 24px;
+                        height: 56px;
+                        background: #1d4ed866;
+                        border-width: 1px;
+                        border-color: DesignTokens.accent;
+                        border-radius: DesignTokens.radius-medium;
+                        Text {
+                            width: 100%;
+                            height: 100%;
+                            text: "Solte para copiar na pasta atual";
+                            color: DesignTokens.text-primary;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
             }
         }
     }
