@@ -12,6 +12,7 @@ export component ContextMenuOverlay inherits FocusScope {
     callback move-requested;
     callback rename-requested;
     callback delete-requested;
+    callback properties-requested;
     callback convert-jxl-requested;
     callback convert-opus-requested;
     callback convert-png-requested;
@@ -46,7 +47,7 @@ export component ContextMenuOverlay inherits FocusScope {
         x: 16px;
         y: 58px;
         width: 330px;
-        height: 408px;
+        height: 452px;
         background: DesignTokens.surface-menu;
         border-width: 1px;
         border-color: DesignTokens.border-strong;
@@ -90,6 +91,11 @@ export component ContextMenuOverlay inherits FocusScope {
                 accessible-label: "Excluir item pelo menu contextual";
                 clicked => { root.delete-requested(); }
             }
+            RovexButton {
+                text: "Propriedades";
+                accessible-label: "Abrir propriedades do item selecionado";
+                clicked => { root.properties-requested(); }
+            }
 
             Rectangle {
                 height: 1px;
@@ -119,6 +125,100 @@ export component ContextMenuOverlay inherits FocusScope {
                 enabled: root.can-flac;
                 accessible-label: "Converter áudio selecionado para FLAC";
                 clicked => { root.convert-flac-requested(); }
+            }
+        }
+    }
+}
+
+export component PropertiesDialogOverlay inherits FocusScope {
+    in property <string> title;
+    in property <[string]> lines;
+    callback dismissed;
+
+    x: 0px;
+    y: 0px;
+    width: 100%;
+    height: 100%;
+    focus-on-click: true;
+    init => { self.focus(); }
+    key-pressed(event) => {
+        if (event.text == Key.Escape) {
+            root.dismissed();
+            accept
+        }
+        reject
+    }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000066;
+        TouchArea {
+            width: 100%;
+            height: 100%;
+            clicked => { root.dismissed(); }
+        }
+    }
+
+    Rectangle {
+        x: (parent.width - min(parent.width - 32px, 600px)) / 2;
+        y: (parent.height - min(parent.height - 32px, 460px)) / 2;
+        width: min(parent.width - 32px, 600px);
+        height: min(parent.height - 32px, 460px);
+        background: DesignTokens.surface-dialog;
+        border-width: 1px;
+        border-color: DesignTokens.border;
+        border-radius: DesignTokens.radius-medium;
+
+        VerticalLayout {
+            padding: 20px;
+            spacing: 12px;
+            Text {
+                text: root.title;
+                color: DesignTokens.text-primary;
+                font-size: 18px;
+                height: 26px;
+                overflow: elide;
+            }
+            Text {
+                text: "General  ·  Security  ·  Details";
+                color: DesignTokens.accent;
+                font-size: 12px;
+                height: 20px;
+            }
+            Rectangle {
+                vertical-stretch: 1;
+                background: DesignTokens.surface-secondary;
+                border-width: 1px;
+                border-color: DesignTokens.border-subtle;
+                clip: true;
+                Flickable {
+                    width: 100%;
+                    height: 100%;
+                    viewport-height: 520px;
+                    VerticalLayout {
+                        width: 100%;
+                        height: 520px;
+                        padding: 12px;
+                        spacing: 6px;
+                        for line in root.lines: Text {
+                            text: line;
+                            color: DesignTokens.text-secondary;
+                            font-size: 13px;
+                            height: 20px;
+                            overflow: elide;
+                        }
+                    }
+                }
+            }
+            HorizontalLayout {
+                height: 36px;
+                RovexButton {
+                    primary: true;
+                    text: "Fechar";
+                    accessible-label: "Fechar propriedades";
+                    clicked => { root.dismissed(); }
+                }
             }
         }
     }

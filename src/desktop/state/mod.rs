@@ -8,7 +8,7 @@ mod view;
 
 #[cfg(test)]
 pub(crate) use listing::{format_size, row_icon};
-pub(super) use listing::{load_directory, parent_directory};
+pub(super) use listing::{format_timestamp, load_directory, parent_directory};
 pub(super) use models::{LoadedDirectory, LoadedRow, SelectionState, SharedRows, SharedSelection};
 #[cfg(test)]
 pub(super) use navigation::NavigationHistory;

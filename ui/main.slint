@@ -2,7 +2,7 @@ import { ListView } from "std-widgets.slint";
 import { DesignTokens } from "./design_tokens.slint";
 import { LocationRow, FileRow, TabRow } from "./data.slint";
 import { RovexToolbar } from "./toolbars.slint";
-import { ContextMenuOverlay, OperationDialogOverlay } from "./overlays.slint";
+import { ContextMenuOverlay, OperationDialogOverlay, PropertiesDialogOverlay } from "./overlays.slint";
 import { RovexFileList } from "./file_list.slint";
 
 export { DesignTokens } from "./design_tokens.slint";
@@ -30,6 +30,9 @@ export component MainWindow inherits Window {
     in-out property <bool> operation-needs-input: false;
     in-out property <bool> context-menu-visible: false;
     in-out property <string> context-menu-target-name;
+    in-out property <bool> properties-visible: false;
+    in-out property <string> properties-title;
+    in-out property <[string]> properties-lines;
     in-out property <bool> context-menu-can-jxl: false;
     in-out property <bool> context-menu-can-opus: false;
     in-out property <bool> context-menu-can-png: false;
@@ -72,6 +75,7 @@ export component MainWindow inherits Window {
     callback context-menu-move-requested();
     callback context-menu-rename-requested();
     callback context-menu-delete-requested();
+    callback context-menu-properties-requested();
     callback context-menu-convert-jxl-requested();
     callback context-menu-convert-opus-requested();
     callback context-menu-convert-png-requested();
@@ -235,10 +239,17 @@ export component MainWindow inherits Window {
         move-requested => { root.context-menu-move-requested(); }
         rename-requested => { root.context-menu-rename-requested(); }
         delete-requested => { root.context-menu-delete-requested(); }
+        properties-requested => { root.context-menu-properties-requested(); }
         convert-jxl-requested => { root.context-menu-convert-jxl-requested(); }
         convert-opus-requested => { root.context-menu-convert-opus-requested(); }
         convert-png-requested => { root.context-menu-convert-png-requested(); }
         convert-flac-requested => { root.context-menu-convert-flac-requested(); }
+    }
+
+    if root.properties-visible && !root.operation-dialog-visible: PropertiesDialogOverlay {
+        title: root.properties-title;
+        lines: root.properties-lines;
+        dismissed => { root.properties-visible = false; }
     }
 
     if root.operation-dialog-visible: OperationDialogOverlay {
