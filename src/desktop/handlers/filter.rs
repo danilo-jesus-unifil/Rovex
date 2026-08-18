@@ -1,4 +1,5 @@
 use super::super::context::AppContext;
+use super::preview;
 use std::sync::{Arc, atomic::Ordering};
 
 pub(in crate::desktop) fn register(ctx: &AppContext) {
@@ -10,13 +11,16 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
     let filter_scheduler = ctx.filter_scheduler.clone();
     let search_scheduler = ctx.search_scheduler.clone();
     let selection = Arc::clone(&ctx.selection);
+    let rows = Arc::clone(&ctx.directory_rows);
+    let preview_scheduler = ctx.preview_scheduler.clone();
     let sort_spec = Arc::clone(&ctx.sort_spec);
     {
         let ui_weak = ui_weak.clone();
         let filter_generation = Arc::clone(&filter_generation);
-        let filter_scheduler = filter_scheduler.clone();
-        let search_scheduler = search_scheduler.clone();
         let selection = Arc::clone(&selection);
+        let rows = Arc::clone(&rows);
+        let preview_scheduler = preview_scheduler.clone();
+        let search_scheduler = search_scheduler.clone();
         let sort_spec = Arc::clone(&sort_spec);
         ui.on_filter_changed(move |text| {
             if let Some(search_scheduler) = search_scheduler.as_ref()
@@ -35,6 +39,7 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
                     ui.set_focused_row_index(-1);
                 }
             }
+            preview::refresh_selection(&ui_weak, preview_scheduler.as_ref(), &rows, &selection);
             let generation = filter_generation.fetch_add(1, Ordering::AcqRel) + 1;
             let query = text.to_string();
             let current_sort = sort_spec.lock().map(|sort| *sort).unwrap_or_default();

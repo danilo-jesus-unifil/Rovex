@@ -9,6 +9,7 @@ pub mod converters;
 pub mod desktop;
 pub mod filesystem;
 pub mod operations;
+pub mod preview;
 pub mod search;
 pub mod security;
 
@@ -20,6 +21,7 @@ pub use operations::{
     CopyProgress, CopyReport, OperationError, copy_file_atomic, copy_file_atomic_with_progress,
     create_directory, delete_entry, rename_entry,
 };
+pub use preview::{PreviewError, PreviewImage, PreviewLimits, decode_thumbnail};
 pub use search::{
     SearchError, SearchLimit, SearchLimits, SearchReport, SearchStatus, SearchUpdate,
     search_by_name,

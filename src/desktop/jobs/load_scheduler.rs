@@ -1,5 +1,6 @@
 use super::super::MainWindow;
 use super::super::state::{self, LoadedRow, SharedRows, SharedSelection, SortSpec};
+use super::preview_scheduler::PreviewScheduler;
 use super::search_scheduler::SearchScheduler;
 use crate::filesystem::ListingOptions;
 use slint::SharedString;
@@ -15,12 +16,18 @@ struct LoadRequest {
     path: PathBuf,
 }
 
+pub(in crate::desktop) struct LoadAuxSchedulers {
+    pub(in crate::desktop) search_scheduler: Option<Arc<SearchScheduler>>,
+    pub(in crate::desktop) preview_scheduler: Option<Arc<PreviewScheduler>>,
+}
+
 pub(in crate::desktop) struct LoadScheduler {
     pending: Arc<(Mutex<Option<LoadRequest>>, std::sync::Condvar)>,
     stop: Arc<AtomicBool>,
     load_generation: Arc<AtomicU64>,
     filter_generation: Arc<AtomicU64>,
     search_scheduler: Option<Arc<SearchScheduler>>,
+    preview_scheduler: Option<Arc<PreviewScheduler>>,
 }
 
 impl LoadScheduler {
@@ -31,7 +38,7 @@ impl LoadScheduler {
         filter_generation: Arc<AtomicU64>,
         sort_spec: Arc<Mutex<SortSpec>>,
         listing_options: Arc<Mutex<ListingOptions>>,
-        search_scheduler: Option<Arc<SearchScheduler>>,
+        aux_schedulers: LoadAuxSchedulers,
     ) -> Result<Self, ()> {
         let pending = Arc::new((Mutex::new(None::<LoadRequest>), std::sync::Condvar::new()));
         let stop = Arc::new(AtomicBool::new(false));
@@ -126,13 +133,17 @@ impl LoadScheduler {
             stop,
             load_generation,
             filter_generation,
-            search_scheduler,
+            search_scheduler: aux_schedulers.search_scheduler,
+            preview_scheduler: aux_schedulers.preview_scheduler,
         })
     }
 
     pub(in crate::desktop) fn schedule(&self, path: PathBuf) -> Result<(), ()> {
         if let Some(search_scheduler) = self.search_scheduler.as_ref() {
             search_scheduler.cancel();
+        }
+        if let Some(preview_scheduler) = self.preview_scheduler.as_ref() {
+            preview_scheduler.cancel();
         }
         let generation = self.load_generation.fetch_add(1, Ordering::AcqRel) + 1;
         self.filter_generation.fetch_add(1, Ordering::AcqRel);
@@ -159,10 +170,13 @@ pub(in crate::desktop) fn start_load(
     path: PathBuf,
     scheduler: Option<&Arc<LoadScheduler>>,
 ) {
-    if let Some(ui) = ui_weak.upgrade()
-        && ui.get_search_active()
-    {
-        ui.set_search_active(false);
+    if let Some(ui) = ui_weak.upgrade() {
+        if ui.get_search_active() {
+            ui.set_search_active(false);
+        }
+        if ui.get_preview_visible() {
+            ui.set_preview_visible(false);
+        }
     }
     let Some(scheduler) = scheduler else {
         let _ = ui_weak.upgrade_in_event_loop(|ui| {

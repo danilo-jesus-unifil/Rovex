@@ -1,5 +1,6 @@
 use super::super::context::AppContext;
 use super::super::state::{selection_status, update_selection_visuals};
+use super::preview;
 use crate::converters::ConversionKind;
 use slint::{Model, SharedString};
 use std::path::Path;
@@ -12,10 +13,14 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
     let ui_weak = ctx.ui_weak.clone();
     let entries = ctx.entries.clone();
     let selection = Arc::clone(&ctx.selection);
+    let rows = Arc::clone(&ctx.directory_rows);
+    let preview_scheduler = ctx.preview_scheduler.clone();
     {
         let ui_weak = ui_weak.clone();
         let entries = entries.clone();
         let selection = Arc::clone(&selection);
+        let rows = Arc::clone(&rows);
+        let preview_scheduler = preview_scheduler.clone();
         ui.on_select_row(move |index, control, shift| {
             if index < 0 {
                 return;
@@ -39,6 +44,8 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
                     ui.set_status_text(SharedString::from(selection_status(&state)));
                 }
             }
+            drop(state);
+            preview::refresh_selection(&ui_weak, preview_scheduler.as_ref(), &rows, &selection);
         });
     }
 
@@ -46,6 +53,8 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
         let ui_weak = ui_weak.clone();
         let entries = entries.clone();
         let selection = Arc::clone(&selection);
+        let rows = Arc::clone(&rows);
+        let preview_scheduler = preview_scheduler.clone();
         ui.on_select_all(move || {
             let keys = (0..entries.row_count())
                 .filter_map(|row_index| entries.row_data(row_index))
@@ -63,6 +72,8 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
                     ui.set_status_text(SharedString::from(selection_status(&state)));
                 }
             }
+            drop(state);
+            preview::refresh_selection(&ui_weak, preview_scheduler.as_ref(), &rows, &selection);
         });
     }
 
@@ -70,6 +81,8 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
         let ui_weak = ui_weak.clone();
         let entries = entries.clone();
         let selection = Arc::clone(&selection);
+        let rows = Arc::clone(&rows);
+        let preview_scheduler = preview_scheduler.clone();
         ui.on_context_menu_requested(move |index| {
             if index < 0 {
                 return;
@@ -109,6 +122,8 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
                 is_regular_file && ConversionKind::Flac.accepts(Path::new(row.name.as_str())),
             );
             ui.set_context_menu_visible(true);
+            drop(state);
+            preview::refresh_selection(&ui_weak, preview_scheduler.as_ref(), &rows, &selection);
         });
     }
 }

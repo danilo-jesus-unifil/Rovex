@@ -11,6 +11,7 @@ build = "build.rs"
 
 [dependencies]
 copypasta = "=0.10.2"
+image = { version = "=0.25.10", default-features = false, features = ["bmp", "gif", "jpeg", "png", "webp"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # O CI Linux e os smoke tests usam Xvfb/X11; Wayland não é compilado nesse alvo.

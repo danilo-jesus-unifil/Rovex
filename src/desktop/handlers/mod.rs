@@ -7,6 +7,7 @@ mod filter;
 mod lifecycle;
 mod navigation;
 mod operations;
+mod preview;
 mod properties;
 mod search;
 mod selection;
@@ -22,6 +23,7 @@ pub(in crate::desktop) fn register_all(ctx: &AppContext) {
     dragdrop::register(ctx);
     selection::register(ctx);
     operations::register(ctx);
+    preview::register(ctx);
     properties::register(ctx);
     search::register(ctx);
     conversions::register(ctx);

@@ -1,6 +1,6 @@
 use super::jobs::{
-    ConversionRequest, ConversionScheduler, FilterScheduler, LoadScheduler, OperationRequest,
-    OperationScheduler, SearchScheduler,
+    ConversionRequest, ConversionScheduler, FilterScheduler, LoadAuxSchedulers, LoadScheduler,
+    OperationRequest, OperationScheduler, PreviewScheduler, SearchScheduler,
 };
 use super::locations::default_locations;
 use super::state::{LoadedRow, SelectionState, SharedRows, SharedSelection, SortSpec, TabManager};
@@ -29,6 +29,7 @@ pub(in crate::desktop) struct AppContext {
     pub(in crate::desktop) operation_scheduler: Option<Arc<OperationScheduler>>,
     pub(in crate::desktop) conversion_scheduler: Option<Arc<ConversionScheduler>>,
     pub(in crate::desktop) search_scheduler: Option<Arc<SearchScheduler>>,
+    pub(in crate::desktop) preview_scheduler: Option<Arc<PreviewScheduler>>,
     pub(in crate::desktop) pending_operation: Rc<std::cell::RefCell<Option<OperationRequest>>>,
     pub(in crate::desktop) pending_conversion: Rc<std::cell::RefCell<Option<ConversionRequest>>>,
 }
@@ -65,6 +66,7 @@ impl AppContext {
         let listing_options = Arc::new(Mutex::new(ListingOptions::default()));
         let clipboard = ClipboardStore::new().map(Arc::new).ok();
         let search_scheduler = SearchScheduler::new().map(Arc::new).ok();
+        let preview_scheduler = PreviewScheduler::new().map(Arc::new).ok();
         let load_scheduler = LoadScheduler::new(
             ui_weak.clone(),
             Arc::clone(&directory_rows),
@@ -72,7 +74,10 @@ impl AppContext {
             Arc::clone(&filter_generation),
             Arc::clone(&sort_spec),
             Arc::clone(&listing_options),
-            search_scheduler.clone(),
+            LoadAuxSchedulers {
+                search_scheduler: search_scheduler.clone(),
+                preview_scheduler: preview_scheduler.clone(),
+            },
         )
         .map(Arc::new)
         .ok();
@@ -110,6 +115,7 @@ impl AppContext {
             operation_scheduler,
             conversion_scheduler,
             search_scheduler,
+            preview_scheduler,
             pending_operation,
             pending_conversion,
         }

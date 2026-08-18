@@ -18,6 +18,10 @@ export component MainWindow inherits Window {
     in-out property <string> empty-state-text;
     in-out property <bool> external-drop-active: false;
     in-out property <bool> search-active: false;
+    in-out property <bool> preview-visible: false;
+    in-out property <image> preview-image;
+    in-out property <string> preview-title;
+    in-out property <string> preview-status;
     in-out property <int> sidebar-focus-index: -1;
     in-out property <bool> can-go-back: false;
     in-out property <bool> can-go-forward: false;
@@ -57,6 +61,7 @@ export component MainWindow inherits Window {
     callback filter-changed(string);
     callback recursive-search-requested();
     callback recursive-search-cancelled();
+    callback preview-dismissed();
     callback select-row(int, bool, bool);
     callback sort-requested(int);
     callback toggle-hidden-files-requested();
@@ -218,29 +223,90 @@ export component MainWindow inherits Window {
                     RovexFileList {
                         width: 100%;
                         height: 100%;
-                        entries <=> root.entries;
-                        status-text <=> root.status-text;
-                        empty-state-text <=> root.empty-state-text;
-                        focused-row-index <=> root.focused-row-index;
-                        sort-column <=> root.sort-column;
-                        sort-ascending <=> root.sort-ascending;
-                        back-requested => { root.back-requested(); }
-                        forward-requested => { root.forward-requested(); }
-                        navigate-up => { root.navigate-up(); }
-                        focus-path-requested => { toolbar.focus-path(); }
-                        focus-filter-requested => { toolbar.focus-filter(); }
-                        sort-requested(column) => { root.sort-requested(column); }
-                        select-row(index, control, shift) => { root.select-row(index, control, shift); }
-                        select-all => { root.select-all(); }
-                        activate(index) => { root.activate(index); }
-                        rename-requested => { root.rename-requested(); }
-                        delete-requested => { root.delete-requested(); }
-                        new-folder-requested => { root.new-folder-requested(); }
-                        clipboard-copy-requested => { root.clipboard-copy-requested(); }
-                        clipboard-cut-requested => { root.clipboard-cut-requested(); }
-                        clipboard-paste-requested => { root.clipboard-paste-requested(); }
-                        context-menu-requested(index) => { root.context-menu-requested(index); }
-                    }
+                            entries <=> root.entries;
+                            status-text <=> root.status-text;
+                            empty-state-text <=> root.empty-state-text;
+                            focused-row-index <=> root.focused-row-index;
+                            sort-column <=> root.sort-column;
+                            sort-ascending <=> root.sort-ascending;
+                            back-requested => { root.back-requested(); }
+                            forward-requested => { root.forward-requested(); }
+                            navigate-up => { root.navigate-up(); }
+                            focus-path-requested => { toolbar.focus-path(); }
+                            focus-filter-requested => { toolbar.focus-filter(); }
+                            sort-requested(column) => { root.sort-requested(column); }
+                            select-row(index, control, shift) => { root.select-row(index, control, shift); }
+                            select-all => { root.select-all(); }
+                            activate(index) => { root.activate(index); }
+                            rename-requested => { root.rename-requested(); }
+                            delete-requested => { root.delete-requested(); }
+                            new-folder-requested => { root.new-folder-requested(); }
+                            clipboard-copy-requested => { root.clipboard-copy-requested(); }
+                            clipboard-cut-requested => { root.clipboard-cut-requested(); }
+                            clipboard-paste-requested => { root.clipboard-paste-requested(); }
+                            context-menu-requested(index) => { root.context-menu-requested(index); }
+                        }
+                    if root.preview-visible: Rectangle {
+                        x: parent.width - 292px;
+                        y: 0px;
+                        width: 280px;
+                            height: 100%;
+                            horizontal-stretch: 0;
+                            background: DesignTokens.surface-secondary;
+                            border-width: 1px;
+                            border-color: DesignTokens.border;
+                            border-radius: DesignTokens.radius-medium;
+                            clip: true;
+                            VerticalLayout {
+                                padding: DesignTokens.sidebar-padding;
+                                spacing: DesignTokens.control-gap;
+                                HorizontalLayout {
+                                    height: 30px;
+                                    Text {
+                                        horizontal-stretch: 1;
+                                        text: root.preview-title;
+                                        color: DesignTokens.text-primary;
+                                        font-size: 13px;
+                                        font-weight: 600;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                    }
+                                    TouchArea {
+                                        width: 28px;
+                                        height: 28px;
+                                        clicked => { root.preview-dismissed(); }
+                                        Text {
+                                            width: 100%;
+                                            height: 100%;
+                                            text: "×";
+                                            color: DesignTokens.text-secondary;
+                                            font-size: 18px;
+                                            horizontal-alignment: center;
+                                            vertical-alignment: center;
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    height: 1px;
+                                    background: DesignTokens.border-subtle;
+                                }
+                                Image {
+                                    width: 100%;
+                                    height: 240px;
+                                    source: root.preview-image;
+                                    image-fit: contain;
+                                }
+                                Text {
+                                    width: 100%;
+                                    horizontal-alignment: center;
+                                    text: root.preview-status;
+                                    color: DesignTokens.text-secondary;
+                                    font-size: 12px;
+                                    wrap: word-wrap;
+                                }
+                                Rectangle { vertical-stretch: 1; }
+                            }
+                        }
                     drop-target := DropArea {
                         width: 100%;
                         height: 100%;
