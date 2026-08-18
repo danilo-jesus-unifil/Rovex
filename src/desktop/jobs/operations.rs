@@ -1,7 +1,8 @@
 use super::types::{OperationKind, OperationOutcome, OperationRequest, OperationUpdate};
 use crate::converters::ConversionStage;
 use crate::operations::{
-    CopyProgress, OperationError, copy_file_atomic_with_progress, delete_entry, rename_entry,
+    CopyProgress, OperationError, copy_file_atomic_with_progress, create_directory, delete_entry,
+    rename_entry,
 };
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -180,6 +181,7 @@ where
                 rename_entry(source, &parent.join(name))
             }
             OperationKind::Delete => delete_entry(source),
+            OperationKind::CreateDirectory => create_directory(source),
         };
 
         match result {

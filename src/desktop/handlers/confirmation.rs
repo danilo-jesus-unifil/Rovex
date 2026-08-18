@@ -75,6 +75,17 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
                     }
                 }
                 OperationKind::Delete => {}
+                OperationKind::CreateDirectory => {
+                    let input = ui.get_operation_dialog_input().to_string();
+                    match validate_rename_name(&input) {
+                        Ok(name) => request.sources = vec![request.refresh_path.join(name)],
+                        Err(error) => {
+                            ui.set_operation_dialog_message(SharedString::from(error));
+                            *pending_operation.borrow_mut() = Some(request);
+                            return;
+                        }
+                    }
+                }
             }
             let Some(scheduler) = operation_scheduler.as_ref() else {
                 ui.set_operation_dialog_message("O worker de operações está indisponível.".into());

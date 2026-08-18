@@ -21,6 +21,7 @@ export component RovexFileList inherits Rectangle {
     callback activate(int);
     callback rename-requested();
     callback delete-requested();
+    callback new-folder-requested();
     callback context-menu-requested(int);
 
     background: DesignTokens.surface;
@@ -144,6 +145,9 @@ export component RovexFileList inherits Rectangle {
                     accept
                 } else if (event.modifiers.alt && event.text == Key.RightArrow) {
                     root.forward-requested();
+                    accept
+                } else if (event.modifiers.control && event.modifiers.shift && (event.text == "n" || event.text == "N")) {
+                    root.new-folder-requested();
                     accept
                 } else if (event.text == Key.F2) {
                     root.rename-requested();

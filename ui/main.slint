@@ -53,6 +53,7 @@ export component MainWindow inherits Window {
     callback select-row(int, bool, bool);
     callback sort-requested(int);
     callback toggle-hidden-files-requested();
+    callback new-folder-requested();
     callback select-all();
     callback activate(int);
     callback copy-requested();
@@ -103,6 +104,7 @@ export component MainWindow inherits Window {
             navigate-to(path) => { root.navigate-to(path); }
             filter-changed(text) => { root.filter-changed(text); }
             toggle-hidden-files-requested => { root.toggle-hidden-files-requested(); }
+            new-folder-requested => { root.new-folder-requested(); }
             copy-requested => { root.copy-requested(); }
             move-requested => { root.move-requested(); }
             rename-requested => { root.rename-requested(); }
@@ -209,6 +211,7 @@ export component MainWindow inherits Window {
                 activate(index) => { root.activate(index); }
                 rename-requested => { root.rename-requested(); }
                 delete-requested => { root.delete-requested(); }
+                new-folder-requested => { root.new-folder-requested(); }
                 context-menu-requested(index) => { root.context-menu-requested(index); }
             }
             }

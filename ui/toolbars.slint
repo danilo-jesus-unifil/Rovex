@@ -22,6 +22,7 @@ export component RovexToolbar inherits VerticalLayout {
     callback navigate-to(string);
     callback filter-changed(string);
     callback toggle-hidden-files-requested;
+    callback new-folder-requested;
 
     public function focus-path() {
         path-input.focus-editor();
@@ -168,6 +169,14 @@ export component RovexToolbar inherits VerticalLayout {
             padding: 4px;
             spacing: DesignTokens.control-gap;
             cross-axis-alignment: center;
+            RovexButton {
+                width: 100px;
+                text: "Nova pasta";
+                tooltip: "Criar uma nova pasta nesta localização";
+                accessible-label: "Criar nova pasta";
+                enabled: !root.operation-busy;
+                clicked => { root.new-folder-requested(); }
+            }
             RovexButton {
                 width: 86px;
                 text: "Ocultos";

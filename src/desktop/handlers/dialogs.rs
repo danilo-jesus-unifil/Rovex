@@ -58,6 +58,7 @@ pub(in crate::desktop) fn show_selected_operation_dialog(
             String::new(),
             false,
         ),
+        OperationKind::CreateDirectory => return,
     };
     let request = OperationRequest {
         kind,
@@ -78,6 +79,30 @@ pub(in crate::desktop) fn show_selected_operation_dialog(
         &message,
         &input,
         needs_input,
+    );
+}
+
+pub(in crate::desktop) fn show_create_directory_dialog(
+    ui_weak: &slint::Weak<MainWindow>,
+    pending: &Rc<std::cell::RefCell<Option<OperationRequest>>>,
+    tabs: &Rc<std::cell::RefCell<TabManager>>,
+) {
+    let current = tabs.borrow().active().current.clone();
+    let request = OperationRequest {
+        kind: OperationKind::CreateDirectory,
+        sources: Vec::new(),
+        destination_directory: None,
+        rename_name: None,
+        refresh_path: current,
+    };
+    show_operation_dialog(
+        ui_weak,
+        pending,
+        request,
+        "Nova pasta",
+        "Informe um único nome para a nova pasta. Separadores de caminho, ponto e ponto-ponto não são permitidos.",
+        "",
+        true,
     );
 }
 

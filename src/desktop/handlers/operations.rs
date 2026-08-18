@@ -15,6 +15,15 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
     {
         let ui_weak = ui_weak.clone();
         let pending_operation = pending_operation.clone();
+        let tabs = tabs.clone();
+        ui.on_new_folder_requested(move || {
+            dialogs::show_create_directory_dialog(&ui_weak, &pending_operation, &tabs);
+        });
+    }
+
+    {
+        let ui_weak = ui_weak.clone();
+        let pending_operation = pending_operation.clone();
         let directory_rows = Arc::clone(&directory_rows);
         let selection = Arc::clone(&selection);
         let tabs = tabs.clone();

@@ -7,6 +7,7 @@ pub(in crate::desktop) enum OperationKind {
     Move,
     Rename,
     Delete,
+    CreateDirectory,
 }
 
 #[derive(Debug, Clone)]
@@ -91,6 +92,7 @@ impl OperationOutcome {
             OperationKind::Move => "movimentação",
             OperationKind::Rename => "renomeação",
             OperationKind::Delete => "exclusão",
+            OperationKind::CreateDirectory => "criação de pasta",
         };
         let mut message = if self.cancelled {
             format!(
