@@ -22,6 +22,9 @@ export component RovexFileList inherits Rectangle {
     callback rename-requested();
     callback delete-requested();
     callback new-folder-requested();
+    callback clipboard-copy-requested();
+    callback clipboard-cut-requested();
+    callback clipboard-paste-requested();
     callback context-menu-requested(int);
 
     background: DesignTokens.surface;
@@ -130,7 +133,16 @@ export component RovexFileList inherits Rectangle {
             height: 100%;
             focus-on-click: true;
             key-pressed(event) => {
-                if (event.modifiers.control && (event.text == "a" || event.text == "A")) {
+                if (event.modifiers.control && (event.text == "c" || event.text == "C")) {
+                    root.clipboard-copy-requested();
+                    accept
+                } else if (event.modifiers.control && (event.text == "x" || event.text == "X")) {
+                    root.clipboard-cut-requested();
+                    accept
+                } else if (event.modifiers.control && (event.text == "v" || event.text == "V")) {
+                    root.clipboard-paste-requested();
+                    accept
+                } else if (event.modifiers.control && (event.text == "a" || event.text == "A")) {
                     root.select-all();
                     root.focused-row-index = -1;
                     accept

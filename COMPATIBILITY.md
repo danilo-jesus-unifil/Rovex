@@ -39,6 +39,8 @@ Não há chamada Win32 direta nem API exclusiva do Windows 11 no núcleo atual. 
 
 O P1 de arquivos ocultos agora usa `symlink_metadata`: no host, nomes iniciados por ponto são ocultos; no Windows, os atributos `HIDDEN` e `SYSTEM` também são lidos sem seguir links ou reparse points. O botão Ocultos alterna a visibilidade e identifica entradas como `Arquivo oculto`, `Pasta oculta` ou `Item do sistema`; nenhuma operação protegida é disparada automaticamente. O fluxo foi testado sob Xvfb, mas a confirmação de atributos NTFS reais e a validação nativa Windows 10/11 continuam pendentes.
 
+O P1 de clipboard usa `copypasta` 0.10.2 como adapter real do clipboard do sistema e mantém o provider vivo no `AppContext`, requisito importante no X11 para que Cut/Paste continue disponível depois do callback. Ctrl+C, Ctrl+X e Ctrl+V serializam um payload tipado do Rovex e Paste reutiliza o scheduler de operações, com cancelamento, refresh e mensagens estruturadas. A interoperabilidade com Explorer e aplicações externas — incluindo formatos nativos como `CF_HDROP` e atalhos de link — ainda não é declarada como concluída.
+
 ## Filesystem e Unicode
 
 A camada de segurança recusa caminhos relativos, raízes e componentes pai ambíguos ou simbólicos nas operações sensíveis. Os testes locais agora cobrem preservação de nomes Unicode com espaços e pontuação, caminhos aninhados com mais de 260 bytes no host, pontos finais em sistemas que os suportam e nomes reservados via teste condicionado ao Windows. Isso não substitui a execução em NTFS, exFAT, FAT32, USB, UNC/SMB, junctions, reparse points, arquivos em uso, permissões negadas ou long paths nativos no Windows.

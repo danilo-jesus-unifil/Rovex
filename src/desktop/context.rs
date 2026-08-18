@@ -5,6 +5,7 @@ use super::jobs::{
 use super::locations::default_locations;
 use super::state::{LoadedRow, SelectionState, SharedRows, SharedSelection, SortSpec, TabManager};
 use super::{FileRow, LocationRow, MainWindow, TabRow};
+use crate::clipboard::ClipboardStore;
 use crate::filesystem::ListingOptions;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use std::path::PathBuf;
@@ -22,6 +23,7 @@ pub(in crate::desktop) struct AppContext {
     pub(in crate::desktop) filter_generation: Arc<AtomicU64>,
     pub(in crate::desktop) sort_spec: Arc<Mutex<SortSpec>>,
     pub(in crate::desktop) listing_options: Arc<Mutex<ListingOptions>>,
+    pub(in crate::desktop) clipboard: Option<Arc<ClipboardStore>>,
     pub(in crate::desktop) load_scheduler: Option<Arc<LoadScheduler>>,
     pub(in crate::desktop) filter_scheduler: Option<Arc<FilterScheduler>>,
     pub(in crate::desktop) operation_scheduler: Option<Arc<OperationScheduler>>,
@@ -60,6 +62,7 @@ impl AppContext {
         let filter_generation = Arc::new(AtomicU64::new(0));
         let sort_spec = Arc::new(Mutex::new(SortSpec::default()));
         let listing_options = Arc::new(Mutex::new(ListingOptions::default()));
+        let clipboard = ClipboardStore::new().map(Arc::new).ok();
         let load_scheduler = LoadScheduler::new(
             ui_weak.clone(),
             Arc::clone(&directory_rows),
@@ -99,6 +102,7 @@ impl AppContext {
             filter_generation,
             sort_spec,
             listing_options,
+            clipboard,
             load_scheduler,
             filter_scheduler,
             operation_scheduler,

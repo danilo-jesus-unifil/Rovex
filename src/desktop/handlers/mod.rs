@@ -1,3 +1,4 @@
+mod clipboard;
 mod confirmation;
 mod conversions;
 mod dialogs;
@@ -19,6 +20,7 @@ pub(in crate::desktop) fn register_all(ctx: &AppContext) {
     operations::register(ctx);
     conversions::register(ctx);
     confirmation::register(ctx);
+    clipboard::register(ctx);
     lifecycle::register(ctx);
     filter::register(ctx);
     sorting::register(ctx);

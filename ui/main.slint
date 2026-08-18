@@ -54,6 +54,9 @@ export component MainWindow inherits Window {
     callback sort-requested(int);
     callback toggle-hidden-files-requested();
     callback new-folder-requested();
+    callback clipboard-copy-requested();
+    callback clipboard-cut-requested();
+    callback clipboard-paste-requested();
     callback select-all();
     callback activate(int);
     callback copy-requested();
@@ -212,6 +215,9 @@ export component MainWindow inherits Window {
                 rename-requested => { root.rename-requested(); }
                 delete-requested => { root.delete-requested(); }
                 new-folder-requested => { root.new-folder-requested(); }
+                clipboard-copy-requested => { root.clipboard-copy-requested(); }
+                clipboard-cut-requested => { root.clipboard-cut-requested(); }
+                clipboard-paste-requested => { root.clipboard-paste-requested(); }
                 context-menu-requested(index) => { root.context-menu-requested(index); }
             }
             }
