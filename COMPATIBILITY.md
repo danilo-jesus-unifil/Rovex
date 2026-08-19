@@ -73,6 +73,12 @@ No alvo Windows, `delete_entry` valida a origem e usa `SHFileOperationW` com `FO
 
 O cross-check Windows GNU compila o adapter, os bindings UTF-16 e a mensagem específica de Lixeira. Ainda não há execução nativa Windows 10/11 nesta sessão: a matriz deve validar uma Lixeira real, restauração no Explorer, paths Unicode/longos, UNC/SMB, volumes removíveis, ACLs, arquivos em uso, políticas de grupo e comportamento quando a Lixeira estiver desabilitada. `IFileOperation`/COM, recomendada pela Microsoft como API mais nova, permanece uma evolução posterior; não se declara compatibilidade nativa apenas pelo cross-build.
 
+## Processos externos e conversões
+
+A conversão chama o backend resolvido por caminho absoluto usando `Command::new` e `.arg`/`.args`, sem shell ou concatenação de comandos. FFmpeg e ffprobe recebem `Stdio::null()` no stdin; somente FFmpeg recebe `-nostdin`, pois o ffprobe disponível na validação rejeitou essa opção. stdout/stderr são lidos em threads dedicadas com limite de 64 KiB. Cancelamento e timeout chamam `kill`, `wait` e join dos leitores antes de retornar, e a pipeline só publica o temporário depois de validar o codec.
+
+Testes fake cobrem cancelamento, timeout, argumentos e ausência de processos abandonados; vinte rodadas paralelas passaram. O smoke gráfico criou JPEG XL real com 67 bytes e o teste com o binário separado da imagem validou `jpegxl` por ffprobe. A execução nativa dos backends em Windows 10/11, políticas de segurança, ACLs e diferenças de build do FFmpeg continuam dependentes de um runner Windows real.
+
 ## Gaps de compatibilidade
 
 A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.
