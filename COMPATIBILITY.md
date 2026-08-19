@@ -81,7 +81,7 @@ Testes fake cobrem cancelamento, timeout, argumentos e ausência de processos ab
 
 ## Gaps de compatibilidade
 
-A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.
+O workflow `.github/workflows/ci.yml` agora usa `windows-latest` para executar a qualidade Rust no alvo nativo e `scripts/verify_windows_native.ps1`, que lista um diretório temporário com Unicode e espaços sem abrir a UI; as permissões permanecem `contents: read`. Isso comprova um caminho nativo não interativo, mas não é um teste de Explorer. A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.
 
 > **Conclusão:** o Rovex possui uma stack compilável e uma política de fallback coerente para Windows 10/11, mas a conformidade nativa do sistema operacional permanece parcialmente não verificada. Isso é uma limitação registrada, não uma afirmação implícita de suporte já provado.
 

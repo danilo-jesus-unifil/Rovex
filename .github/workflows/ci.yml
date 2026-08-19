@@ -46,6 +46,11 @@ jobs:
       - name: Build release
         run: cargo build --release
 
+      - name: Native Windows CLI smoke
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: ./scripts/verify_windows_native.ps1
+
   windows-gnu-cross-build:
     name: Windows GNU cross-build
     runs-on: ubuntu-latest
