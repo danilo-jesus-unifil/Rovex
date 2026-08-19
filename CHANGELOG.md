@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.13] — 2026-08-19
+
+A versão 0.1.13 corrige três falhas reais encontradas pelo primeiro runner Windows nativo do Rovex.
+
+| Área | Correção |
+|---|---|
+| Filesystem Windows | `validate_destination` rejeita `CON`, `PRN`, `AUX`, `NUL`, `CLOCK$`, `COM1`–`COM9` e `LPT1`–`LPT9`, incluindo variantes com extensão e pontuação/espaços finais. |
+| Settings Windows | O round-trip usa caminho absoluto nativo; gravações concorrentes são serializadas pelo processo para evitar `PermissionDenied` durante `MoveFileExW`. |
+| CI | O primeiro workflow Windows revelou e documentou as regressões; o smoke CLI nativo preserva Unicode e espaços sem abrir a UI. |
+| Qualidade | Correções passam em testes host, Clippy/cross-build Windows e verificação de manifesto; a execução do workflow confirma o comportamento nativo. |
+
 ## [0.1.12] — 2026-08-19
 
 A versão 0.1.12 endurece a execução de conversores externos e corrige uma regressão de validação que usava uma opção incompatível com o ffprobe disponível.
