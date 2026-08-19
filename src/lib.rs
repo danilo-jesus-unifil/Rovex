@@ -13,6 +13,7 @@ pub mod preview;
 pub mod search;
 pub mod security;
 pub mod settings;
+mod terminal;
 
 pub use converters::{
     ConversionError, ConversionKind, ConversionReport, ConversionStage, convert_file,
@@ -28,3 +29,7 @@ pub use search::{
     search_by_name,
 };
 pub use security::{DestinationPolicy, validate_destination};
+pub use terminal::{
+    TerminalError, is_supported as terminal_supported, open_terminal_for_item, open_terminal_here,
+    target_directory,
+};

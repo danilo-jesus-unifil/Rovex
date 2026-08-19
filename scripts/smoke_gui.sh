@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [ -d "${HOME}/.cargo/bin" ]; then
+    PATH="${HOME}/.cargo/bin:${PATH}"
+    export PATH
+fi
 if ! command -v xvfb-run >/dev/null 2>&1; then
     printf '%s\n' 'xvfb-run não está instalado; smoke test gráfico não executado.'
     exit 0

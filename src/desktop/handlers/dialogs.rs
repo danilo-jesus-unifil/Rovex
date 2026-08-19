@@ -130,6 +130,7 @@ pub(in crate::desktop) fn show_conversion_dialog(
         ui.set_context_menu_can_opus(false);
         ui.set_context_menu_can_png(false);
         ui.set_context_menu_can_flac(false);
+        ui.set_context_menu_can_terminal(false);
         ui.set_operation_dialog_title("Converter arquivos".into());
         ui.set_operation_dialog_message(SharedString::from(format!(
             "Confirme a conversão de {} item(ns) para {}. A saída será criada no mesmo diretório e nunca sobrescreverá um arquivo existente.",
@@ -170,6 +171,7 @@ pub(in crate::desktop) fn show_operation_dialog(
         ui.set_context_menu_can_opus(false);
         ui.set_context_menu_can_png(false);
         ui.set_context_menu_can_flac(false);
+        ui.set_context_menu_can_terminal(false);
         ui.set_operation_dialog_visible(true);
     }
 }

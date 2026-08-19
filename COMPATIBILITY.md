@@ -73,6 +73,12 @@ No alvo Windows, `delete_entry` valida a origem e usa `IFileOperation`/COM com `
 
 O cross-check Windows GNU compila o adapter, os bindings UTF-16 e a mensagem específica de Lixeira; o runner `windows-latest` executa a suíte nativa e o smoke CLI, mas não fixa o build do Windows nem valida visualmente a restauração. A matriz interativa ainda deve validar uma Lixeira real, restauração no Explorer, paths Unicode/longos, UNC/SMB, volumes removíveis, ACLs, arquivos em uso, políticas de grupo e comportamento quando a Lixeira estiver desabilitada. `IFileOperation`/COM atende o primeiro passo de integração nativa, mas não transforma o cross-build ou o CI não interativo em prova completa de compatibilidade Windows 10/11.
 
+## Terminal contextual
+
+A ação `Abrir Terminal aqui` é explícita e só aparece habilitada no alvo Windows. Uma pasta é usada diretamente; para um arquivo, o diretório pai é derivado sem canonicalização que altere o nome apresentado. O worker valida caminho absoluto existente e tenta, nesta ordem, `wt.exe -w new new-tab --startingDirectory <path>`, `powershell.exe -NoLogo -NoExit` e `cmd.exe /D /K`; o caminho também é passado por `current_dir`. Cada argumento fica separado no `Command`, sem `cmd /c`, `powershell -Command`, `start` ou concatenação de input. O spawn não espera o terminal fechar e o resultado volta ao event loop.
+
+O Linux mantém o botão desabilitado por não ser a plataforma de produto deste adapter. Testes unitários cobrem Unicode, espaços, arquivo/pai, diretório, caminhos inválidos e separação do argumento Windows; a captura Xvfb confirma o botão desabilitado, o tema escuro e o menu rolável. Uma sessão interativa Windows 10/11 ainda precisa confirmar a presença do alias Windows Terminal, PowerShell e Prompt de Comando em políticas de máquina reais.
+
 ## Processos externos e conversões
 
 A conversão chama o backend resolvido por caminho absoluto usando `Command::new` e `.arg`/`.args`, sem shell ou concatenação de comandos. FFmpeg e ffprobe recebem `Stdio::null()` no stdin; somente FFmpeg recebe `-nostdin`, pois o ffprobe disponível na validação rejeitou essa opção. stdout/stderr são lidos em threads dedicadas com limite de 64 KiB. Cancelamento e timeout chamam `kill`, `wait` e join dos leitores antes de retornar, e a pipeline só publica o temporário depois de validar o codec.

@@ -12,6 +12,7 @@ mod properties;
 mod search;
 mod selection;
 mod sorting;
+mod terminal;
 mod visibility;
 
 use super::context::AppContext;
@@ -32,5 +33,6 @@ pub(in crate::desktop) fn register_all(ctx: &AppContext) {
     lifecycle::register(ctx);
     filter::register(ctx);
     sorting::register(ctx);
+    terminal::register(ctx);
     visibility::register(ctx);
 }

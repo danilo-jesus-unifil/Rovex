@@ -44,6 +44,7 @@ export component MainWindow inherits Window {
     in-out property <bool> context-menu-can-opus: false;
     in-out property <bool> context-menu-can-png: false;
     in-out property <bool> context-menu-can-flac: false;
+    in-out property <bool> context-menu-can-terminal: false;
     in-out property <string> operation-dialog-title;
     in-out property <string> operation-dialog-message;
     in-out property <string> operation-dialog-input;
@@ -86,6 +87,7 @@ export component MainWindow inherits Window {
     callback context-menu-rename-requested();
     callback context-menu-delete-requested();
     callback context-menu-properties-requested();
+    callback context-menu-terminal-requested();
     callback drop-can-drop(data-transfer) -> DragAction;
     callback drop-received(data-transfer) -> DragAction;
     callback context-menu-convert-jxl-requested();
@@ -362,12 +364,14 @@ export component MainWindow inherits Window {
         can-opus: root.context-menu-can-opus;
         can-png: root.context-menu-can-png;
         can-flac: root.context-menu-can-flac;
+        can-terminal: root.context-menu-can-terminal;
         dismissed => { root.context-menu-dismissed(); }
         copy-requested => { root.context-menu-copy-requested(); }
         move-requested => { root.context-menu-move-requested(); }
         rename-requested => { root.context-menu-rename-requested(); }
         delete-requested => { root.context-menu-delete-requested(); }
         properties-requested => { root.context-menu-properties-requested(); }
+        terminal-requested => { root.context-menu-terminal-requested(); }
         convert-jxl-requested => { root.context-menu-convert-jxl-requested(); }
         convert-opus-requested => { root.context-menu-convert-opus-requested(); }
         convert-png-requested => { root.context-menu-convert-png-requested(); }
