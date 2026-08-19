@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.14] — 2026-08-19
+
+A versão 0.1.14 evolui a integração da Lixeira no Windows para `IFileOperation`/COM sem remover a rota de compatibilidade pré-execução.
+
+| Área | Mudança |
+|---|---|
+| Windows Shell | Exclusão usa `SHCreateItemFromParsingName`, `IShellItem` e `FOFX_RECYCLEONDELETE` dentro do worker de operações; não há shell externo nem execução na UI. |
+| Fallback | `SHFileOperationW` permanece somente para indisponibilidade de COM, parsing ou enfileiramento antes de `PerformOperations`; falhas após o início não são repetidas. |
+| Erros | HRESULTs negativos e `GetAnyOperationsAborted` são convertidos em `OperationError` estruturado; exclusão permanente silenciosa continua proibida. |
+| Segurança | Mantidos validação de origem, bloqueio de raiz, rejeição de diretórios não vazios, `FOFX_EARLYFAILURE` e `FOF_NORECURSION`. |
+| Testes | Cobertura de buffers UTF-16, GUIDs oficiais, flags, HRESULT e regra de fallback; suíte nativa Windows passou no CI. |
+| Qualidade | Host/cross Clippy, check, link de testes Windows, audit/deny, builds release, manifesto e todos os smoke tests passaram. |
+
 ## [0.1.13] — 2026-08-19
 
 A versão 0.1.13 corrige três falhas reais encontradas pelo primeiro runner Windows nativo do Rovex.

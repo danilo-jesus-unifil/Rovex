@@ -2,7 +2,7 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é a release portable `v0.1.13` de um protótipo desktop funcional. Ele abre uma janela Slint com tema escuro, abas reais e ícone próprio, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, persiste preferências por usuário, envia exclusões à Lixeira no Windows, oferece busca recursiva, preview seguro de imagens/texto, drag-and-drop e conversões reais via FFmpeg/ffprobe. A distribuição é um ZIP portable sem assinatura digital; ainda não é um Explorer completo, não possui instalador MSI/MSIX nem atualização automática.
+> O estado atual é a release portable `v0.1.14` de um protótipo desktop funcional. Ele abre uma janela Slint com tema escuro, abas reais e ícone próprio, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, persiste preferências por usuário, envia exclusões à Lixeira no Windows, oferece busca recursiva, preview seguro de imagens/texto, drag-and-drop e conversões reais via FFmpeg/ffprobe. A distribuição é um ZIP portable sem assinatura digital; ainda não é um Explorer completo, não possui instalador MSI/MSIX nem atualização automática.
 
 ## Estado atual
 
@@ -34,7 +34,7 @@ O núcleo implementa listagem real de diretórios, classificação de arquivos e
 | Imagens → PNG e áudio → FLAC | Implementado via FFmpeg e validado por ffprobe |
 | Busca recursiva, preview e drag and drop | Implementados com workers, limites e cancelamento; execução nativa Windows ainda pendente |
 | Conversores PDF/OCR | Fora do escopo desta release; não simulados |
-| Pacote portable Windows | Implementado em ZIP v0.1.13 com manifesto e SHA-256 |
+| Pacote portable Windows | Implementado em ZIP v0.1.14 com manifesto e SHA-256 |
 | Instalador, assinatura e atualização | Ainda planejados; não há certificado ou assinatura fictícia |
 
 ## Verificação local
@@ -51,7 +51,7 @@ cargo build --release --target x86_64-pc-windows-gnu
 cargo audit
 cargo deny check
 ./scripts/package_windows_portable.sh
-./scripts/verify_windows_portable.sh dist/rovex-v0.1.13-windows-x86_64-portable.zip
+./scripts/verify_windows_portable.sh dist/rovex-v0.1.14-windows-x86_64-portable.zip
 ./scripts/test_ui_jxl_separate_dirs.sh
 ./scripts/capture_tabs.sh
 ```
@@ -72,7 +72,7 @@ A execução gráfica foi testada em display virtual com carregamento de `/tmp`,
 
 ## Documentação
 
-A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.13.md`](RELEASE_REPORT-v0.1.13.md), a pesquisa de distribuição está em [`docs/distribution-research-2026-08-19.md`](docs/distribution-research-2026-08-19.md), a pesquisa de processos externos está em [`docs/external-process-research-2026-08-19.md`](docs/external-process-research-2026-08-19.md), a auditoria visual está em [`docs/ui-audit-initial.md`](docs/ui-audit-initial.md), o plano visual está em [`docs/ui-refactor-plan.md`](docs/ui-refactor-plan.md), o teste de abas está em [`scripts/capture_tabs.sh`](scripts/capture_tabs.sh), o teste gráfico de diretórios separados está em [`scripts/test_ui_jxl_separate_dirs.sh`](scripts/test_ui_jxl_separate_dirs.sh) e a pesquisa de descoberta de backends está em [`docs/ffmpeg-discovery-research.md`](docs/ffmpeg-discovery-research.md).
+A decisão arquitetural está em [`docs/architecture.md`](docs/architecture.md), o plano incremental está em [`docs/implementation-plan.md`](docs/implementation-plan.md), a estratégia de testes está em [`docs/testing.md`](docs/testing.md), a pesquisa do Slint está em [`docs/slint-research.md`](docs/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](COMPATIBILITY.md), a matriz de dependências está em [`DEPENDENCIES.md`](DEPENDENCIES.md), o relatório desta modernização está em [`MODERNIZATION_REPORT.md`](MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`FINAL_STABILITY_REPORT.md`](FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](CHANGELOG.md) e o relatório desta release está em [`RELEASE_REPORT-v0.1.14.md`](RELEASE_REPORT-v0.1.14.md), a pesquisa de distribuição está em [`docs/distribution-research-2026-08-19.md`](docs/distribution-research-2026-08-19.md), a pesquisa de processos externos está em [`docs/external-process-research-2026-08-19.md`](docs/external-process-research-2026-08-19.md), a auditoria visual está em [`docs/ui-audit-initial.md`](docs/ui-audit-initial.md), o plano visual está em [`docs/ui-refactor-plan.md`](docs/ui-refactor-plan.md), o teste de abas está em [`scripts/capture_tabs.sh`](scripts/capture_tabs.sh), o teste gráfico de diretórios separados está em [`scripts/test_ui_jxl_separate_dirs.sh`](scripts/test_ui_jxl_separate_dirs.sh) e a pesquisa de descoberta de backends está em [`docs/ffmpeg-discovery-research.md`](docs/ffmpeg-discovery-research.md).
 
 ## Segurança e dependências
 
