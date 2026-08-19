@@ -122,6 +122,7 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
                 is_regular_file && ConversionKind::Flac.accepts(Path::new(row.name.as_str())),
             );
             ui.set_context_menu_can_terminal(crate::terminal::is_supported());
+            ui.set_context_menu_can_open_with(is_regular_file && crate::open_with::is_supported());
             ui.set_context_menu_visible(true);
             drop(state);
             preview::refresh_selection(&ui_weak, preview_scheduler.as_ref(), &rows, &selection);

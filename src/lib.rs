@@ -8,6 +8,7 @@ pub mod clipboard;
 pub mod converters;
 pub mod desktop;
 pub mod filesystem;
+mod open_with;
 pub mod operations;
 pub mod preview;
 pub mod search;
@@ -19,6 +20,9 @@ pub use converters::{
     ConversionError, ConversionKind, ConversionReport, ConversionStage, convert_file,
 };
 pub use filesystem::{DirectoryEntry, EntryKind, FileSystem, FileSystemError};
+pub use open_with::{
+    OpenWithError, is_supported as open_with_supported, open_with_file, validate_file,
+};
 pub use operations::{
     CopyProgress, CopyReport, OperationError, copy_file_atomic, copy_file_atomic_with_progress,
     create_directory, delete_entry, rename_entry,

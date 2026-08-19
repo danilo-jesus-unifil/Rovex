@@ -8,6 +8,7 @@ export component ContextMenuOverlay inherits FocusScope {
     in property <bool> can-png;
     in property <bool> can-flac;
     in property <bool> can-terminal;
+    in property <bool> can-open-with;
     callback dismissed;
     callback copy-requested;
     callback move-requested;
@@ -15,6 +16,7 @@ export component ContextMenuOverlay inherits FocusScope {
     callback delete-requested;
     callback properties-requested;
     callback terminal-requested;
+    callback open-with-requested;
     callback convert-jxl-requested;
     callback convert-opus-requested;
     callback convert-png-requested;
@@ -112,6 +114,12 @@ export component ContextMenuOverlay inherits FocusScope {
                 enabled: root.can-terminal;
                 accessible-label: "Abrir um terminal no diretório do item";
                 clicked => { root.terminal-requested(); }
+            }
+            RovexButton {
+                text: "Abrir com...";
+                enabled: root.can-open-with;
+                accessible-label: "Escolher aplicativo para abrir o arquivo";
+                clicked => { root.open-with-requested(); }
             }
 
             Rectangle {

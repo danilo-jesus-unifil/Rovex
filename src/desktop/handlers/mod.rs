@@ -6,6 +6,7 @@ mod dragdrop;
 mod filter;
 mod lifecycle;
 mod navigation;
+mod open_with;
 mod operations;
 mod preview;
 mod properties;
@@ -21,6 +22,7 @@ pub(in crate::desktop) use navigation::update_tab_visuals;
 
 pub(in crate::desktop) fn register_all(ctx: &AppContext) {
     navigation::register(ctx);
+    open_with::register(ctx);
     dragdrop::register(ctx);
     selection::register(ctx);
     operations::register(ctx);
