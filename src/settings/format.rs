@@ -209,7 +209,10 @@ fn os_string_from_bytes(bytes: Vec<u8>) -> Option<OsString> {
         .chunks_exact(2)
         .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
         .collect::<Vec<_>>();
-    (bytes.len() % 2 == 0).then(|| OsString::from_wide(&units))
+    bytes
+        .len()
+        .is_multiple_of(2)
+        .then(|| OsString::from_wide(&units))
 }
 
 #[cfg(not(any(unix, windows)))]

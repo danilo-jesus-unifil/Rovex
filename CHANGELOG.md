@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.12] — 2026-08-19
+
+A versão 0.1.12 endurece a execução de conversores externos e corrige uma regressão de validação que usava uma opção incompatível com o ffprobe disponível.
+
+| Área | Mudança |
+|---|---|
+| Processos | Cleanup centralizado com `kill` + `wait` + join dos leitores em cancelamento, timeout e erros de spawn/espera. stdin é nulo para FFmpeg/ffprobe; argumentos continuam separados, sem shell. |
+| Limites | Timeout parametrizado nos testes e diagnóstico limitado a 64 KiB; nenhum processo abandonado deve permanecer após cancelamento. |
+| Compatibilidade | `-nostdin` permanece somente no FFmpeg; ffprobe evita a opção incompatível e usa `Stdio::null()`. |
+| Regressão UI | Smoke JPEG XL corrigido para a posição atual do menu contextual; conversão real voltou a criar saída JXL e passou por ffprobe. |
+| Qualidade | Testes fake de cancelamento/timeout/argumentos, stress de 20 rodadas e validação cross-Windows adicionados. |
+
 ## [0.1.11] — 2026-08-19
 
 A versão 0.1.11 consolida os lotes P1 de exploração e entrega a primeira distribuição portable verificável para Windows x86-64.

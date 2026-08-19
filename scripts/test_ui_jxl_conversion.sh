@@ -30,7 +30,7 @@ fi
 DISPLAY=":$xvfb_display" xdotool windowfocus "$window_id"
 DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 520 246 click 3
 sleep 0.4
-DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 180 320 click 1
+DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 180 365 click 1
 sleep 0.5
 DISPLAY=":$xvfb_display" import -display ":$xvfb_display" -window root artifacts/rovex-jxl-confirm.png
 DISPLAY=":$xvfb_display" xdotool mousemove --window "$window_id" 220 464 click 1

@@ -158,7 +158,7 @@ fn is_hidden_name_and_metadata(name: &OsStr, metadata: &fs::Metadata) -> bool {
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
-        return dot_hidden || metadata.file_attributes() & 0x2 != 0;
+        dot_hidden || metadata.file_attributes() & 0x2 != 0
     }
     #[cfg(not(windows))]
     {
@@ -171,7 +171,7 @@ fn is_system_metadata(metadata: &fs::Metadata) -> bool {
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
-        return metadata.file_attributes() & 0x4 != 0;
+        metadata.file_attributes() & 0x4 != 0
     }
     #[cfg(not(windows))]
     {

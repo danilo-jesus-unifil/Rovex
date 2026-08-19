@@ -6,12 +6,17 @@ use crate::security::ValidationError;
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
 const MAX_CONVERSION_DURATION: Duration = Duration::from_secs(5 * 60);
+
+fn terminate_child(child: &mut Child) {
+    let _ = child.kill();
+    let _ = child.wait();
+}
 
 pub(crate) fn spawn_ffmpeg(
     backend: &Path,
@@ -20,6 +25,26 @@ pub(crate) fn spawn_ffmpeg(
     kind: ConversionKind,
     cancel: &AtomicBool,
     stage: &mut impl FnMut(ConversionStage),
+) -> Result<(), ConversionError> {
+    spawn_ffmpeg_with_timeout(
+        backend,
+        source,
+        temporary,
+        kind,
+        cancel,
+        stage,
+        MAX_CONVERSION_DURATION,
+    )
+}
+
+pub(crate) fn spawn_ffmpeg_with_timeout(
+    backend: &Path,
+    source: &Path,
+    temporary: &Path,
+    kind: ConversionKind,
+    cancel: &AtomicBool,
+    stage: &mut impl FnMut(ConversionStage),
+    max_duration: Duration,
 ) -> Result<(), ConversionError> {
     let mut command = Command::new(backend);
     command
@@ -58,6 +83,7 @@ pub(crate) fn spawn_ffmpeg(
     stage(ConversionStage::Encoding);
     let mut child = command
         .arg(temporary)
+        .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
@@ -69,8 +95,7 @@ pub(crate) fn spawn_ffmpeg(
     let mut stderr_reader = match start_output_reader(child.stderr.take(), "rovex-ffmpeg-stderr") {
         Ok(reader) => reader,
         Err(error) => {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminate_child(&mut child);
             return Err(ConversionError::Process {
                 executable: "ffmpeg",
                 path: source.to_path_buf(),
@@ -78,17 +103,15 @@ pub(crate) fn spawn_ffmpeg(
             });
         }
     };
-    let deadline = Instant::now() + MAX_CONVERSION_DURATION;
+    let deadline = Instant::now() + max_duration;
     loop {
         if cancel.load(Ordering::Acquire) {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminate_child(&mut child);
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Cancelled);
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminate_child(&mut child);
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Timeout {
                 executable: "ffmpeg",
@@ -115,8 +138,7 @@ pub(crate) fn spawn_ffmpeg(
             }
             Ok(None) => thread::sleep(Duration::from_millis(80)),
             Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
+                terminate_child(&mut child);
                 let _ = join_output_reader(stderr_reader.take());
                 return Err(ConversionError::Process {
                     executable: "ffmpeg",
@@ -134,9 +156,25 @@ fn run_ffprobe(
     stream: &str,
     cancel: &AtomicBool,
 ) -> Result<std::process::Output, ConversionError> {
+    run_ffprobe_with_timeout(
+        backend,
+        destination,
+        stream,
+        cancel,
+        MAX_CONVERSION_DURATION,
+    )
+}
+
+pub(crate) fn run_ffprobe_with_timeout(
+    backend: &Path,
+    destination: &Path,
+    stream: &str,
+    cancel: &AtomicBool,
+    max_duration: Duration,
+) -> Result<std::process::Output, ConversionError> {
     let mut child = Command::new(backend)
         .arg("-hide_banner")
-        .arg("-v")
+        .arg("-loglevel")
         .arg("error")
         .arg("-select_streams")
         .arg(stream)
@@ -145,6 +183,7 @@ fn run_ffprobe(
         .arg("-of")
         .arg("default=nw=1:nk=1")
         .arg(destination)
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -156,8 +195,7 @@ fn run_ffprobe(
     let mut stdout_reader = match start_output_reader(child.stdout.take(), "rovex-ffprobe-stdout") {
         Ok(reader) => reader,
         Err(error) => {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminate_child(&mut child);
             return Err(ConversionError::Process {
                 executable: "ffprobe",
                 path: destination.to_path_buf(),
@@ -168,8 +206,7 @@ fn run_ffprobe(
     let mut stderr_reader = match start_output_reader(child.stderr.take(), "rovex-ffprobe-stderr") {
         Ok(reader) => reader,
         Err(error) => {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminate_child(&mut child);
             let _ = join_output_reader(stdout_reader.take());
             return Err(ConversionError::Process {
                 executable: "ffprobe",
@@ -178,18 +215,16 @@ fn run_ffprobe(
             });
         }
     };
-    let deadline = Instant::now() + MAX_CONVERSION_DURATION;
+    let deadline = Instant::now() + max_duration;
     loop {
         if cancel.load(Ordering::Acquire) {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminate_child(&mut child);
             let _ = join_output_reader(stdout_reader.take());
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Cancelled);
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminate_child(&mut child);
             let _ = join_output_reader(stdout_reader.take());
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Timeout {

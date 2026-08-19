@@ -60,7 +60,7 @@ pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
         #[cfg(windows)]
         {
             ensure_directory_empty(path)?;
-            return super::recycle::delete_to_recycle_bin(path);
+            super::recycle::delete_to_recycle_bin(path)
         }
         #[cfg(not(windows))]
         {

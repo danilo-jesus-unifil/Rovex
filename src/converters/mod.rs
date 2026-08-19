@@ -4,6 +4,8 @@ mod pipeline;
 mod process;
 mod process_output;
 #[cfg(test)]
+mod process_tests;
+#[cfg(test)]
 mod tests;
 mod types;
 #[cfg(windows)]
