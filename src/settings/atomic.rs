@@ -1,8 +1,10 @@
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+static WRITE_LOCK: Mutex<()> = Mutex::new(());
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub(super) fn write_and_replace(
@@ -10,6 +12,9 @@ pub(super) fn write_and_replace(
     target: &Path,
     content: &str,
 ) -> Result<(), io::Error> {
+    let _guard = WRITE_LOCK
+        .lock()
+        .map_err(|_| io::Error::other("o lock de configurações foi envenenado"))?;
     let temporary_path = parent.join(temp_name(target));
     let result = write_temporary(&temporary_path, content)
         .and_then(|()| replace_file(&temporary_path, target));

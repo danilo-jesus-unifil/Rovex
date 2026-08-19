@@ -211,12 +211,23 @@ mod tests {
         ))
     }
 
+    fn unicode_absolute_path() -> PathBuf {
+        #[cfg(windows)]
+        {
+            PathBuf::from(r"C:\Rovex\ação segura")
+        }
+        #[cfg(not(windows))]
+        {
+            PathBuf::from("/tmp/ação segura")
+        }
+    }
+
     #[test]
     fn round_trips_preferences_and_unicode_path() {
         let path = test_path("roundtrip").join("settings.v1.conf");
         let store = SettingsStore::from_path(path.clone());
         let settings = Settings {
-            last_path: Some(PathBuf::from("/tmp/ação segura")),
+            last_path: Some(unicode_absolute_path()),
             show_hidden_files: true,
             sort_column: 4,
             sort_ascending: false,

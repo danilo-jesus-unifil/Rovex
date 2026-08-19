@@ -1,3 +1,5 @@
+#[cfg(windows)]
+use std::ffi::OsStr;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -110,6 +112,19 @@ fn destination_parent(path: &Path) -> &Path {
         .unwrap_or_else(|| Path::new("."))
 }
 
+#[cfg(windows)]
+fn is_reserved_windows_name(name: &OsStr) -> bool {
+    let name = name.to_string_lossy();
+    let trimmed = name.trim_end_matches([' ', '.']);
+    let stem = trimmed.split('.').next().unwrap_or_default();
+    let uppercase = stem.to_ascii_uppercase();
+    matches!(uppercase.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CLOCK$")
+        || (uppercase.len() == 4
+            && (uppercase.starts_with("COM") || uppercase.starts_with("LPT"))
+            && uppercase.as_bytes()[3].is_ascii_digit()
+            && uppercase.as_bytes()[3] != b'0')
+}
+
 pub fn validate_destination(
     source: Option<&Path>,
     destination: &Path,
@@ -184,6 +199,13 @@ pub fn validate_destination(
         return Err(ValidationError::InvalidPath {
             path: destination.to_path_buf(),
             reason: "componente final ambíguo",
+        });
+    }
+    #[cfg(windows)]
+    if is_reserved_windows_name(file_name) {
+        return Err(ValidationError::InvalidPath {
+            path: destination.to_path_buf(),
+            reason: "nome reservado do Windows",
         });
     }
 
