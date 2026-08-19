@@ -1,0 +1,11 @@
+Rovex portable para Windows x86-64
+
+1. Extraia o ZIP para uma pasta escolhida por você.
+2. Verifique o SHA-256 do ZIP usando o arquivo .sha256 publicado junto.
+3. Execute rovex.exe. O aplicativo não precisa ser instalado e não solicita privilégios administrativos.
+4. Na primeira execução, o Windows pode mostrar um aviso porque este artefato não está assinado digitalmente. Confirme a origem e a soma SHA-256 antes de decidir executar.
+5. Conversões de áudio e imagem são opcionais e exigem ffmpeg.exe e ffprobe.exe fornecidos pelo usuário. O Rovex não baixa executáveis em runtime.
+
+A configuração do Rovex é salva no perfil do usuário, não na pasta portable. A exclusão em Windows usa a Lixeira quando a Shell API estiver disponível; uma falha preserva o item e é exibida pela aplicação.
+
+Esta distribuição foi compilada para x86-64 Windows GNU. Windows 10/11 nativo, SmartScreen, ACLs, DPI, paths UNC/longos e restauração da Lixeira devem ser validados no ambiente de destino antes de uso operacional.

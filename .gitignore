@@ -6,3 +6,4 @@
 
 # Evidências locais de smoke tests e revisão visual.
 /artifacts/
+/dist/

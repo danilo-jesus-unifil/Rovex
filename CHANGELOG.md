@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.11] — 2026-08-19
+
+A versão 0.1.11 consolida os lotes P1 de exploração e entrega a primeira distribuição portable verificável para Windows x86-64.
+
+| Área | Mudança |
+|---|---|
+| Preview | Preview seguro de imagens e texto literal com limites de memória/bytes, BOM UTF-8/UTF-16, rejeição de binários/symlinks e cache cancelável. |
+| Busca | Busca recursiva em worker com batches, limites, cancelamento e geração anti-stale. |
+| Operações | Drag-and-drop, clipboard, propriedades e nova pasta preservados; exclusão Windows envia arquivos à Lixeira via Shell API sem fallback permanente silencioso. |
+| Configurações | Preferências por usuário em schema v1, escrita atômica, fallback para defaults e smoke de restauração. |
+| Distribuição | ZIP portable `rovex-v0.1.11-windows-x86_64-portable.zip`, manifesto, SHA-256 e verificador de conteúdo; artefato explicitamente não assinado. |
+| Qualidade | Testes, Clippy estrito, audit/deny, cross-build Windows GNU, manifesto PE, smoke UI e empacotamento reproduzível passaram. |
+
 ## [0.1.10] — 2026-08-18
 
 A versão 0.1.10 publica a primeira etapa do master prompt do issue #2: auditoria Foundation, plano incremental e documentação reconciliada, sem adicionar funcionalidades não auditadas.
