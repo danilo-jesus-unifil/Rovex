@@ -1,4 +1,5 @@
 use std::fmt;
+use std::fs;
 #[cfg(windows)]
 use std::io;
 use std::path::{Path, PathBuf};
@@ -45,7 +46,7 @@ pub fn target_directory(path: &Path, is_directory: bool) -> Result<PathBuf, Term
             .map(Path::to_path_buf)
             .ok_or_else(|| TerminalError::InvalidTarget(path.to_path_buf()))?
     };
-    if !candidate.is_absolute() || !candidate.is_dir() {
+    if !candidate.is_absolute() || !candidate.is_dir() || is_reparse_point(&candidate) {
         return Err(TerminalError::InvalidTarget(candidate));
     }
     Ok(candidate)
@@ -60,7 +61,7 @@ pub fn open_terminal_for_item(
 }
 
 pub fn open_terminal_here(path: &Path) -> Result<&'static str, TerminalError> {
-    if !path.is_absolute() || !path.is_dir() {
+    if !path.is_absolute() || !path.is_dir() || is_reparse_point(path) {
         return Err(TerminalError::InvalidTarget(path.to_path_buf()));
     }
 
@@ -136,6 +137,21 @@ fn open_windows_terminal(path: &Path) -> Result<&'static str, TerminalError> {
     Err(TerminalError::Unavailable { attempts })
 }
 
+fn is_reparse_point(path: &Path) -> bool {
+    let Ok(metadata) = fs::symlink_metadata(path) else {
+        return true;
+    };
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        metadata.file_attributes() & 0x400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        metadata.file_type().is_symlink()
+    }
+}
+
 #[cfg(windows)]
 fn describe_spawn_error(error: io::Error) -> String {
     match error.kind() {
@@ -176,6 +192,20 @@ mod tests {
         fs::create_dir_all(&root).expect("a pasta de teste deve ser criada");
         assert_eq!(target_directory(&root, true).unwrap(), root);
         fs::remove_dir_all(root.parent().unwrap()).expect("o diretório de teste deve ser removido");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlink_target_is_rejected_without_following_it() {
+        let root = temporary_directory();
+        let link = root.join("link");
+        std::os::unix::fs::symlink(&root, &link).expect("o symlink deve ser criado");
+        assert!(matches!(
+            target_directory(&link, true),
+            Err(TerminalError::InvalidTarget(_))
+        ));
+        fs::remove_file(link).expect("o symlink deve ser removido");
+        fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
     }
 
     #[test]

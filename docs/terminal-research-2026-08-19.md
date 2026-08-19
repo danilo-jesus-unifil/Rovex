@@ -14,7 +14,7 @@ A documentação do Windows Terminal define `wt.exe`/`wt` como entrada, `new-tab
 
 ## Contrato
 
-Se a seleção for uma pasta, o terminal inicia nela. Se for um arquivo regular, o terminal inicia no diretório pai. Uma seleção que não seja exatamente um item produz mensagem de status e nenhuma execução. Caminhos relativos, ausentes ou que não sejam diretórios são rejeitados. No Linux de desenvolvimento, o botão aparece desabilitado e o adapter retorna `Unsupported`; isso deixa a limitação explícita em vez de lançar um terminal arbitrário.
+Se a seleção for uma pasta, o terminal inicia nela. Se for um arquivo regular, o terminal inicia no diretório pai. Uma seleção que não seja exatamente um item produz mensagem de status e nenhuma execução. Caminhos relativos, ausentes ou que não sejam diretórios são rejeitados; o diretório final também é recusado quando `symlink_metadata` identifica symlink/reparse point, para que a ação não siga redirecionamentos especiais sem intenção explícita. No Linux de desenvolvimento, o botão aparece desabilitado e o adapter retorna `Unsupported`; isso deixa a limitação explícita em vez de lançar um terminal arbitrário.
 
 A ação é despachada em um worker nomeado (`rovex-terminal`) e o resultado volta ao event loop Slint. A UI mostra `Abrindo terminal…`, depois o candidato iniciado ou a lista limitada de falhas. O worker nunca executa `cmd /c`, `powershell -Command`, `start` ou uma string construída com o caminho; também não envia arquivos a serviço externo.
 
