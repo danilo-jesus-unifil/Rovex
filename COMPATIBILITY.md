@@ -13,7 +13,7 @@ A documentação oficial do Slint 1.17.1 lista Windows 10 x86-64 e Windows 11 x8
 | Linux x86-64 | Plataforma de desenvolvimento e validação | Release nativo, testes, Clippy, Xvfb e smoke UI | **Verificado localmente** |
 | Windows x86-64 GNU | Artefato cross para diagnóstico e CI | `cargo build --release --target x86_64-pc-windows-gnu` | **Verificado localmente; execução pendente** |
 | Windows 10 22H2 x64 | Mínimo operacional escolhido | Nenhuma execução nativa nesta sessão | **Não verificado nativamente** |
-| Windows 11 x64 | Plataforma de produto | Job Windows do CI compila/testa em runner hospedado, sem identificação do build exato no repositório | **CI verificado; matriz de versão pendente** |
+| Windows 11 x64 | Plataforma de produto | Job `windows-latest` executa testes, Clippy, release e smoke CLI nativo; o build exato não é fixado no repositório | **CI nativo verificado; matriz de versão pendente** |
 | Windows ARM64 | Fora do escopo atual | Não há target nem empacotamento | **Não suportado** |
 
 ## Toolchain e integração de plataforma
@@ -81,7 +81,7 @@ Testes fake cobrem cancelamento, timeout, argumentos e ausência de processos ab
 
 ## Gaps de compatibilidade
 
-O workflow `.github/workflows/ci.yml` agora usa `windows-latest` para executar a qualidade Rust no alvo nativo e `scripts/verify_windows_native.ps1`, que lista um diretório temporário com Unicode e espaços sem abrir a UI; as permissões permanecem `contents: read`. Isso comprova um caminho nativo não interativo, mas não é um teste de Explorer. A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.
+O workflow `.github/workflows/ci.yml` agora usa `windows-latest` para executar testes Rust, Clippy, build release e `scripts/verify_windows_native.ps1` no alvo nativo; o smoke lista um diretório temporário com Unicode e espaços sem abrir a UI e passou após corrigir nomes reservados, caminho absoluto de teste e colisões de `MoveFileExW`. As permissões permanecem `contents: read`. Isso comprova um caminho nativo não interativo, mas não é um teste de Explorer. A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.
 
 > **Conclusão:** o Rovex possui uma stack compilável e uma política de fallback coerente para Windows 10/11, mas a conformidade nativa do sistema operacional permanece parcialmente não verificada. Isso é uma limitação registrada, não uma afirmação implícita de suporte já provado.
 
