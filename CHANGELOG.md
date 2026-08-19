@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.15] — 2026-08-19
+
+A versão 0.1.15 adiciona a ação contextual `Abrir Terminal aqui` com cascata Windows segura e rejeição de symlinks/reparse points no diretório alvo.
+
+| Área | Mudança |
+|---|---|
+| Menu contextual | Novo botão escuro e acessível para abrir o terminal no diretório da pasta selecionada ou no pai de um arquivo. |
+| Windows | Tentativas em ordem `wt.exe`, PowerShell e Prompt de Comando, com `--startingDirectory`, `current_dir` e argumentos separados; nenhum shell concatenado é usado. |
+| Concorrência | A abertura é executada em worker nomeado e o resultado é publicado no event loop Slint, sem bloquear a UI nem esperar o terminal fechar. |
+| Segurança | Caminhos relativos, ausentes, inválidos e diretórios symlink/reparse point são recusados; no Linux o botão fica desabilitado. |
+| UI | Menu contextual rolável e responsivo preserva tema escuro, bordas arredondadas, estados disabled e todos os conversores existentes. |
+| Testes | 94 testes host passaram; cross-check, Clippy host/cross, link de testes Windows, smoke gráfico e CI `windows-latest` passaram. |
+| Documentação | Contrato, fallback, fontes oficiais e limites de validação interativa foram registrados em `docs/terminal-research-2026-08-19.md`, README e COMPATIBILITY. |
+
 ## [0.1.14] — 2026-08-19
 
 A versão 0.1.14 evolui a integração da Lixeira no Windows para `IFileOperation`/COM sem remover a rota de compatibilidade pré-execução.
