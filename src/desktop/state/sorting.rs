@@ -72,6 +72,25 @@ impl Default for SortSpec {
 }
 
 impl SortSpec {
+    pub(in crate::desktop) fn from_persisted(column: i32, ascending: bool) -> Self {
+        Self {
+            field: SortField::from_column(column).unwrap_or(SortField::Name),
+            direction: if ascending {
+                SortDirection::Ascending
+            } else {
+                SortDirection::Descending
+            },
+        }
+    }
+
+    pub(in crate::desktop) const fn column(self) -> i32 {
+        self.field.column()
+    }
+
+    pub(in crate::desktop) const fn is_ascending(self) -> bool {
+        self.direction.is_ascending()
+    }
+
     pub(in crate::desktop) fn toggle_column(self, column: i32) -> Self {
         let Some(field) = SortField::from_column(column) else {
             return self;

@@ -61,6 +61,12 @@ A camada de segurança recusa caminhos relativos, raízes e componentes pai amb�
 
 A movimentação usa rename no mesmo volume e fallback real de copiar-e-remover entre volumes. A cópia opera em blocos, publica sem sobrescrita e cancela cooperativamente. A UI mostra erro parcial em vez de declarar sucesso agregado quando um item falha.
 
+## Configurações persistentes
+
+O Rovex agora carrega e salva preferências em `%LOCALAPPDATA%\\Rovex\\settings.v1.conf` no Windows, sem gravar no diretório de instalação nem exigir privilégios. Em hosts Unix usados no desenvolvimento, usa `XDG_CONFIG_HOME` ou `$HOME/.config`; `ROVEX_CONFIG_DIR` absoluto isola smoke tests. O schema v1 persiste somente último diretório válido, visibilidade de ocultos e coluna/direção de ordenação. O arquivo é limitado a 16 KiB, rejeita symlink, caminhos relativos, duplicatas e valores inválidos, ignora chaves futuras e recua para defaults quando está ausente, corrompido ou inacessível. Caminhos são codificados em hexadecimal sobre a representação nativa para manter Unicode.
+
+A escrita é feita em temporário exclusivo no mesmo diretório, sincronizada e substituída atomicamente; no Windows usa `MoveFileExW` com replace/write-through. O smoke `scripts/test_settings.sh` alterna Ocultos, escolhe Modificado, verifica o arquivo e relança o processo com o mesmo diretório de configuração. O teste prova o fluxo sob Xvfb, mas ACLs reais, roaming/profile redirection, bloqueio por antivírus, desligamento abrupto e execução nativa em Windows 10/11 ainda precisam de validação em máquinas Windows. A configuração não substitui backup de arquivos do usuário.
+
 ## Gaps de compatibilidade
 
 A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.

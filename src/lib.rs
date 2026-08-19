@@ -12,6 +12,7 @@ pub mod operations;
 pub mod preview;
 pub mod search;
 pub mod security;
+pub mod settings;
 
 pub use converters::{
     ConversionError, ConversionKind, ConversionReport, ConversionStage, convert_file,

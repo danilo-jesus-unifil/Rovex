@@ -10,6 +10,7 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
     let filter_scheduler = ctx.filter_scheduler.clone();
     let selection = Arc::clone(&ctx.selection);
     let sort_spec = Arc::clone(&ctx.sort_spec);
+    let save_settings = ctx.settings_saver();
 
     registration_ui.on_sort_requested(move |column| {
         let Some(ui) = ui_weak.upgrade() else {
@@ -26,6 +27,7 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
         };
         ui.set_sort_column(next_sort.field.column());
         ui.set_sort_ascending(next_sort.direction.is_ascending());
+        save_settings();
         if let Ok(mut state) = selection.lock() {
             state.clear();
             ui.set_selection_count(0);

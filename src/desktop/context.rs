@@ -7,8 +7,10 @@ use super::state::{LoadedRow, SelectionState, SharedRows, SharedSelection, SortS
 use super::{FileRow, LocationRow, MainWindow, TabRow};
 use crate::clipboard::ClipboardStore;
 use crate::filesystem::ListingOptions;
+use crate::settings::{Settings, SettingsStore};
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, atomic::AtomicU64};
 
@@ -30,12 +32,17 @@ pub(in crate::desktop) struct AppContext {
     pub(in crate::desktop) conversion_scheduler: Option<Arc<ConversionScheduler>>,
     pub(in crate::desktop) search_scheduler: Option<Arc<SearchScheduler>>,
     pub(in crate::desktop) preview_scheduler: Option<Arc<PreviewScheduler>>,
+    pub(in crate::desktop) settings_store: Option<SettingsStore>,
     pub(in crate::desktop) pending_operation: Rc<std::cell::RefCell<Option<OperationRequest>>>,
     pub(in crate::desktop) pending_conversion: Rc<std::cell::RefCell<Option<ConversionRequest>>>,
 }
 
 impl AppContext {
-    pub(in crate::desktop) fn new(ui: &MainWindow, initial_path: PathBuf) -> Self {
+    pub(in crate::desktop) fn new(
+        ui: &MainWindow,
+        initial_path: PathBuf,
+        settings_store: Option<SettingsStore>,
+    ) -> Self {
         let entries = Rc::new(VecModel::<FileRow>::default());
         ui.set_entries(ModelRc::from(entries.clone()));
         let locations = Rc::new(VecModel::<LocationRow>::default());
@@ -116,8 +123,63 @@ impl AppContext {
             conversion_scheduler,
             search_scheduler,
             preview_scheduler,
+            settings_store,
             pending_operation,
             pending_conversion,
         }
     }
+
+    pub(in crate::desktop) fn settings_saver(&self) -> Rc<dyn Fn()> {
+        let store = self.settings_store.clone();
+        let tabs = Rc::clone(&self.tabs);
+        let listing_options = Arc::clone(&self.listing_options);
+        let sort_spec = Arc::clone(&self.sort_spec);
+        Rc::new(move || {
+            save_settings_snapshot(store.as_ref(), &tabs, &listing_options, &sort_spec);
+        })
+    }
+
+    pub(in crate::desktop) fn persist_settings(&self) {
+        save_settings_snapshot(
+            self.settings_store.as_ref(),
+            &self.tabs,
+            &self.listing_options,
+            &self.sort_spec,
+        );
+    }
+}
+
+fn save_settings_snapshot(
+    store: Option<&SettingsStore>,
+    tabs: &Rc<std::cell::RefCell<TabManager>>,
+    listing_options: &Arc<Mutex<ListingOptions>>,
+    sort_spec: &Arc<Mutex<SortSpec>>,
+) {
+    let Some(store) = store else {
+        return;
+    };
+    let current_path = tabs.borrow().active().current.clone();
+    let show_hidden_files = listing_options
+        .lock()
+        .map(|options| options.show_hidden)
+        .unwrap_or(false);
+    let sort_spec = sort_spec
+        .lock()
+        .map(|sort_spec| *sort_spec)
+        .unwrap_or_default();
+    let settings = Settings {
+        last_path: is_directory(&current_path).then_some(current_path),
+        show_hidden_files,
+        sort_column: sort_spec.column(),
+        sort_ascending: sort_spec.is_ascending(),
+    };
+    if let Err(error) = store.save(&settings) {
+        eprintln!("aviso: não foi possível salvar configurações: {error}");
+    }
+}
+
+fn is_directory(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .map(|metadata| metadata.file_type().is_dir())
+        .unwrap_or(false)
 }
