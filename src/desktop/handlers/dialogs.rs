@@ -52,7 +52,7 @@ pub(in crate::desktop) fn show_selected_operation_dialog(
         OperationKind::Delete => (
             "Excluir itens",
             format!(
-                "Confirme a exclusão de {} item(ns). A operação não é recursiva: diretórios não vazios serão preservados.",
+                "Confirme a exclusão de {} item(ns). No Windows, os itens serão enviados à Lixeira; diretórios não vazios serão preservados.",
                 sources.len()
             ),
             String::new(),

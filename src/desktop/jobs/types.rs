@@ -91,7 +91,16 @@ impl OperationOutcome {
             OperationKind::Copy => "cópia",
             OperationKind::Move => "movimentação",
             OperationKind::Rename => "renomeação",
-            OperationKind::Delete => "exclusão",
+            OperationKind::Delete => {
+                #[cfg(windows)]
+                {
+                    "envio para a Lixeira"
+                }
+                #[cfg(not(windows))]
+                {
+                    "exclusão"
+                }
+            }
             OperationKind::CreateDirectory => "criação de pasta",
         };
         let mut message = if self.cancelled {

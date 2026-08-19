@@ -1,6 +1,8 @@
 mod copy;
 mod entry;
 mod error;
+#[cfg(windows)]
+mod recycle;
 #[cfg(test)]
 mod tests;
 

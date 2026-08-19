@@ -3,6 +3,7 @@ use crate::security::{
     DestinationPolicy, ValidationError, ensure_not_root, validate_destination, validate_source,
 };
 use std::fs;
+#[cfg(not(windows))]
 use std::io;
 use std::path::Path;
 
@@ -18,28 +19,60 @@ pub fn rename_entry(source: &Path, destination: &Path) -> Result<(), OperationEr
     fs::rename(source, destination).map_err(|error| from_io("renomear entrada", source, error))
 }
 
+#[cfg(not(windows))]
 fn is_directory_not_empty(error: &io::Error) -> bool {
     error.kind() == io::ErrorKind::DirectoryNotEmpty
         || matches!(error.raw_os_error(), Some(39) | Some(145))
+}
+
+#[cfg(windows)]
+fn ensure_directory_empty(path: &Path) -> Result<(), OperationError> {
+    let mut entries = fs::read_dir(path).map_err(|error| from_io("ler diretório", path, error))?;
+    if entries
+        .next()
+        .transpose()
+        .map_err(|error| from_io("ler entrada", path, error))?
+        .is_some()
+    {
+        return Err(OperationError::DirectoryNotEmpty {
+            path: path.to_path_buf(),
+        });
+    }
+    Ok(())
 }
 
 pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
     ensure_not_root(path)?;
     let file_type = validate_source(path)?;
     if file_type.is_symlink() || file_type.is_file() {
-        fs::remove_file(path).map_err(|error| from_io("excluir entrada", path, error))?;
-        return Ok(());
+        #[cfg(windows)]
+        {
+            return super::recycle::delete_to_recycle_bin(path);
+        }
+        #[cfg(not(windows))]
+        {
+            fs::remove_file(path).map_err(|error| from_io("excluir entrada", path, error))?;
+            return Ok(());
+        }
     }
 
     if file_type.is_dir() {
-        match fs::remove_dir(path) {
-            Ok(()) => Ok(()),
-            Err(error) if is_directory_not_empty(&error) => {
-                Err(OperationError::DirectoryNotEmpty {
-                    path: path.to_path_buf(),
-                })
+        #[cfg(windows)]
+        {
+            ensure_directory_empty(path)?;
+            return super::recycle::delete_to_recycle_bin(path);
+        }
+        #[cfg(not(windows))]
+        {
+            match fs::remove_dir(path) {
+                Ok(()) => Ok(()),
+                Err(error) if is_directory_not_empty(&error) => {
+                    Err(OperationError::DirectoryNotEmpty {
+                        path: path.to_path_buf(),
+                    })
+                }
+                Err(error) => Err(from_io("excluir diretório", path, error)),
             }
-            Err(error) => Err(from_io("excluir diretório", path, error)),
         }
     } else {
         Err(OperationError::Validation(

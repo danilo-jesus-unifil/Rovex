@@ -67,6 +67,12 @@ O Rovex agora carrega e salva preferências em `%LOCALAPPDATA%\\Rovex\\settings.
 
 A escrita é feita em temporário exclusivo no mesmo diretório, sincronizada e substituída atomicamente; no Windows usa `MoveFileExW` com replace/write-through. O smoke `scripts/test_settings.sh` alterna Ocultos, escolhe Modificado, verifica o arquivo e relança o processo com o mesmo diretório de configuração. O teste prova o fluxo sob Xvfb, mas ACLs reais, roaming/profile redirection, bloqueio por antivírus, desligamento abrupto e execução nativa em Windows 10/11 ainda precisam de validação em máquinas Windows. A configuração não substitui backup de arquivos do usuário.
 
+## Lixeira do Windows
+
+No alvo Windows, `delete_entry` valida a origem e usa `SHFileOperationW` com `FOF_ALLOWUNDO` para enviar arquivos, symlinks e diretórios vazios à Lixeira, sem chamar comandos externos e sem fallback silencioso para exclusão permanente. `FOF_NORECURSION` e uma leitura prévia preservam o contrato de que diretórios não vazios não são removidos. A confirmação continua na UI, o Shell não abre uma confirmação duplicada e erros/aborto do Shell são publicados como falha, preservando o item. No Linux de desenvolvimento, o fallback anterior de remoção permanente permanece para que os testes de operações continuem determinísticos.
+
+O cross-check Windows GNU compila o adapter, os bindings UTF-16 e a mensagem específica de Lixeira. Ainda não há execução nativa Windows 10/11 nesta sessão: a matriz deve validar uma Lixeira real, restauração no Explorer, paths Unicode/longos, UNC/SMB, volumes removíveis, ACLs, arquivos em uso, políticas de grupo e comportamento quando a Lixeira estiver desabilitada. `IFileOperation`/COM, recomendada pela Microsoft como API mais nova, permanece uma evolução posterior; não se declara compatibilidade nativa apenas pelo cross-build.
+
 ## Gaps de compatibilidade
 
 A próxima validação de plataforma deve executar o binário em Windows 10 22H2 e Windows 11 x64, identificar o build do sistema, testar DPI por monitor, teclado, leitor de tela, alto contraste, tema claro/escuro, caminhos Unicode e longos, UNC/SMB, volumes removíveis, reparse points e arquivos em uso. O PE cross-compiled já tem uma verificação automatizada do manifesto; a matriz nativa ainda deve confirmar execução sem privilégios administrativos, comportamento visual e comportamento de instalação.
@@ -79,3 +85,6 @@ A próxima validação de plataforma deve executar o binário em Windows 10 22H2
 [2]: https://docs.slint.dev/latest/docs/slint/guide/platforms/desktop/ "Desktop — Slint Documentation"
 [3]: https://slint.dev/blog/slint-1.17-released "Slint 1.17 Released — Slint Blog"
 [4]: https://learn.microsoft.com/en-us/windows/release-health/release-information "Windows release information — Microsoft Learn"
+[5]: https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shfileoperationa "SHFileOperationA function — Microsoft Learn"
+[6]: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-ifileoperation "IFileOperation interface — Microsoft Learn"
+[7]: https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifileoperation-setoperationflags "IFileOperation::SetOperationFlags method — Microsoft Learn"
