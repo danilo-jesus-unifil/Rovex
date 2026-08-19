@@ -4,24 +4,24 @@
 
 A documentação oficial informa que `SHFileOperation` envia um item para a Lixeira quando `FOF_ALLOWUNDO` está presente; sem esse flag, uma exclusão é permanente [1]. A mesma página recomenda nomes de caminho totalmente qualificados, informa que a API foi substituída por `IFileOperation` no Windows Vista e registra `DE_PATHTOODEEP`/`DE_ERROR_MAX` entre os códigos possíveis, portanto a rota Shell não é uma garantia de suporte a todo caminho longo.
 
-`IFileOperation` é a interface mais nova e expõe `IShellItem`, resultados HRESULT mais precisos, progresso e operações combinadas [2]. Seu método `SetOperationFlags` define `FOFX_RECYCLEONDELETE`, introduzido no Windows 8, para enviar exclusões à Lixeira [3]. Ela exige uma camada COM mais extensa e não foi ativada neste lote porque a fundação atual usa workers Rust simples e a operação já possui confirmação, cancelamento entre itens e refresh próprios.
+`IFileOperation` é a interface mais nova e expõe `IShellItem`, resultados HRESULT mais precisos, progresso e operações combinadas [2]. Seu método `SetOperationFlags` define `FOFX_RECYCLEONDELETE`, introduzido no Windows 8, para enviar exclusões à Lixeira [3]. Ela agora é a rota principal do adapter Windows: uma chamada COM por item, sem diálogo do Shell, dentro do worker de operações existente. O progresso visual e o cancelamento entre itens continuam sob responsabilidade do Rovex, enquanto o COM não é mantido na UI.
 
 | Opção | Decisão | Justificativa |
 |---|---|---|
-| `SHFileOperationW` | Implementada no alvo Windows | API disponível no Windows 10, caminho UTF-16, `FOF_ALLOWUNDO`, integração pequena e verificável. |
-| `IFileOperation` | Reservada para evolução | Melhor API e progresso Shell, mas exige COM/`IShellItem`/HRESULT e uma estratégia de cancelamento adicional. |
+| `IFileOperation` | Rota principal no alvo Windows | API recomendada pela Microsoft, `IShellItem` por caminho UTF-16, HRESULT e `FOFX_RECYCLEONDELETE`; bindings COM mínimos ficam isolados no adapter. |
+| `SHFileOperationW` | Fallback somente de preparação | Mantida para indisponibilidade de COM, falha de criação/parsing/configuração antes de `PerformOperations`; não é usada após uma mutação parcial. |
 | `DeleteFileW`/`RemoveDirectoryW` | Não usada no Windows | Excluiria permanentemente e violaria a expectativa de Lixeira. |
 | Shell externo via comando | Rejeitada | Não há shell para montar comando, nem download/execução de executáveis em runtime. |
 
 ## Contrato adotado
 
-O adapter chama a operação uma entrada por vez, com buffer UTF-16 terminado por dois NULs, `FOF_ALLOWUNDO`, `FOF_NOCONFIRMATION`, `FOF_NOERRORUI`, `FOF_SILENT` e `FOF_NORECURSION`. A confirmação continua sendo responsabilidade da UI; o Shell não abre uma segunda confirmação. O resultado não-zero e `fAnyOperationsAborted` viram erro estruturado, e o Rovex não faz fallback silencioso para exclusão permanente. Se a Lixeira estiver indisponível, o item permanece no filesystem e a UI relata a falha.
+O adapter chama `SHCreateItemFromParsingName` com um caminho UTF-16 terminado por um NUL, cria `IFileOperation` via COM e configura `FOFX_RECYCLEONDELETE`, `FOFX_EARLYFAILURE`, `FOF_NOCONFIRMATION`, `FOF_NOERRORUI`, `FOF_NOCONFIRMMKDIR`, `FOF_SILENT` e `FOF_NORECURSION`. A confirmação continua sendo responsabilidade da UI; o Shell não abre uma segunda confirmação. HRESULTs negativos de `PerformOperations` e `GetAnyOperationsAborted` viram erro estruturado. Falhas anteriores à execução usam `SHFileOperationW` com buffer de dois NULs; nenhum caminho cai em exclusão permanente silenciosa. Se a Lixeira estiver indisponível ou a operação for abortada, o item permanece preservado conforme o resultado informado pelo Shell.
 
 A camada existente ainda bloqueia raízes, valida a origem via `symlink_metadata` e preserva o contrato de não excluir diretórios não vazios. No Windows, o diretório é inspecionado antes e a chamada Shell usa `FOF_NORECURSION`; no Unix, o comportamento anterior de remoção permanente continua sendo o fallback de desenvolvimento. Cada item é processado individualmente, de modo que cancelamento entre itens continua possível, embora uma chamada Shell individual não possa ser interrompida pelo `AtomicBool` no meio da operação.
 
 ## Limitações verificáveis
 
-O cross-check Windows GNU compila a chamada e seus bindings, mas esta sessão não possui Windows 10/11 nativo nem uma Lixeira real para validar restauração, volumes removíveis, UNC/SMB, políticas de grupo, arquivos em uso, ACLs, Shell extensions ou paths maiores que os limites aceitos pela API. O projeto deve preferir reportar falha e preservar o arquivo nessas situações; não deve declarar que a operação foi concluída quando o Shell a abortou.
+O cross-check Windows GNU compila a chamada e os bindings. O runner `windows-latest` também executa a suíte nativa, incluindo operações de arquivo, mas não verifica visualmente a restauração na Lixeira nem fixa a versão exata do Windows. Restam validações interativas de restauração, volumes removíveis, UNC/SMB, políticas de grupo, arquivos em uso, ACLs, Shell extensions e paths maiores que os limites aceitos pela API. O projeto deve preferir reportar falha e preservar o arquivo nessas situações; não deve declarar que a operação foi concluída quando o Shell a abortou.
 
 ## Referências
 
