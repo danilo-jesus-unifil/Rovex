@@ -1,6 +1,6 @@
 [package]
 name = "rovex"
-version = "0.1.24"
+version = "0.1.25"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
@@ -21,11 +21,14 @@ slint = { version = "=1.17.1", default-features = false, features = ["backend-wi
 # Preserve o backend completo para Unix não-Linux, sem restringir plataformas não testadas.
 slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2", "unstable-winit-030"] }
 
+[target.'cfg(unix)'.dependencies]
+libc = "=0.2.189"
+
 [target.'cfg(windows)'.dependencies]
 # Windows 10/11 continua com X11/Wayland desativados pelo próprio target e backend Winit nativo.
 slint = { version = "=1.17.1", default-features = false, features = ["backend-winit", "renderer-software", "accessibility", "compat-1-2", "unstable-winit-030"] }
 # SHGetKnownFolderPath oferece os caminhos redirecionados pelo Windows sem depender de nomes localizados.
-windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_System_Environment", "Win32_System_Registry", "Win32_Storage_FileSystem", "Win32_UI_Shell"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Com", "Win32_System_Environment", "Win32_System_JobObjects", "Win32_System_Registry", "Win32_System_Threading", "Win32_Storage_FileSystem", "Win32_UI_Shell"] }
 
 [build-dependencies]
 slint-build = "=1.17.1"

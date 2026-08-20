@@ -1,5 +1,6 @@
 use super::process_output::stderr_message;
 use super::process_output::{join_output_reader, start_output_reader};
+use super::process_tree::{ProcessTree, configure_command};
 use super::types::{ConversionError, ConversionKind, ConversionStage};
 use crate::operations::OperationError;
 use crate::security::ValidationError;
@@ -13,8 +14,12 @@ use std::time::{Duration, Instant};
 
 const MAX_CONVERSION_DURATION: Duration = Duration::from_secs(5 * 60);
 
-fn terminate_child(child: &mut Child) {
-    let _ = child.kill();
+fn terminate_child(child: &mut Child, process_tree: Option<&ProcessTree>) {
+    if let Some(process_tree) = process_tree {
+        process_tree.terminate();
+    } else {
+        let _ = child.kill();
+    }
     let _ = child.wait();
 }
 
@@ -80,6 +85,7 @@ pub(crate) fn spawn_ffmpeg_with_timeout(
             command.args(["-map", "0:a:0", "-vn", "-c:a", "flac", "-f", "flac"]);
         }
     }
+    configure_command(&mut command);
     stage(ConversionStage::Encoding);
     let mut child = command
         .arg(temporary)
@@ -92,10 +98,22 @@ pub(crate) fn spawn_ffmpeg_with_timeout(
             path: source.to_path_buf(),
             message: format!("o executável resolvido não pôde ser iniciado: {error}"),
         })?;
+    let process_tree = match ProcessTree::attach(&child) {
+        Ok(process_tree) => process_tree,
+        Err(error) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(ConversionError::Process {
+                executable: "ffmpeg",
+                path: source.to_path_buf(),
+                message: format!("não foi possível isolar a árvore do processo: {error}"),
+            });
+        }
+    };
     let mut stderr_reader = match start_output_reader(child.stderr.take(), "rovex-ffmpeg-stderr") {
         Ok(reader) => reader,
         Err(error) => {
-            terminate_child(&mut child);
+            terminate_child(&mut child, Some(&process_tree));
             return Err(ConversionError::Process {
                 executable: "ffmpeg",
                 path: source.to_path_buf(),
@@ -106,12 +124,12 @@ pub(crate) fn spawn_ffmpeg_with_timeout(
     let deadline = Instant::now() + max_duration;
     loop {
         if cancel.load(Ordering::Acquire) {
-            terminate_child(&mut child);
+            terminate_child(&mut child, Some(&process_tree));
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Cancelled);
         }
         if Instant::now() >= deadline {
-            terminate_child(&mut child);
+            terminate_child(&mut child, Some(&process_tree));
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Timeout {
                 executable: "ffmpeg",
@@ -138,7 +156,7 @@ pub(crate) fn spawn_ffmpeg_with_timeout(
             }
             Ok(None) => thread::sleep(Duration::from_millis(80)),
             Err(error) => {
-                terminate_child(&mut child);
+                terminate_child(&mut child, Some(&process_tree));
                 let _ = join_output_reader(stderr_reader.take());
                 return Err(ConversionError::Process {
                     executable: "ffmpeg",
@@ -172,7 +190,8 @@ pub(crate) fn run_ffprobe_with_timeout(
     cancel: &AtomicBool,
     max_duration: Duration,
 ) -> Result<std::process::Output, ConversionError> {
-    let mut child = Command::new(backend)
+    let mut command = Command::new(backend);
+    command
         .arg("-hide_banner")
         .arg("-loglevel")
         .arg("error")
@@ -185,17 +204,29 @@ pub(crate) fn run_ffprobe_with_timeout(
         .arg(destination)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| ConversionError::Process {
-            executable: "ffprobe",
-            path: destination.to_path_buf(),
-            message: format!("o executável resolvido não pôde ser iniciado: {error}"),
-        })?;
+        .stderr(Stdio::piped());
+    configure_command(&mut command);
+    let mut child = command.spawn().map_err(|error| ConversionError::Process {
+        executable: "ffprobe",
+        path: destination.to_path_buf(),
+        message: format!("o executável resolvido não pôde ser iniciado: {error}"),
+    })?;
+    let process_tree = match ProcessTree::attach(&child) {
+        Ok(process_tree) => process_tree,
+        Err(error) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(ConversionError::Process {
+                executable: "ffprobe",
+                path: destination.to_path_buf(),
+                message: format!("não foi possível isolar a árvore do processo: {error}"),
+            });
+        }
+    };
     let mut stdout_reader = match start_output_reader(child.stdout.take(), "rovex-ffprobe-stdout") {
         Ok(reader) => reader,
         Err(error) => {
-            terminate_child(&mut child);
+            terminate_child(&mut child, Some(&process_tree));
             return Err(ConversionError::Process {
                 executable: "ffprobe",
                 path: destination.to_path_buf(),
@@ -206,7 +237,7 @@ pub(crate) fn run_ffprobe_with_timeout(
     let mut stderr_reader = match start_output_reader(child.stderr.take(), "rovex-ffprobe-stderr") {
         Ok(reader) => reader,
         Err(error) => {
-            terminate_child(&mut child);
+            terminate_child(&mut child, Some(&process_tree));
             let _ = join_output_reader(stdout_reader.take());
             return Err(ConversionError::Process {
                 executable: "ffprobe",
@@ -218,13 +249,13 @@ pub(crate) fn run_ffprobe_with_timeout(
     let deadline = Instant::now() + max_duration;
     loop {
         if cancel.load(Ordering::Acquire) {
-            terminate_child(&mut child);
+            terminate_child(&mut child, Some(&process_tree));
             let _ = join_output_reader(stdout_reader.take());
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Cancelled);
         }
         if Instant::now() >= deadline {
-            terminate_child(&mut child);
+            terminate_child(&mut child, Some(&process_tree));
             let _ = join_output_reader(stdout_reader.take());
             let _ = join_output_reader(stderr_reader.take());
             return Err(ConversionError::Timeout {

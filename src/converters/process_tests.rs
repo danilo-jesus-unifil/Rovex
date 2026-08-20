@@ -89,6 +89,59 @@ fn ffmpeg_fake_is_killed_when_cancelled() {
 }
 
 #[test]
+fn cancelamento_encerra_descendente_que_mantem_pipe_aberto() {
+    let ready = std::env::temp_dir().join(format!(
+        "rovex-process-descendant-ready-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let ready_path = ready.to_string_lossy().replace('\'', "'\\''");
+    let backend = fake_backend(
+        "cancel-descendant",
+        &format!("sleep 3 >&2 &\nprintf ready > '{ready_path}'\nexec sleep 3"),
+    );
+    let source = backend.with_extension("input");
+    let temporary = backend.with_extension("output");
+    fs::write(&source, b"input").expect("source");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let signal = Arc::clone(&cancel);
+    let backend_for_thread = backend.clone();
+    let source_for_thread = source.clone();
+    let temporary_for_thread = temporary.clone();
+    let started = std::time::Instant::now();
+    let handle = thread::spawn(move || {
+        spawn_ffmpeg_with_timeout(
+            &backend_for_thread,
+            &source_for_thread,
+            &temporary_for_thread,
+            ConversionKind::Png,
+            signal.as_ref(),
+            &mut |_| {},
+            Duration::from_secs(10),
+        )
+    });
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while !ready.exists() && std::time::Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(ready.exists(), "fake backend não iniciou o descendente");
+    cancel.store(true, Ordering::Release);
+    let error = handle.join().expect("worker").expect_err("cancel");
+    assert!(matches!(error, ConversionError::Cancelled));
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "o leitor ficou bloqueado pelo descendente: {:?}",
+        started.elapsed()
+    );
+    cleanup(&backend, &source);
+    let _ = fs::remove_file(temporary);
+    let _ = fs::remove_file(ready);
+}
+
+#[test]
 fn ffprobe_fake_times_out_without_waiting_for_process_naturally() {
     let backend = fake_backend("timeout", "exec sleep 30");
     let destination = backend.with_extension("output");

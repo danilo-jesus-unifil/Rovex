@@ -5,6 +5,7 @@ mod process;
 mod process_output;
 #[cfg(test)]
 mod process_tests;
+mod process_tree;
 #[cfg(test)]
 mod tests;
 mod types;

@@ -56,6 +56,10 @@ jobs:
         shell: bash
         run: ./scripts/test_ffmpeg_discovery_contract.sh
 
+      - name: Process containment contract
+        shell: bash
+        run: ./scripts/test_process_containment_contract.sh
+
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
