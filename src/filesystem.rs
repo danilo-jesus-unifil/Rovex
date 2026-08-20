@@ -31,7 +31,7 @@ impl DirectoryEntry {
         let metadata = fs::symlink_metadata(&path)
             .map_err(|error| FileSystemError::from_io("ler metadados", &path, error))?;
         let file_type = metadata.file_type();
-        let kind = if file_type.is_symlink() {
+        let kind = if is_reparse_point(&metadata) {
             EntryKind::Symlink
         } else if file_type.is_dir() {
             EntryKind::Directory
@@ -167,6 +167,18 @@ fn is_hidden_name_and_metadata(name: &OsStr, metadata: &fs::Metadata) -> bool {
     }
 }
 
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        metadata.file_attributes() & 0x400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        metadata.file_type().is_symlink()
+    }
+}
+
 fn is_system_metadata(metadata: &fs::Metadata) -> bool {
     #[cfg(windows)]
     {
@@ -202,6 +214,12 @@ impl FileSystem {
 
         let metadata = fs::symlink_metadata(path)
             .map_err(|error| FileSystemError::from_io("ler diretório", path, error))?;
+        if is_reparse_point(&metadata) {
+            return Err(FileSystemError::InvalidPath {
+                path: path.to_path_buf(),
+                reason: "diretório redirecionado por link ou reparse point",
+            });
+        }
         if !metadata.is_dir() {
             return Err(FileSystemError::NotDirectory {
                 path: path.to_path_buf(),

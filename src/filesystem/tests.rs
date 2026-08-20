@@ -114,6 +114,30 @@ fn lista_caminho_com_muitos_componentes_sem_truncar() {
 
 #[cfg(unix)]
 #[test]
+fn recusa_raiz_symlinkada_sem_seguir_destino() {
+    use std::os::unix::fs::symlink;
+
+    let root = temporary_directory();
+    let target = root.join("destino");
+    let link = root.join("atalho");
+    fs::create_dir(&target).expect("o diretório alvo deve ser criado");
+    fs::write(target.join("fora.txt"), b"fora").expect("o marcador deve ser criado");
+    symlink(&target, &link).expect("o link de diretório deve ser criado");
+
+    let result = FileSystem.list_directory(&link);
+    assert!(matches!(
+        result,
+        Err(super::FileSystemError::InvalidPath {
+            reason: "diretório redirecionado por link ou reparse point",
+            ..
+        })
+    ));
+    fs::remove_file(link).expect("o link deve ser removido");
+    fs::remove_dir_all(root).expect("a raiz do teste deve ser removida");
+}
+
+#[cfg(unix)]
+#[test]
 fn identifica_link_sem_seguir_destino() {
     use std::os::unix::fs::symlink;
 

@@ -78,6 +78,14 @@ A auditoria confirmou uma lacuna de validação, não uma falha funcional presum
 
 O gate `scripts/test_windows_native_contract.sh` foi adicionado ao CI para impedir que o fixture, a declaração `longPathAware` ou a chamada Windows sejam removidos sem detecção. A pesquisa oficial registrou as diferenças entre DOS, UNC e `\\?\\` extended-length. UNC, junctions, mounted folders, ACLs e associação inexistente continuam sem declaração de suporte até haver fixtures nativas controladas.
 
+## Atualização do ciclo v0.1.21 — 2026-08-20
+
+A investigação confirmou uma falha de classificação: a listagem usava `FileType::is_symlink()` e `is_dir()` sem verificar explicitamente `FILE_ATTRIBUTE_REPARSE_POINT` na raiz. Como junctions são reparse points, a navegação podia depender de como a biblioteca classificava o tipo e chegar a `read_dir` sobre o destino. O código agora trata qualquer reparse point como não navegável antes de listar e classifica entradas reparse como `EntryKind::Symlink`.
+
+O smoke Windows cria uma junction real para um diretório com marcador externo e exige erro controlado do CLI; o gate estrutural impede a remoção desse cenário. Também foi corrigida uma corrida real no teste de cancelamento FFmpeg: o cancelamento só ocorre após handshake de readiness, e não após um atraso fixo de 100 ms.
+
+O próximo ciclo deve cobrir outras tags de reparse, mounted folders, arquivos bloqueados, ACLs, UNC e associação inexistente somente com fixtures nativas específicas.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.

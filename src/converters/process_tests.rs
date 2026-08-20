@@ -28,6 +28,14 @@ fn fake_backend(name: &str, body: &str) -> PathBuf {
     path
 }
 
+fn fake_backend_with_ready_marker(name: &str, ready: &Path) -> PathBuf {
+    let ready_path = ready.to_string_lossy().replace('\'', "'\\''");
+    fake_backend(
+        name,
+        &format!("printf ready > '{ready_path}'\nexec sleep 30"),
+    )
+}
+
 fn cleanup(path: &Path, temporary: &Path) {
     let _ = fs::remove_file(path);
     let _ = fs::remove_file(temporary);
@@ -35,7 +43,16 @@ fn cleanup(path: &Path, temporary: &Path) {
 
 #[test]
 fn ffmpeg_fake_is_killed_when_cancelled() {
-    let backend = fake_backend("cancel", "exec sleep 30");
+    let backend_path = std::env::temp_dir().join(format!(
+        "rovex-process-cancel-ready-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let backend = fake_backend_with_ready_marker("cancel", &backend_path.with_extension("ready"));
+    let ready = backend_path.with_extension("ready");
     let source = backend.with_extension("input");
     let temporary = backend.with_extension("output");
     fs::write(&source, b"input").expect("source");
@@ -55,12 +72,20 @@ fn ffmpeg_fake_is_killed_when_cancelled() {
             Duration::from_secs(30),
         )
     });
-    thread::sleep(Duration::from_millis(100));
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while !ready.exists() && std::time::Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(ready.exists(), "fake backend não iniciou o processo longo");
     cancel.store(true, Ordering::Release);
     let error = handle.join().expect("worker").expect_err("cancel");
-    assert!(matches!(error, ConversionError::Cancelled));
+    assert!(
+        matches!(error, ConversionError::Cancelled),
+        "cancelamento retornou erro inesperado: {error:?}"
+    );
     cleanup(&backend, &source);
     let _ = fs::remove_file(temporary);
+    let _ = fs::remove_file(ready);
 }
 
 #[test]

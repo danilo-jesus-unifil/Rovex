@@ -42,7 +42,22 @@ try {
         throw "saída do CLI não preservou o arquivo no caminho longo: $longJoined"
     }
 
-    Write-Host "Windows native CLI smoke passed: $fixture; long path length $($longFile.Length)"
+    $junctionTarget = Join-Path $fixture "junction-target"
+    New-Item -ItemType Directory -Path $junctionTarget -Force | Out-Null
+    $junctionMarker = Join-Path $junctionTarget "outside-marker.txt"
+    Set-Content -LiteralPath $junctionMarker -Value "must not be followed" -NoNewline -Encoding utf8
+    $junction = Join-Path $fixture "junction-entry"
+    New-Item -ItemType Junction -Path $junction -Target $junctionTarget -Force | Out-Null
+    $junctionOutput = & cargo run --quiet -- --cli $junction 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        throw "CLI seguiu junction em vez de recusar o ponto de reparse: $($junctionOutput -join [Environment]::NewLine)"
+    }
+    $junctionJoined = $junctionOutput -join [Environment]::NewLine
+    if ($junctionJoined -notmatch 'reparse|redirecionado|inválido|não encontrado') {
+        throw "CLI recusou junction sem diagnóstico controlado: $junctionJoined"
+    }
+
+    Write-Host "Windows native CLI smoke passed: $fixture; long path length $($longFile.Length); junction rejected"
 }
 finally {
     if (Test-Path -LiteralPath $fixture) {
