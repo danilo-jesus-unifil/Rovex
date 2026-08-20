@@ -131,6 +131,7 @@ pub(in crate::desktop) fn show_conversion_dialog(
         ui.set_context_menu_can_png(false);
         ui.set_context_menu_can_flac(false);
         ui.set_context_menu_can_terminal(false);
+        ui.set_context_menu_can_open(false);
         ui.set_context_menu_can_open_with(false);
         ui.set_operation_dialog_title("Converter arquivos".into());
         ui.set_operation_dialog_message(SharedString::from(format!(
@@ -173,6 +174,7 @@ pub(in crate::desktop) fn show_operation_dialog(
         ui.set_context_menu_can_png(false);
         ui.set_context_menu_can_flac(false);
         ui.set_context_menu_can_terminal(false);
+        ui.set_context_menu_can_open(false);
         ui.set_context_menu_can_open_with(false);
         ui.set_operation_dialog_visible(true);
     }

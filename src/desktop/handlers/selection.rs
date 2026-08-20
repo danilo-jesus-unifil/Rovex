@@ -108,6 +108,9 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
             ui.set_selection_count(state.count() as i32);
             ui.set_status_text(SharedString::from(selection_status(&state)));
             let is_regular_file = row.kind == "Arquivo";
+            let can_activate = !row.is_directory
+                && matches!(row.kind.as_str(), "Arquivo" | "Arquivo oculto")
+                && crate::activation::is_supported();
             ui.set_context_menu_target_name(row.name.clone());
             ui.set_context_menu_can_jxl(
                 is_regular_file && ConversionKind::JpegXl.accepts(Path::new(row.name.as_str())),
@@ -122,6 +125,7 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
                 is_regular_file && ConversionKind::Flac.accepts(Path::new(row.name.as_str())),
             );
             ui.set_context_menu_can_terminal(crate::terminal::is_supported());
+            ui.set_context_menu_can_open(can_activate);
             ui.set_context_menu_can_open_with(is_regular_file && crate::open_with::is_supported());
             ui.set_context_menu_visible(true);
             drop(state);

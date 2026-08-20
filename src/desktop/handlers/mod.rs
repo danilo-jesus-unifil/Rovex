@@ -1,3 +1,4 @@
+mod activation;
 mod clipboard;
 mod confirmation;
 mod conversions;
@@ -21,6 +22,7 @@ use super::context::AppContext;
 pub(in crate::desktop) use navigation::update_tab_visuals;
 
 pub(in crate::desktop) fn register_all(ctx: &AppContext) {
+    activation::register(ctx);
     navigation::register(ctx);
     open_with::register(ctx);
     dragdrop::register(ctx);

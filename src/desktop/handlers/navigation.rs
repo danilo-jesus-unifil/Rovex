@@ -3,6 +3,7 @@ use super::super::jobs::start_load;
 use super::super::state::TabManager;
 use super::super::state::parent_directory;
 use super::super::{MainWindow, TabRow};
+use super::activation::{is_activatable_row, spawn_file_activation};
 use slint::{Model, SharedString, VecModel};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -137,22 +138,23 @@ pub(in crate::desktop) fn register(ctx: &AppContext) {
             let Some(row) = entries.row_data(index as usize) else {
                 return;
             };
-            if !row.is_directory {
+            let Some(loaded_row) = directory_rows.lock().ok().and_then(|rows| {
+                rows.iter()
+                    .find(|item| item.key == row.key.as_str())
+                    .cloned()
+            }) else {
                 return;
+            };
+            if loaded_row.is_directory {
+                let next = loaded_row.path;
+                tabs.borrow_mut().active_mut().visit(next.clone());
+                update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
+                start_load(&ui_weak, next, load_scheduler.as_ref());
+            } else if is_activatable_row(&loaded_row) {
+                spawn_file_activation(&ui_weak, loaded_row.path);
+            } else if let Some(ui) = ui_weak.upgrade() {
+                ui.set_status_text("Este item não pode ser aberto com o aplicativo padrão".into());
             }
-            let Ok(rows) = directory_rows.lock() else {
-                return;
-            };
-            let Some(next) = rows
-                .iter()
-                .find(|loaded_row| loaded_row.key == row.key.as_str())
-                .map(|loaded_row| loaded_row.path.clone())
-            else {
-                return;
-            };
-            tabs.borrow_mut().active_mut().visit(next.clone());
-            update_tab_visuals(&ui_weak, &tab_model, &tabs.borrow());
-            start_load(&ui_weak, next, load_scheduler.as_ref());
         });
     }
 

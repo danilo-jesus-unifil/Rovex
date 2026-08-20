@@ -56,6 +56,14 @@ P3 — Experimental
 
 Nenhuma feature da Fase 2 ou posterior será marcada como iniciada antes de essa auditoria ser concluída e validada. Problemas P0 descobertos na auditoria são tratados em mudanças pequenas, com branch/commit próprio e validação incremental; o manifesto Windows é o primeiro lote concluído sob essa regra.
 
+## Atualização do ciclo v0.1.18 — 2026-08-20
+
+O lote de **ativação explícita de arquivos** foi concluído após confirmação de uma lacuna real: `activate(int)` navegava apenas para diretórios e não havia ação contextual `Abrir`. A implementação usa `ShellExecuteExW` com verbo padrão em worker COM STA, mantém `Abrir com...` separado e recusa caminhos relativos, ausentes, diretórios, `..`, symlinks e reparse points no alvo ou em componentes pais.
+
+As validações foram incrementadas com cinco testes de ativação no host, fixture de arquivo dentro de pai symlinkado, teste de caminho ambíguo, gate `scripts/test_activation_contract.sh` no CI Ubuntu/Windows, check/Clippy/build release Windows GNU e smoke visual do menu contextual/Open With. O primeiro Clippy cross revelou e permitiu corrigir `field_reassign_with_default`; a execução seguinte passou.
+
+Próximos riscos a investigar, sem declarar falha antes de reproduzir: associação padrão inexistente (`SE_ERR_NOASSOC`), arquivo bloqueado/sem permissão no Windows, junctions e outros reparse tags não-symlink, caminhos UNC/longos e comportamento efetivo do verbo padrão em Windows 10 e 11. Cada caso deve gerar fixture ou teste de regressão antes de qualquer correção.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.

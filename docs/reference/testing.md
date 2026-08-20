@@ -4,7 +4,7 @@
 
 O núcleo e a primeira camada desktop são verificados com `cargo fmt --all -- --check`, `cargo check --all-targets --all-features`, `cargo test --all-targets --all-features`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo build --release`, build release cruzado para Windows x64, `cargo audit` e `cargo deny check`.
 
-A suíte atual reporta **97 testes aprovados, zero falhas e 2 ignorados explicitamente** — o benchmark manual e o teste que exige FFmpeg/ffprobe disponíveis. A contagem é revisada junto de cada release, em vez de manter o número histórico de 46 testes. Clippy não produz diagnósticos e cargo-deny é aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
+A suíte atual reporta **102 testes aprovados, zero falhas e 2 ignorados explicitamente** — o benchmark manual e o teste que exige FFmpeg/ffprobe disponíveis. A contagem é revisada junto de cada release, em vez de manter o número histórico de 46 testes. Clippy não produz diagnósticos e cargo-deny é aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
 
 ## Cobertura do núcleo
 
@@ -13,6 +13,8 @@ Os testes cobrem classificação de diretórios e arquivos, listagem sem seguir 
 ## Cobertura desktop
 
 A camada desktop tem testes para formatação de tamanhos, descoberta segura da pasta pai, carregamento de diretório real, conversão de erro de filesystem em status controlado, distinção entre pasta vazia e erro, filtragem case-insensitive por nome, estado vazio sem resultados, histórico voltar/avançar e seleção por clique, Ctrl-clique, Shift-clique e Ctrl+A. O carregamento usa um worker único latest-only, geração atômica para descartar resultados obsoletos e encerramento cooperativo. O filtro usa uma fila latest-only, um worker dedicado e snapshots `Arc<[LoadedRow]>`, para que a UI não mantenha o mutex durante a filtragem. A atualização do `VecModel` ocorre apenas pelo event loop do Slint.
+
+A ativação explícita tem testes unitários para arquivo absoluto regular, diretório, caminho relativo, caminho ausente, symlink final, pai symlinkado e componente `..`. O gate `scripts/test_activation_contract.sh` também verifica que `ShellExecuteExW` recebe o caminho em `lpFile`, que não há `Command::new` no adapter e que `Abrir` e `Abrir com...` permanecem callbacks distintos. O CI executa esse gate em Ubuntu e Windows, além da suíte geral.
 
 Um smoke test executável em Xvfb abre a janela release, localiza o título `Rovex`, edita a barra de endereço para `/tmp`, preenche o filtro com `cargo`, confirma a redução para cinco itens, captura uma imagem de 1100×720 e encerra o processo. O script `scripts/audit_edge_cases.sh` também exercita o CLI com diretórios vazios, caminhos com espaços, Unicode, caracteres especiais, nomes longos, arquivo em vez de diretório, caminho inexistente e permissões insuficientes; ele foi aprovado pelo binário release. O screenshot validado mostra o caminho `/tmp`, o filtro preenchido e a listagem reduzida. Um smoke adicional abre a modal de cópia após seleção real, confirma entrada vazia de forma segura e valida o caminho de confirmação.
 
@@ -26,7 +28,7 @@ A auditoria final adicionou regressões para publicação sem sobrescrita em cor
 
 ## Testes da interface e da distribuição
 
-A camada desktop precisará ser verificada em Windows 10 e 11 com teclado, foco, leitor de tela quando disponível, alto contraste, escalas de 100%, 125%, 150% e 200%, dois monitores com DPI diferente, tema claro/escuro, navegação de histórico, ativação de pastas, cancelamento e mensagens de erro. A distribuição exigirá instalação limpa, upgrade, reinstalação, versão portátil, assinatura, atualização verificada e desinstalação sem apagar documentos do usuário.
+A camada desktop precisará ser verificada em Windows 10 e 11 com teclado, foco, leitor de tela quando disponível, alto contraste, escalas de 100%, 125%, 150% e 200%, dois monitores com DPI diferente, tema claro/escuro, navegação de histórico, ativação de pastas e arquivos regulares com associação padrão, distinção entre Abrir e Open With, cancelamento e mensagens de erro. A distribuição exigirá instalação limpa, upgrade, reinstalação, versão portátil, assinatura, atualização verificada e desinstalação sem apagar documentos do usuário.
 
 ## Auditoria de dependências
 

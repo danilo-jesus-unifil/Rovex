@@ -4,6 +4,7 @@
 //! binário de desenvolvimento usa esses contratos sem executar arquivos do
 //! usuário ou depender de um shell.
 
+mod activation;
 pub mod clipboard;
 pub mod converters;
 pub mod desktop;
@@ -16,6 +17,10 @@ pub mod security;
 pub mod settings;
 mod terminal;
 
+pub use activation::{
+    ActivationError, activate_file, is_supported as activation_supported,
+    validate_file as validate_activation_file,
+};
 pub use converters::{
     ConversionError, ConversionKind, ConversionReport, ConversionStage, convert_file,
 };
