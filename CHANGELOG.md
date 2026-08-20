@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.21] — 2026-08-20
+
+A versão `0.1.21` endurece a listagem contra junctions e demais reparse points e elimina uma corrida real no teste de cancelamento do fake FFmpeg.
+
+| Área | Mudança |
+|---|---|
+| Investigação | A auditoria confirmou que `list_directory` verificava `is_dir()` antes de `read_dir()` sem rejeitar explicitamente o atributo Windows `FILE_ATTRIBUTE_REPARSE_POINT`; junctions são reparse points e não devem ser seguidas automaticamente. |
+| Filesystem | `DirectoryEntry` classifica qualquer reparse point como entrada não navegável e a raiz da listagem é recusada antes de `read_dir`. |
+| Windows | Smoke nativo cria uma junction real apontando para marcador externo; o CLI precisa retornar erro controlado em vez de listar o alvo. |
+| Testes | 104 testes host aprovados; regressão Unix para raiz symlinkada; gate estrutural de junction; smoke Windows long-path/junction. |
+| Estabilidade | O teste `ffmpeg_fake_is_killed_when_cancelled` passou a usar handshake de readiness; a corrida de timing que falhou uma vez foi reproduzida como flakiness e deixou de depender de 100 ms arbitrários. |
+| Segurança | A política não resolve tags seletivamente: qualquer reparse point é recusado até existir contrato específico para cada tipo. |
+| Documentação | Pesquisa oficial registrada em `docs/research/reparse-point-classification-2026-08-20.md`. |
+
 ## [0.1.20] — 2026-08-20
 
 A versão `0.1.20` fecha uma lacuna real de validação: o manifesto já declarava `longPathAware`, mas o CI Windows não exercitava uma árvore acima de 260 caracteres.
