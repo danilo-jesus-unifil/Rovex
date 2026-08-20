@@ -84,6 +84,8 @@ A investigação confirmou uma falha de classificação: a listagem usava `FileT
 
 O smoke Windows cria uma junction real para um diretório com marcador externo e exige erro controlado do CLI; o gate estrutural impede a remoção desse cenário. Também foi corrigida uma corrida real no teste de cancelamento FFmpeg: o cancelamento só ocorre após handshake de readiness, e não após um atraso fixo de 100 ms.
 
+O primeiro CI confirmou ainda uma falha operacional no próprio smoke: o retorno não-zero esperado da junction ficou em `LASTEXITCODE` e fez o PowerShell terminar com código 1 apesar de a asserção de segurança passar. O script agora captura `junctionExitCode` e zera o estado antes de concluir; o gate estrutural exige essa limpeza.
+
 O próximo ciclo deve cobrir outras tags de reparse, mounted folders, arquivos bloqueados, ACLs, UNC e associação inexistente somente com fixtures nativas específicas.
 
 ## Workflow de cada lote

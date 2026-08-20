@@ -15,6 +15,7 @@ A versão `0.1.21` endurece a listagem contra junctions e demais reparse points 
 | Estabilidade | O teste `ffmpeg_fake_is_killed_when_cancelled` passou a usar handshake de readiness; a corrida de timing que falhou uma vez foi reproduzida como flakiness e deixou de depender de 100 ms arbitrários. |
 | Segurança | A política não resolve tags seletivamente: qualquer reparse point é recusado até existir contrato específico para cada tipo. |
 | Documentação | Pesquisa oficial registrada em `docs/research/reparse-point-classification-2026-08-20.md`. |
+| CI follow-up | O primeiro CI mostrou que o exit code não-zero esperado da junction vazava do PowerShell; o smoke agora captura `junctionExitCode` e zera `LASTEXITCODE` antes de concluir. |
 
 ## [0.1.20] — 2026-08-20
 

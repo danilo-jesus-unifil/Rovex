@@ -27,6 +27,8 @@ Foi adicionado um helper `is_reparse_point` que, no Windows, verifica `FILE_ATTR
 
 Essa alteração evita navegação acidental por junctions, mounted folders, links NTFS e outras tags. Ela não altera a política de exclusão ou ativações para permitir qualquer reparse point.
 
+Na primeira execução do CI, o smoke imprimiu que a junction havia sido rejeitada, mas o job terminou com código 1 porque o `LASTEXITCODE` não-zero esperado do `cargo run` permaneceu como último estado do PowerShell. Isso foi uma falha operacional confirmada do teste, não do bloqueio de segurança. O script agora copia o valor para `junctionExitCode`, valida o erro e zera `$global:LASTEXITCODE` antes de concluir; o gate estrutural exige esse tratamento para impedir regressão.
+
 ## Regressão adicional descoberta
 
 Na primeira validação após a mudança, o teste `ffmpeg_fake_is_killed_when_cancelled` falhou uma vez entre 103 testes. A repetição isolada e três suítes completas passaram, confirmando uma corrida de timing na fixture: o teste cancelava após 100 ms sem saber se o fake backend já havia iniciado o processo de longa duração.
@@ -39,7 +41,7 @@ O teste agora cria um marcador de readiness no próprio fake backend, espera at�
 |---|---|
 | Testes host | 104 aprovados; 2 ignorados explicitamente |
 | Regressão Unix | Raiz symlinkada recusada sem seguir o destino |
-| Smoke Windows | Junction real com marcador externo deve retornar erro |
+| Smoke Windows | Junction real com marcador externo deve retornar erro e o script deve concluir com código zero |
 | Long path | Smoke existente acima de 260 caracteres preservado |
 | Gate estrutural | Junction, retorno não-zero, manifesto e CI verificados |
 | Check/Clippy host | Aprovados sem warnings |

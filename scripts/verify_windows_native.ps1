@@ -49,13 +49,15 @@ try {
     $junction = Join-Path $fixture "junction-entry"
     New-Item -ItemType Junction -Path $junction -Target $junctionTarget -Force | Out-Null
     $junctionOutput = & cargo run --quiet -- --cli $junction 2>&1
-    if ($LASTEXITCODE -eq 0) {
+    $junctionExitCode = $LASTEXITCODE
+    if ($junctionExitCode -eq 0) {
         throw "CLI seguiu junction em vez de recusar o ponto de reparse: $($junctionOutput -join [Environment]::NewLine)"
     }
     $junctionJoined = $junctionOutput -join [Environment]::NewLine
     if ($junctionJoined -notmatch 'reparse|redirecionado|inválido|não encontrado') {
         throw "CLI recusou junction sem diagnóstico controlado: $junctionJoined"
     }
+    $global:LASTEXITCODE = 0
 
     Write-Host "Windows native CLI smoke passed: $fixture; long path length $($longFile.Length); junction rejected"
 }

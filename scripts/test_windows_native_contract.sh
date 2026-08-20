@@ -7,7 +7,9 @@ grep -Fq '$longFile.Length -le 260' scripts/verify_windows_native.ps1
 grep -Fq 'cargo run --quiet -- --cli $longDirectory' scripts/verify_windows_native.ps1
 grep -Fq 'New-Item -ItemType Junction' scripts/verify_windows_native.ps1
 grep -Fq 'CLI seguiu junction' scripts/verify_windows_native.ps1
-grep -Fq 'if ($LASTEXITCODE -eq 0)' scripts/verify_windows_native.ps1
+grep -Fq 'junctionExitCode = $LASTEXITCODE' scripts/verify_windows_native.ps1
+grep -Fq 'if ($junctionExitCode -eq 0)' scripts/verify_windows_native.ps1
+grep -Fq '$global:LASTEXITCODE = 0' scripts/verify_windows_native.ps1
 grep -Fq 'Native Windows CLI smoke' .github/workflows/ci.yml
 grep -Fq 'run: ./scripts/verify_windows_native.ps1' .github/workflows/ci.yml
 
