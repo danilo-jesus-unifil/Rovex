@@ -11,7 +11,7 @@ Este diretório reúne a documentação técnica do projeto por finalidade. O í
 | [`reports/`](reports/) | Relatórios gerais de implementação, modernização, estabilidade e UI | [`MODERNIZATION_REPORT.md`](reports/MODERNIZATION_REPORT.md), [`FINAL_STABILITY_REPORT.md`](reports/FINAL_STABILITY_REPORT.md) |
 | [`releases/`](releases/) | Histórico de notas e relatórios por versão | [`RELEASE_REPORT-v0.1.15.md`](releases/RELEASE_REPORT-v0.1.15.md) |
 
-Os poucos arquivos mantidos na raiz têm finalidade operacional ou convenção de plataforma: [`README.md`](../README.md) é a entrada do repositório, [`CHANGELOG.md`](../CHANGELOG.md) é o histórico curto, [`SECURITY.md`](../SECURITY.md) é a política reconhecida pelo GitHub e [`COMPATIBILITY.md`](../COMPATIBILITY.md) é incluído pelo pacote portable como matriz canônica de compatibilidade. Evidências Markdown de smoke tests ficam em [`../artifacts/validation/`](../artifacts/validation/), separadas da documentação normativa.
+Os poucos arquivos mantidos na raiz têm finalidade operacional ou convenção de plataforma: [`README.md`](../README.md) é a entrada do repositório, [`CHANGELOG.md`](../CHANGELOG.md) é o histórico curto, [`SECURITY.md`](../SECURITY.md) é a política reconhecida pelo GitHub e [`COMPATIBILITY.md`](../COMPATIBILITY.md) é incluído pelo pacote portable como matriz canônica de compatibilidade. Evidências Markdown de smoke tests são geradas localmente em `artifacts/validation/`, separadas da documentação normativa; esse diretório é ignorado pelo Git e não é tratado como documentação versionada.
 
 ## Critério de manutenção
 
