@@ -64,6 +64,14 @@ As validações foram incrementadas com cinco testes de ativação no host, fixt
 
 Próximos riscos a investigar, sem declarar falha antes de reproduzir: associação padrão inexistente (`SE_ERR_NOASSOC`), arquivo bloqueado/sem permissão no Windows, junctions e outros reparse tags não-symlink, caminhos UNC/longos e comportamento efetivo do verbo padrão em Windows 10 e 11. Cada caso deve gerar fixture ou teste de regressão antes de qualquer correção.
 
+## Atualização do ciclo v0.1.19 — 2026-08-20
+
+A investigação confirmou uma lacuna independente da associação do usuário: o adapter chamava `ShellExecuteExW` em worker sem message loop com `fMask = 0`, embora a documentação exija `SEE_MASK_NOASYNC` nesse cenário. Também confirmou que o contrato COM recomendado inclui `COINIT_DISABLE_OLE1DDE`. O lote foi corrigido sem adicionar fallback de shell.
+
+O erro agora preserva `hInstApp`/`SE_ERR_*` e `GetLastError`, com mensagens controladas para associação ausente, acesso negado, compartilhamento e cancelamento. A suíte subiu para 103 testes e o gate estrutural verifica flags, COM, ponteiros nulos e ausência de `Command::new`.
+
+O próximo ciclo deve reproduzir em Windows nativo associação inexistente, arquivo bloqueado, junction/mounted folder, caminho UNC e path longo antes de qualquer nova mudança. Nenhum desses casos é declarado resolvido apenas por cross-build.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.

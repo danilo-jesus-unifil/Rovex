@@ -7,7 +7,7 @@ pub enum ActivationError {
     InvalidTarget(PathBuf),
     Unsupported,
     ComInitialization(i32),
-    ShellExecuteFailed(u32),
+    ShellExecuteFailed { shell_code: u32, win32_error: u32 },
 }
 
 impl fmt::Display for ActivationError {
@@ -29,16 +29,38 @@ impl fmt::Display for ActivationError {
                 "não foi possível inicializar o Shell do Windows (HRESULT 0x{:08X})",
                 *hr as u32
             ),
-            Self::ShellExecuteFailed(error) => write!(
+            Self::ShellExecuteFailed {
+                shell_code,
+                win32_error,
+            } => write!(
                 formatter,
-                "o aplicativo padrão não pôde abrir o arquivo (erro Win32 {})",
-                error
+                "o aplicativo padrão não pôde abrir o arquivo: {} (ShellExecuteEx SE_ERR={}, Win32={})",
+                shell_error_description(*shell_code, *win32_error),
+                shell_code,
+                win32_error
             ),
         }
     }
 }
 
 impl std::error::Error for ActivationError {}
+
+fn shell_error_description(shell_code: u32, win32_error: u32) -> &'static str {
+    match win32_error {
+        2 | 3 => "o arquivo ou caminho não foi encontrado",
+        5 => "o acesso ao arquivo foi negado",
+        32 => "o arquivo está sendo usado por outro processo",
+        1155 => "não há aplicativo associado à extensão do arquivo",
+        1223 => "a operação foi cancelada pelo usuário",
+        _ => match shell_code {
+            2 | 3 => "o arquivo ou caminho não foi encontrado",
+            5 => "o acesso ao arquivo foi negado",
+            26 => "o arquivo não pôde ser compartilhado",
+            31 => "não há aplicativo associado ao arquivo",
+            _ => "o Shell do Windows recusou a ativação",
+        },
+    }
+}
 
 pub fn is_supported() -> bool {
     cfg!(windows)
@@ -103,11 +125,12 @@ fn activate_windows_file(path: &Path) -> Result<(), ActivationError> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Foundation::{GetLastError, RPC_E_CHANGED_MODE, S_FALSE, S_OK};
     use windows_sys::Win32::System::Com::{
-        COINIT_APARTMENTTHREADED, CoInitializeEx, CoUninitialize,
+        COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoInitializeEx, CoUninitialize,
     };
-    use windows_sys::Win32::UI::Shell::{SHELLEXECUTEINFOW, ShellExecuteExW};
+    use windows_sys::Win32::UI::Shell::{SEE_MASK_NOASYNC, SHELLEXECUTEINFOW, ShellExecuteExW};
 
-    let com_result = unsafe { CoInitializeEx(std::ptr::null(), COINIT_APARTMENTTHREADED as u32) };
+    let com_flags = COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE;
+    let com_result = unsafe { CoInitializeEx(std::ptr::null(), com_flags as u32) };
     if com_result == RPC_E_CHANGED_MODE || com_result < 0 {
         return Err(ActivationError::ComInitialization(com_result));
     }
@@ -119,6 +142,7 @@ fn activate_windows_file(path: &Path) -> Result<(), ActivationError> {
         .collect::<Vec<_>>();
     let mut info = SHELLEXECUTEINFOW {
         cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOASYNC,
         lpVerb: std::ptr::null(),
         lpFile: wide.as_ptr(),
         lpParameters: std::ptr::null(),
@@ -131,13 +155,18 @@ fn activate_windows_file(path: &Path) -> Result<(), ActivationError> {
     let error = if succeeded {
         None
     } else {
-        Some(unsafe { GetLastError() })
+        let win32_error = unsafe { GetLastError() };
+        let shell_code = info.hInstApp as usize as u32;
+        Some((shell_code, win32_error))
     };
     if should_uninitialize {
         unsafe { CoUninitialize() };
     }
-    error.map_or(Ok(()), |code| {
-        Err(ActivationError::ShellExecuteFailed(code))
+    error.map_or(Ok(()), |(shell_code, win32_error)| {
+        Err(ActivationError::ShellExecuteFailed {
+            shell_code,
+            win32_error,
+        })
     })
 }
 
@@ -229,6 +258,26 @@ mod tests {
             Err(ActivationError::InvalidTarget(_))
         ));
         fs::remove_dir_all(root).expect("o diretório de teste deve ser removido");
+    }
+
+    #[test]
+    fn maps_known_shell_errors_to_safe_user_messages() {
+        assert_eq!(
+            super::shell_error_description(31, 1155),
+            "não há aplicativo associado à extensão do arquivo"
+        );
+        assert_eq!(
+            super::shell_error_description(5, 5),
+            "o acesso ao arquivo foi negado"
+        );
+        assert_eq!(
+            super::shell_error_description(26, 32),
+            "o arquivo está sendo usado por outro processo"
+        );
+        assert_eq!(
+            super::shell_error_description(0, 1223),
+            "a operação foi cancelada pelo usuário"
+        );
     }
 
     #[cfg(windows)]
