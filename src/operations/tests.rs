@@ -184,7 +184,22 @@ fn copia_e_renomeia_nomes_unicode_e_com_espacos() {
 #[test]
 fn nomes_reservados_do_windows_sao_rejeitados_pelo_sistema() {
     let root = temporary_directory();
-    for name in ["CON", "PRN", "AUX", "NUL", "COM1", "COM9", "LPT1", "LPT9"] {
+    for name in [
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        "COM1",
+        "COM9",
+        "COM¹",
+        "COM².txt",
+        "COM³",
+        "LPT1",
+        "LPT9.log",
+        "LPT¹",
+        "LPT².txt",
+        "LPT³",
+    ] {
         let path = root.join(name);
         assert!(
             create_directory(&path).is_err(),

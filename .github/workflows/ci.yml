@@ -48,6 +48,10 @@ jobs:
         shell: bash
         run: ./scripts/test_windows_native_contract.sh
 
+      - name: Reserved Windows names contract
+        shell: bash
+        run: ./scripts/test_reserved_windows_names_contract.sh
+
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 

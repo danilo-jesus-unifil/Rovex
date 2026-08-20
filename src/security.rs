@@ -118,11 +118,38 @@ fn is_reserved_windows_name(name: &OsStr) -> bool {
     let trimmed = name.trim_end_matches([' ', '.']);
     let stem = trimmed.split('.').next().unwrap_or_default();
     let uppercase = stem.to_ascii_uppercase();
-    matches!(uppercase.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CLOCK$")
-        || (uppercase.len() == 4
-            && (uppercase.starts_with("COM") || uppercase.starts_with("LPT"))
-            && uppercase.as_bytes()[3].is_ascii_digit()
-            && uppercase.as_bytes()[3] != b'0')
+    matches!(
+        uppercase.as_str(),
+        "CON"
+            | "PRN"
+            | "AUX"
+            | "NUL"
+            | "CLOCK$"
+            | "COM1"
+            | "COM2"
+            | "COM3"
+            | "COM4"
+            | "COM5"
+            | "COM6"
+            | "COM7"
+            | "COM8"
+            | "COM9"
+            | "COM¹"
+            | "COM²"
+            | "COM³"
+            | "LPT1"
+            | "LPT2"
+            | "LPT3"
+            | "LPT4"
+            | "LPT5"
+            | "LPT6"
+            | "LPT7"
+            | "LPT8"
+            | "LPT9"
+            | "LPT¹"
+            | "LPT²"
+            | "LPT³"
+    )
 }
 
 pub fn validate_destination(

@@ -86,7 +86,11 @@ O smoke Windows cria uma junction real para um diretório com marcador externo e
 
 O primeiro CI confirmou ainda uma falha operacional no próprio smoke: o retorno não-zero esperado da junction ficou em `LASTEXITCODE` e fez o PowerShell terminar com código 1 apesar de a asserção de segurança passar. O script agora captura `junctionExitCode` e zera o estado antes de concluir; o gate estrutural exige essa limpeza.
 
-O próximo ciclo deve cobrir outras tags de reparse, mounted folders, arquivos bloqueados, ACLs, UNC e associação inexistente somente com fixtures nativas específicas.
+## Atualização do ciclo v0.1.22 — 2026-08-20
+
+A investigação confirmou uma lacuna no predicado de nomes reservados: `is_ascii_digit()` cobria `COM1`–`COM9` e `LPT1`–`LPT9`, mas não os dígitos sobrescritos ¹, ² e ³. A documentação oficial lista `COM¹`/`COM²`/`COM³` e `LPT¹`/`LPT²`/`LPT³` como dispositivos reservados, inclusive com extensões. O código agora mantém uma lista explícita dos nomes ASCII e sobrescritos, e a fixture Windows de operações cobre todos os casos.
+
+O gate `scripts/test_reserved_windows_names_contract.sh` exige a presença dos seis nomes no predicado, no teste e no workflow. O próximo ciclo deve cobrir arquivos maiores que 4 GB quando o runner permitir, outras tags de reparse, mounted folders, arquivos bloqueados, ACLs, UNC e associação inexistente somente com fixtures nativas específicas.
 
 ## Workflow de cada lote
 
