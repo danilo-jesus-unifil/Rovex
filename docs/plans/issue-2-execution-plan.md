@@ -92,6 +92,14 @@ A investigação confirmou uma lacuna no predicado de nomes reservados: `is_asci
 
 O gate `scripts/test_reserved_windows_names_contract.sh` exige a presença dos seis nomes no predicado, no teste e no workflow. O próximo ciclo deve cobrir arquivos maiores que 4 GB quando o runner permitir, outras tags de reparse, mounted folders, arquivos bloqueados, ACLs, UNC e associação inexistente somente com fixtures nativas específicas.
 
+## Atualização do ciclo v0.1.23 — 2026-08-20
+
+A auditoria exploratória do estado v0.1.22 confirmou quatro inconsistências reais. A busca recursiva não rejeitava uma raiz reparse antes de `read_dir`; a saída de conversão comparava caminhos apenas lexicalmente e podia perder colisões de caixa no Windows; destinos podiam atravessar pais junction/reparse porque a política reconhecia symlink, mas não o atributo `FILE_ATTRIBUTE_REPARSE_POINT`; e a exclusão podia tratar um junction final como diretório e inspecionar seu conteúdo.
+
+O lote corrigiu os quatro casos em módulos pequenos: `SearchError::RootRedirected` para a raiz da busca, canonicalização Windows em `same_existing_path`, helper único de reparse points para pais de destino e classificação de reparse final como link no fluxo de exclusão. Foram adicionados testes host e Windows condicionados, incluindo junction criada por `mklink /J`; a suíte ficou em 105 testes host aprovados e 2 ignorados explicitamente. Check, Clippy host/cross, build release Windows GNU, audit/deny, contratos nativos e layout documental passaram.
+
+A mesma auditoria confirmou, por leitura do contrato de `SearchPathW`/`CreateProcess`, que o diretório atual aparece entre candidatos de FFmpeg/ffprobe. Como overrides absolutos e instalações de gerenciadores são suportados, a mudança foi registrada como decisão de confiança e não aplicada sem fixture adversarial nativa. O próximo lote deve testar um backend falso no CWD, decidir a ordem/política e preservar a regra de não baixar executáveis. TOCTOU baseado em caminho, Job Objects, UNC/SMB, ACLs, arquivos bloqueados e Windows interativo continuam pendentes e não são declarados resolvidos.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.

@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.23] — 2026-08-20
+
+A versão `0.1.23` fecha lacunas reais encontradas na auditoria exploratória do estado v0.1.22: raiz reparse na busca, colisão de extensão por caixa no Windows, pais reparse em destinos e exclusão de junction como diretório. A investigação também confirmou um risco de confiança no fallback de descoberta do FFmpeg, que permanece documentado para um ciclo próprio.
+
+| Área | Mudança |
+|---|---|
+| Busca | `search_by_name` recusa explicitamente uma raiz symlink/reparse antes de `read_dir`, com erro tipado e regressão de raiz symlinkada. |
+| Conversão | A comparação Windows de origem/destino usa canonicalização quando ambos existem, detectando `foto.PNG` e `foto.png` como o mesmo arquivo. |
+| Destinos | `validate_destination` rejeita reparse points em todos os componentes pais, incluindo junctions, antes de normalizar ou criar saídas. |
+| Exclusão | Junctions e demais reparse points finais não entram no fluxo que examina conteúdo de diretório; são tratados como links pelo adapter Windows. |
+| Auditoria | Pesquisa documentou o risco de incluir o diretório atual entre candidatos de FFmpeg/ffprobe; a política de confiança não foi alterada sem reprodução nativa adicional. |
+| Testes | 105 testes host aprovados e 2 ignorados explicitamente; teste Windows adicional cria junction com `mklink /J` e verifica a recusa do destino. |
+| Gates | Check/Clippy host e Windows GNU, build release cross, audit/deny, layout documental e contratos Windows passaram. |
+| Documentação | Evidências em `docs/research/audit-2026-08-20.md`, `artifacts/validation/audit-*.md` e relatório da release. |
+
 ## [0.1.22] — 2026-08-20
 
 A versão `0.1.22` fecha uma lacuna real na validação de nomes reservados de dispositivos Windows: os dígitos sobrescritos ¹, ² e ³ não eram reconhecidos para `COM` e `LPT`.
