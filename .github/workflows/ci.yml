@@ -69,6 +69,14 @@ jobs:
       - name: Build Windows GNU release
         run: cargo build --release --target x86_64-pc-windows-gnu
 
+      - name: Package and verify portable metadata
+        shell: bash
+        run: |
+          rm -rf dist
+          scripts/package_windows_portable.sh x86_64-pc-windows-gnu dist
+          archive="$(find dist -maxdepth 1 -type f -name '*.zip' -print -quit)"
+          scripts/test_verify_windows_portable.sh "$archive"
+
   dependency-audit:
     name: Dependency audit
     runs-on: ubuntu-latest

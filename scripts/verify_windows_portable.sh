@@ -31,15 +31,30 @@ for entry in "${entries[@]}"; do
 done
 unzip -q "$ARCHIVE" -d "$extract_dir"
 
+archive_base=$(basename "$ARCHIVE" .zip)
 root_entry=${entries[0]%%/*}
 package_dir="$extract_dir/$root_entry"
 [[ -d "$package_dir" ]] || { printf 'raiz de pacote ausente\n' >&2; exit 1; }
+[[ "$root_entry" == "$archive_base" ]] || {
+    printf 'raiz do pacote não corresponde ao nome do ZIP: %s != %s\n' "$root_entry" "$archive_base" >&2
+    exit 1
+}
 for required in rovex.exe LICENSE README.md COMPATIBILITY.md PORTABLE.txt DISTRIBUTION-MANIFEST.txt; do
     [[ -f "$package_dir/$required" ]] || {
         printf 'arquivo obrigatório ausente: %s\n' "$required" >&2
         exit 1
     }
 done
+expected_version=${archive_base#rovex-v}
+expected_version=${expected_version%-windows-x86_64-portable}
+grep -Fxq "version=$expected_version" "$package_dir/DISTRIBUTION-MANIFEST.txt" || {
+    printf 'versão do manifesto não corresponde ao artefato: esperado %s\n' "$expected_version" >&2
+    exit 1
+}
+grep -Fxq 'target=x86_64-pc-windows-gnu' "$package_dir/DISTRIBUTION-MANIFEST.txt" || {
+    printf 'target Windows GNU ausente ou divergente no manifesto\n' >&2
+    exit 1
+}
 
 grep -q '^signed=no$' "$package_dir/DISTRIBUTION-MANIFEST.txt"
 grep -q '^runtime_downloads=no$' "$package_dir/DISTRIBUTION-MANIFEST.txt"
