@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.25] — 2026-08-20
+
+A versão `0.1.25` corrige uma falha real de cancelamento/timeout de processos externos: matar somente o FFmpeg/ffprobe direto não encerra necessariamente descendentes que mantêm os pipes de diagnóstico abertos.
+
+| Área | Mudança |
+|---|---|
+| Processos Unix | Conversores iniciam o backend em grupo próprio e terminam o grupo com `killpg` em cancelamento, timeout e falhas de leitura/espera. |
+| Processos Windows | Conversores associam o backend a Job Object com `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`; terminação e fechamento do job cobrem a árvore criada pelo backend. |
+| Falha fechada | Se o Job Object não puder ser criado, configurado ou associado, a conversão retorna erro após tentar encerrar o processo direto; não declara contenção inexistente. |
+| Testes | `cancelamento_encerra_descendente_que_mantem_pipe_aberto` reproduz um descendente fake que herda stderr e confirma retorno rápido após cancelamento. |
+| CI | `scripts/test_process_containment_contract.sh` exige grupos/jobs, terminação da árvore, integração ao worker e a regressão executável. |
+| Dependências | `libc` `0.2.189` foi fixado para grupos Unix; `windows-sys` recebeu somente as features Job Objects/Threading/Security necessárias. |
+| Documentação | Pesquisa oficial, limitações e critérios nativos foram registrados em `docs/research/process-containment-research-2026-08-20.md` e no relatório da release. |
+
 ## [0.1.24] — 2026-08-20
 
 A versão `0.1.24` fecha o risco de descoberta indireta de FFmpeg/ffprobe pelo diretório de trabalho no Windows e conclui a refatoração do módulo de segurança que havia ultrapassado 400 linhas.

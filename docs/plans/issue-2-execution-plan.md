@@ -108,6 +108,14 @@ A validação foi incrementada com o teste `descoberta_nao_adiciona_cwd_implicit
 
 O risco restante é de confiança dos próprios candidatos autorizados: PATH, Registro e diretórios de usuário não têm autenticação por hash/assinatura. Também permanecem TOCTOU baseado em caminho, DLLs carregadas pelo backend, descendentes sem Job Object, UNC/SMB, ACLs e Windows interativo. Nenhum desses pontos deve ser marcado como resolvido sem reprodução específica.
 
+## Atualização do ciclo v0.1.25 — 2026-08-20
+
+A auditoria confirmou por reprodução Unix que matar somente o processo direto não encerra necessariamente descendentes que herdam stderr/stdout. Como o worker faz `join` dos leitores dos pipes, um descendente pode manter o pipe aberto e atrasar cancelamento ou timeout até sair naturalmente. A correção criou `src/converters/process_tree.rs`: grupos de processos e `killpg` em Unix; Job Objects com `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, `AssignProcessToJobObject` e `TerminateJobObject` no Windows.
+
+O teste `cancelamento_encerra_descendente_que_mantem_pipe_aberto` reproduz a condição com um backend fake que cria `sleep` em background; o contrato `scripts/test_process_containment_contract.sh` verifica que a política e o teste permanecem conectados ao CI. O módulo `windows-sys` recebeu apenas as features nativas necessárias e `libc` foi fixado em `0.2.189` para Unix.
+
+A correção é contenção de árvore, não sandbox: a associação ocorre logo após o spawn e falha fechada se Job Object não puder ser criado/configurado/associado. DLLs dependentes, autenticação de executável, corrida entre spawn e associação, processos que tentam breakaway, TOCTOU de filesystem, ACLs, UNC/SMB e Windows interativo continuam exigindo validação nativa específica.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.
