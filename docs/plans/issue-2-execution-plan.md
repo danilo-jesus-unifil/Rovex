@@ -100,6 +100,14 @@ O lote corrigiu os quatro casos em módulos pequenos: `SearchError::RootRedirect
 
 A mesma auditoria confirmou, por leitura do contrato de `SearchPathW`/`CreateProcess`, que o diretório atual aparece entre candidatos de FFmpeg/ffprobe. Como overrides absolutos e instalações de gerenciadores são suportados, a mudança foi registrada como decisão de confiança e não aplicada sem fixture adversarial nativa. O próximo lote deve testar um backend falso no CWD, decidir a ordem/política e preservar a regra de não baixar executáveis. TOCTOU baseado em caminho, Job Objects, UNC/SMB, ACLs, arquivos bloqueados e Windows interativo continuam pendentes e não são declarados resolvidos.
 
+## Atualização do ciclo v0.1.24 — 2026-08-20
+
+A auditoria de follow-up confirmou que remover somente a inserção explícita do CWD não era suficiente: `SearchPathW` com `lpPath = NULL` e `where.exe` também podiam consultar o diretório de trabalho. A correção removeu esses dois fallbacks do adapter Windows. A descoberta continua determinística por override absoluto, PATH herdado, PATH persistente, App Paths, diretório do executável, diretório adjacente explicitamente fornecido, raízes conhecidas e pacotes WinGet com limites; `is_backend_file` exige caminho absoluto e arquivo regular.
+
+A validação foi incrementada com o teste `descoberta_nao_adiciona_cwd_implicitamente`, o contrato `scripts/test_ffmpeg_discovery_contract.sh` no job de qualidade e a refatoração dos testes de segurança para `src/security/tests.rs`, mantendo todos os arquivos Rust abaixo de 400 linhas. O ciclo precisa confirmar que a remoção não quebra instalação por PATH, override ou diretório adjacente e que os jobs Windows nativos continuam verdes.
+
+O risco restante é de confiança dos próprios candidatos autorizados: PATH, Registro e diretórios de usuário não têm autenticação por hash/assinatura. Também permanecem TOCTOU baseado em caminho, DLLs carregadas pelo backend, descendentes sem Job Object, UNC/SMB, ACLs e Windows interativo. Nenhum desses pontos deve ser marcado como resolvido sem reprodução específica.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.

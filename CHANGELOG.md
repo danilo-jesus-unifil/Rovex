@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.24] — 2026-08-20
+
+A versão `0.1.24` fecha o risco de descoberta indireta de FFmpeg/ffprobe pelo diretório de trabalho no Windows e conclui a refatoração do módulo de segurança que havia ultrapassado 400 linhas.
+
+| Área | Mudança |
+|---|---|
+| Descoberta | O CWD não é mais adicionado implicitamente a `backend_candidates`. |
+| Windows | Os fallbacks `SearchPathW(lpPath = NULL)` e `where.exe` foram removidos porque podem consultar o CWD conforme a configuração do sistema ou o comportamento padrão do comando. |
+| Compatibilidade | Permanecem overrides absolutos, PATH herdado/persistente, App Paths, diretório do Rovex, diretório adjacente explícito, raízes conhecidas e pacotes WinGet limitados. |
+| Testes | Novo teste confirma ausência do CWD implícito e preserva o diretório adjacente explicitamente informado. |
+| CI | `scripts/test_ffmpeg_discovery_contract.sh` impede a reintrodução dos caminhos implícitos e está conectado aos jobs Linux/Windows. |
+| Arquitetura | Os testes de segurança foram movidos para `src/security/tests.rs`; todos os arquivos Rust ficaram abaixo de 400 linhas. |
+| Pesquisa | A decisão está registrada em `docs/research/ffmpeg-discovery-research.md` e `artifacts/validation/next-cycle-executable-search-research-2026-08-20.md`. |
+
 ## [0.1.23] — 2026-08-20
 
 A versão `0.1.23` fecha lacunas reais encontradas na auditoria exploratória do estado v0.1.22: raiz reparse na busca, colisão de extensão por caixa no Windows, pais reparse em destinos e exclusão de junction como diretório. A investigação também confirmou um risco de confiança no fallback de descoberta do FFmpeg, que permanece documentado para um ciclo próprio.
