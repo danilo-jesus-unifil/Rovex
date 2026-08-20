@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.20] — 2026-08-20
+
+A versão `0.1.20` fecha uma lacuna real de validação: o manifesto já declarava `longPathAware`, mas o CI Windows não exercitava uma árvore acima de 260 caracteres.
+
+| Área | Mudança |
+|---|---|
+| Investigação | A documentação oficial foi comparada ao manifesto e ao smoke existente; confirmou-se ausência de fixture nativa acima de MAX_PATH, sem declarar uma falha funcional antes da reprodução. |
+| Windows | `verify_windows_native.ps1` agora cria quatro níveis reais, um arquivo e um caminho acima de 260 caracteres, executa o CLI e verifica a listagem. |
+| Manifesto | `longPathAware` continua exigido por `verify_windows_manifest.sh`; nenhum namespace UNC é fabricado ou tratado como validado. |
+| CI | `test_windows_native_contract.sh` impede a remoção silenciosa do fixture, do manifesto ou da chamada do smoke no workflow. |
+| Testes | Smoke nativo, contrato estrutural, suíte host, Clippy, audit/deny, cross-build e gates documentais foram preparados para a nova execução. |
+| Limitações | UNC, `\\?\\` extended-length, junctions, mounted folders e ACLs continuam pendentes de fixtures Windows controladas. |
+| Documentação | Pesquisa oficial registrada em `docs/research/long-path-validation-2026-08-20.md`. |
+
 ## [0.1.19] — 2026-08-20
 
 A versão `0.1.19` corrige uma lacuna real no contrato de ativação Windows: `ShellExecuteExW` era chamado em worker sem message loop sem declarar `SEE_MASK_NOASYNC`, e a inicialização COM não incluía `COINIT_DISABLE_OLE1DDE`.
