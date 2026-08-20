@@ -2,7 +2,7 @@
 
 O Rovex é um explorador de arquivos local, seguro e leve para Windows 10 e 11, escrito prioritariamente em Rust. O projeto evolui incrementalmente: cada recurso precisa ser real, testável e documentado antes de ser considerado concluído.
 
-> O estado atual é a release portable `v0.1.15` de um protótipo desktop funcional. Ele abre uma janela Slint com tema escuro, abas reais e ícone próprio, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, persiste preferências por usuário, envia exclusões à Lixeira no Windows, oferece busca recursiva, preview seguro de imagens/texto, drag-and-drop e conversões reais via FFmpeg/ffprobe. A distribuição é um ZIP portable sem assinatura digital; ainda não é um Explorer completo, não possui instalador MSI/MSIX nem atualização automática.
+> O estado atual é a release portable `v0.1.16` de um protótipo desktop funcional. Ele abre uma janela Slint com tema escuro, abas reais e ícone próprio, lista diretórios reais, navega para pastas, copia/move/renomeia/exclui dentro dos limites de segurança, persiste preferências por usuário, envia exclusões à Lixeira no Windows, oferece busca recursiva, preview seguro de imagens/texto, drag-and-drop e conversões reais via FFmpeg/ffprobe. A distribuição é um ZIP portable sem assinatura digital; ainda não é um Explorer completo, não possui instalador MSI/MSIX nem atualização automática.
 
 ## Estado atual
 
@@ -36,7 +36,7 @@ O núcleo implementa listagem real de diretórios, classificação de arquivos e
 | Abrir Terminal aqui | Implementado com worker e cascata Windows Terminal → PowerShell → cmd; desabilitado no Linux |
 | Abrir com... | Implementado via diálogo nativo `SHOpenWithDialog` para arquivo regular; desabilitado no Linux |
 | Conversores PDF/OCR | Fora do escopo desta release; não simulados |
-| Pacote portable Windows | Implementado em ZIP v0.1.15 com manifesto e SHA-256 |
+| Pacote portable Windows | Implementado em ZIP v0.1.16 com manifesto e SHA-256 |
 | Instalador, assinatura e atualização | Ainda planejados; não há certificado ou assinatura fictícia |
 
 ## Verificação local
@@ -56,7 +56,7 @@ python3 scripts/verify_markdown_layout.py
 python3 -m unittest scripts/test_verify_markdown_layout.py -v
 ./scripts/audit_edge_cases.sh
 ./scripts/package_windows_portable.sh
-./scripts/verify_windows_portable.sh dist/rovex-v0.1.15-windows-x86_64-portable.zip
+./scripts/verify_windows_portable.sh dist/rovex-v0.1.16-windows-x86_64-portable.zip
 ./scripts/test_ui_jxl_separate_dirs.sh
 ./scripts/capture_tabs.sh
 ```
@@ -77,7 +77,7 @@ A execução gráfica foi testada em display virtual com carregamento de `/tmp`,
 
 ## Documentação
 
-A decisão arquitetural está em [`docs/architecture.md`](./docs/architecture.md), o plano incremental está em [`./docs/plans/implementation-plan.md`](./docs/plans/implementation-plan.md), a estratégia de testes está em [`./docs/reference/testing.md`](./docs/reference/testing.md), a pesquisa do Slint está em [`./docs/research/slint-research.md`](./docs/research/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](./COMPATIBILITY.md), a matriz de dependências está em [`./docs/reference/DEPENDENCIES.md`](./docs/reference/DEPENDENCIES.md), o relatório desta modernização está em [`./docs/reports/MODERNIZATION_REPORT.md`](./docs/reports/MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`./docs/reports/FINAL_STABILITY_REPORT.md`](./docs/reports/FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](./CHANGELOG.md) e o relatório desta release está em [`./docs/releases/RELEASE_REPORT-v0.1.15.md`](./docs/releases/RELEASE_REPORT-v0.1.15.md), a pesquisa de distribuição está em [`./docs/research/distribution-research-2026-08-19.md`](./docs/research/distribution-research-2026-08-19.md), a pesquisa de processos externos está em [`./docs/research/external-process-research-2026-08-19.md`](./docs/research/external-process-research-2026-08-19.md), a auditoria visual está em [`./docs/audits/ui-audit-initial.md`](./docs/audits/ui-audit-initial.md), o plano visual está em [`./docs/plans/ui-refactor-plan.md`](./docs/plans/ui-refactor-plan.md), o teste de abas está em [`scripts/capture_tabs.sh`](./scripts/capture_tabs.sh), o teste gráfico de diretórios separados está em [`scripts/test_ui_jxl_separate_dirs.sh`](./scripts/test_ui_jxl_separate_dirs.sh) e a pesquisa de descoberta de backends está em [`./docs/research/ffmpeg-discovery-research.md`](./docs/research/ffmpeg-discovery-research.md), e a pesquisa da ação Terminal está em [`./docs/research/terminal-research-2026-08-19.md`](./docs/research/terminal-research-2026-08-19.md) e a pesquisa de Open With está em [`./docs/research/open-with-research-2026-08-19.md`](./docs/research/open-with-research-2026-08-19.md).
+A decisão arquitetural está em [`docs/architecture.md`](./docs/architecture.md), o plano incremental está em [`./docs/plans/implementation-plan.md`](./docs/plans/implementation-plan.md), a estratégia de testes está em [`./docs/reference/testing.md`](./docs/reference/testing.md), a pesquisa do Slint está em [`./docs/research/slint-research.md`](./docs/research/slint-research.md), a compatibilidade de plataforma está em [`COMPATIBILITY.md`](./COMPATIBILITY.md), a matriz de dependências está em [`./docs/reference/DEPENDENCIES.md`](./docs/reference/DEPENDENCIES.md), o relatório desta modernização está em [`./docs/reports/MODERNIZATION_REPORT.md`](./docs/reports/MODERNIZATION_REPORT.md), o relatório final de estabilidade está em [`./docs/reports/FINAL_STABILITY_REPORT.md`](./docs/reports/FINAL_STABILITY_REPORT.md), o histórico de versões está em [`CHANGELOG.md`](./CHANGELOG.md) e o relatório desta release está em [`./docs/releases/RELEASE_REPORT-v0.1.16.md`](./docs/releases/RELEASE_REPORT-v0.1.16.md), a pesquisa de distribuição está em [`./docs/research/distribution-research-2026-08-19.md`](./docs/research/distribution-research-2026-08-19.md), a pesquisa de processos externos está em [`./docs/research/external-process-research-2026-08-19.md`](./docs/research/external-process-research-2026-08-19.md), a auditoria visual está em [`./docs/audits/ui-audit-initial.md`](./docs/audits/ui-audit-initial.md), o plano visual está em [`./docs/plans/ui-refactor-plan.md`](./docs/plans/ui-refactor-plan.md), o teste de abas está em [`scripts/capture_tabs.sh`](./scripts/capture_tabs.sh), o teste gráfico de diretórios separados está em [`scripts/test_ui_jxl_separate_dirs.sh`](./scripts/test_ui_jxl_separate_dirs.sh) e a pesquisa de descoberta de backends está em [`./docs/research/ffmpeg-discovery-research.md`](./docs/research/ffmpeg-discovery-research.md), e a pesquisa da ação Terminal está em [`./docs/research/terminal-research-2026-08-19.md`](./docs/research/terminal-research-2026-08-19.md) e a pesquisa de Open With está em [`./docs/research/open-with-research-2026-08-19.md`](./docs/research/open-with-research-2026-08-19.md).
 
 ## Segurança e dependências
 

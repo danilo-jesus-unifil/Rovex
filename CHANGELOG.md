@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.16] — 2026-08-20
+
+A versão `0.1.16` transforma a reorganização documental em uma validação contínua e corrige uma falha real encontrada no primeiro CI limpo.
+
+| Área | Mudança |
+|---|---|
+| CI | Novo job `Documentation layout` verifica links Markdown locais e impede novos `.md` soltos na raiz. |
+| Testes | `scripts/test_verify_markdown_layout.py` cobre layout permitido, link ausente, arquivo indevido na raiz e links externos/mailto. |
+| Investigação | O primeiro CI do gate falhou porque `docs/README.md` apontava para `artifacts/validation/`, diretório ignorado e ausente no checkout limpo; o link foi removido e a limitação foi documentada. |
+| Edge cases | `scripts/audit_edge_cases.sh` foi executado novamente com diretórios vazios, Unicode, espaços, pontuação, nome longo, arquivo, caminho ausente e permissão negada. |
+| Documentação | A contagem obsoleta de 46 testes foi corrigida para 97 aprovados e 2 ignorados explicitamente. |
+| Validação | Gate documental, fmt, check, testes host, cross-build, Clippy, auditoria de dependências e CI Windows nativo passaram no commit corretivo. |
+
 ## [0.1.15] — 2026-08-19
 
 A versão 0.1.15 adiciona a ação contextual `Abrir Terminal aqui` com cascata Windows segura e rejeição de symlinks/reparse points no diretório alvo.
