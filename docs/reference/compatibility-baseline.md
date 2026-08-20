@@ -14,7 +14,7 @@ O alvo do produto é Windows 10 versão 22H2, OS build 19045, e Windows 11 em ar
 
 ## Verificações atuais
 
-O projeto compila com `cargo build --release --target x86_64-pc-windows-gnu`, e o CI possui job dedicado para esse cross-build. A UI foi executada em Xvfb com janela de 1100×720. O smoke test localizou a janela `Rovex`, editou a barra de endereço para `/tmp`, confirmou a navegação, mostrou listagem real por screenshot e encerrou sem crash. A matriz detalhada está em [`COMPATIBILITY.md`](../COMPATIBILITY.md).
+O projeto compila com `cargo build --release --target x86_64-pc-windows-gnu`, e o CI possui job dedicado para esse cross-build. A UI foi executada em Xvfb com janela de 1100×720. O smoke test localizou a janela `Rovex`, editou a barra de endereço para `/tmp`, confirmou a navegação, mostrou listagem real por screenshot e encerrou sem crash. A matriz detalhada está em [`COMPATIBILITY.md`](../../COMPATIBILITY.md).
 
 ## Regras de compatibilidade Windows
 

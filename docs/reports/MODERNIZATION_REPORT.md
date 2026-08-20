@@ -54,7 +54,7 @@ Os builds clean foram medidos em cópias separadas com o mesmo toolchain, script
 
 ## Auditoria de segurança e supply chain
 
-`cargo audit` terminou sem vulnerabilidades exploráveis. A resolução continua emitindo quatro avisos de manutenção transitivos da cadeia Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Eles não foram ignorados automaticamente; a decisão e a ausência de upgrade seguro aplicável permanecem documentadas em `docs/slint-research.md`.
+`cargo audit` terminou sem vulnerabilidades exploráveis. A resolução continua emitindo quatro avisos de manutenção transitivos da cadeia Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Eles não foram ignorados automaticamente; a decisão e a ausência de upgrade seguro aplicável permanecem documentadas em `../research/slint-research.md`.
 
 `cargo deny check` passou em advisories, bans, licenças e fontes. A política permite somente registries e licenças observados, incluindo as referências customizadas do Slint. Nenhum download em build, binário externo ou binding Windows novo foi adicionado.
 

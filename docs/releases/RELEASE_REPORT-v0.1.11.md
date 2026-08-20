@@ -24,7 +24,7 @@ No Windows, exclusões confirmadas usam `SHFileOperationW` com `FOF_ALLOWUNDO` e
 
 A matriz do lote foi executada com `cargo fmt --all -- --check`, `cargo test --all-targets --all-features`, Clippy com `-D warnings`, `cargo audit`, `cargo deny check advisories licenses bans sources`, `cargo check`/`cargo build --release` para Windows GNU, verificação do manifesto PE e todos os smoke tests gráficos existentes, incluindo Settings. O pacote foi gerado duas vezes em diretórios separados; ZIP e checksum foram byte a byte idênticos. O verificador passou e confirmou o manifesto embutido.
 
-A execução nativa em Windows 10/11, SmartScreen, certificado Authenticode, ACLs, DPI, UNC/SMB, volumes removíveis, paths longos e restauração real da Lixeira continuam gates de compatibilidade. Essas limitações estão registradas em [`COMPATIBILITY.md`](COMPATIBILITY.md) e não são tratadas como “prontas” apenas por cross-build.
+A execução nativa em Windows 10/11, SmartScreen, certificado Authenticode, ACLs, DPI, UNC/SMB, volumes removíveis, paths longos e restauração real da Lixeira continuam gates de compatibilidade. Essas limitações estão registradas em [`COMPATIBILITY.md`](../../COMPATIBILITY.md) e não são tratadas como “prontas” apenas por cross-build.
 
 ## Procedimento de publicação
 

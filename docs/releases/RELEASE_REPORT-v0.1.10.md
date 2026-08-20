@@ -12,9 +12,9 @@ O pacote continua oferecendo listagem real, navegação, histórico, abas, sele�
 
 ## Mudanças documentais e de engenharia
 
-A release inclui `ROVEX-ENGINEERING-AUDIT-ISSUE-2-2026-08-18.md`, cobrindo arquitetura, módulos, funcionalidades existentes e ausentes, dívida técnica, riscos de segurança e desempenho, Windows 10/11, UI/UX, acessibilidade, testes, documentação, dependências e ordem recomendada.
+A release inclui `../audits/ROVEX-ENGINEERING-AUDIT-ISSUE-2-2026-08-18.md`, cobrindo arquitetura, módulos, funcionalidades existentes e ausentes, dívida técnica, riscos de segurança e desempenho, Windows 10/11, UI/UX, acessibilidade, testes, documentação, dependências e ordem recomendada.
 
-Também inclui `docs/issue-2-execution-plan.md`, que divide o master prompt em Foundation, Core Explorer, Search, Preview, Advanced Tools, Windows Integration e Distribution, com critérios de aceite e workflow de commits pequenos. O README foi atualizado para indicar v0.1.10 como release portable mais recente e para distinguir tags públicas de refinamentos posteriores na branch principal. `Cargo.toml` e `Cargo.lock` foram sincronizados para 0.1.10.
+Também inclui `../plans/issue-2-execution-plan.md`, que divide o master prompt em Foundation, Core Explorer, Search, Preview, Advanced Tools, Windows Integration e Distribution, com critérios de aceite e workflow de commits pequenos. O README foi atualizado para indicar v0.1.10 como release portable mais recente e para distinguir tags públicas de refinamentos posteriores na branch principal. `Cargo.toml` e `Cargo.lock` foram sincronizados para 0.1.10.
 
 ## Validação executada
 

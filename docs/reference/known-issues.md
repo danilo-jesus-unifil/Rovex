@@ -14,7 +14,7 @@ Há um filtro local sobre os itens da pasta atual, com fila latest-only e sem pe
 
 ## Dependências
 
-`cargo audit` não encontrou vulnerabilidades, mas reporta quatro avisos de crates sem manutenção (`bincode`, `paste`, `rustybuzz` e `ttf-parser`) introduzidos transitivamente por Slint 1.17.1. A base RustSec não indica atualização segura para essa cadeia durante esta verificação. O alerta permanece visível e está documentado em [`docs/slint-research.md`](slint-research.md); trocar o toolkit ou aguardar uma cadeia upstream atualizada é uma decisão futura, não um problema ocultado por ignore.
+`cargo audit` não encontrou vulnerabilidades, mas reporta quatro avisos de crates sem manutenção (`bincode`, `paste`, `rustybuzz` e `ttf-parser`) introduzidos transitivamente por Slint 1.17.1. A base RustSec não indica atualização segura para essa cadeia durante esta verificação. O alerta permanece visível e está documentado em [`../research/slint-research.md`](../research/slint-research.md); trocar o toolkit ou aguardar uma cadeia upstream atualizada é uma decisão futura, não um problema ocultado por ignore.
 
 ## Windows 10/11
 

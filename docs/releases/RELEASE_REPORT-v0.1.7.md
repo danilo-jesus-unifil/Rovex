@@ -34,6 +34,6 @@ A execução continua usando `Command::arg`/`args` separados, caminhos absolutos
 
 ## Regressão permanente
 
-O script [`scripts/test_ui_jxl_separate_dirs.sh`](scripts/test_ui_jxl_separate_dirs.sh) cria a imagem em uma pasta, copia o binário para outra, abre a interface gráfica, aciona JPEG XL e valida a saída. Ele pode ser executado com `./scripts/test_ui_jxl_separate_dirs.sh` em um ambiente Linux com Xvfb, xdotool, ImageMagick, FFmpeg e ffprobe.
+O script [`scripts/test_ui_jxl_separate_dirs.sh`](../../scripts/test_ui_jxl_separate_dirs.sh) cria a imagem em uma pasta, copia o binário para outra, abre a interface gráfica, aciona JPEG XL e valida a saída. Ele pode ser executado com `./scripts/test_ui_jxl_separate_dirs.sh` em um ambiente Linux com Xvfb, xdotool, ImageMagick, FFmpeg e ffprobe.
 
 A release v0.1.7 inclui a correção no commit de preparação correspondente e será publicada com binários Linux/Windows, checksums SHA-256 e este relatório.

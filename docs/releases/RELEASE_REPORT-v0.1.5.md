@@ -46,7 +46,7 @@ A chamada a `where.exe` usa `Command::arg` separado para o nome do executável. 
 
 ## Arquivos e histórico
 
-O commit funcional é `588f24e` (`fix(converter): add layered Windows backend discovery`). A pesquisa consolidada está em [`docs/ffmpeg-discovery-research.md`](docs/ffmpeg-discovery-research.md). O branch de recuperação criado antes da refatoração é `backup/before-ffmpeg-discovery-fallbacks`, apontando para o estado anterior com a documentação preservada.
+O commit funcional é `588f24e` (`fix(converter): add layered Windows backend discovery`). A pesquisa consolidada está em [`../research/ffmpeg-discovery-research.md`](../research/ffmpeg-discovery-research.md). O branch de recuperação criado antes da refatoração é `backup/before-ffmpeg-discovery-fallbacks`, apontando para o estado anterior com a documentação preservada.
 
 A implementação usa a feature `Win32_Storage_FileSystem` porque, na versão `windows-sys 0.61.2`, `SearchPathW` é exportada nesse módulo; não foi adicionada uma feature inexistente ou inadequada de `LibraryLoader`.
 

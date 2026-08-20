@@ -1,6 +1,6 @@
 # Rovex — Relatório Final de Estabilidade
 
-> **Documento histórico:** este relatório descreve o baseline auditado em 15 de agosto de 2026, antes da v0.1.8. Para o estado atual, consulte `README.md`, `docs/known-issues.md` e `ARCHITECTURE-REFACTOR-REPORT-2026-08-17.md`.
+> **Documento histórico:** este relatório descreve o baseline auditado em 15 de agosto de 2026, antes da v0.1.8. Para o estado atual, consulte `README.md`, `../reference/known-issues.md` e `./ARCHITECTURE-REFACTOR-REPORT-2026-08-17.md`.
 
 **Data da auditoria:** 15 de agosto de 2026  
 **Baseline auditado:** commit `d464851`  
@@ -30,7 +30,7 @@ A análise também verificou a ausência de processos externos de conversão e r
 
 A auditoria repetiu `cargo audit`, `cargo deny check`, `cargo tree`, inventário de dependências, busca de `unsafe`, busca de processos externos e revisão de filesystem. Não foram encontrados advisories de segurança exploráveis no estado resolvido. Permanecem visíveis os quatro avisos de manutenção transitivos documentados pela cadeia Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`.
 
-A revisão de código próprio cobriu traversal, componentes pai symlink, raiz, destinos existentes, nomes Unicode, temporários, publicação sem sobrescrita, cancelamento, remoção limitada, erros parciais e origem/destino equivalentes. O bug de limpeza destrutiva no fallback foi corrigido e recebeu teste de regressão. A política completa permanece em [`SECURITY.md`](SECURITY.md).
+A revisão de código próprio cobriu traversal, componentes pai symlink, raiz, destinos existentes, nomes Unicode, temporários, publicação sem sobrescrita, cancelamento, remoção limitada, erros parciais e origem/destino equivalentes. O bug de limpeza destrutiva no fallback foi corrigido e recebeu teste de regressão. A política completa permanece em [`SECURITY.md`](../../SECURITY.md).
 
 Não há execução de shell, PowerShell, CMD, FFmpeg, OCR, compactador ou outro processo externo no produto daquele baseline. Os blocos `unsafe` existentes ficam restritos às integrações FFI Win32 de Known Folders, com invariantes documentadas; não há `unsafe` não justificado no caminho de produção revisado.
 
@@ -48,7 +48,7 @@ O carregamento de diretórios usa um worker único latest-only com geração at�
 
 O stress X11 criou 12 pastas com 80 arquivos cada, enviou 12 navegações rápidas e consultas de filtro sobre o diretório final. A última navegação chegou a `folder-12`; a consulta `file-12-12` exibiu somente `file-12-12.txt`. O encerramento do processo foi verificado por término controlado; `WM_DELETE_WINDOW` isolado não foi usado como prova de fechamento no Xvfb sem window manager.
 
-Não foram observados deadlocks, filas infinitas, threads criadas por tecla ou workers persistentes após término controlado. A materialização completa de uma pasta em snapshot continua sendo o principal risco de memória em diretórios muito grandes, conforme [`docs/performance-audit-2026-08-15.md`](docs/performance-audit-2026-08-15.md).
+Não foram observados deadlocks, filas infinitas, threads criadas por tecla ou workers persistentes após término controlado. A materialização completa de uma pasta em snapshot continua sendo o principal risco de memória em diretórios muito grandes, conforme [`../audits/performance-audit-2026-08-15.md`](../audits/performance-audit-2026-08-15.md).
 
 ## UI, UX e comportamento funcional
 
@@ -92,7 +92,7 @@ Não foram identificados loops de polling, timers, thumbnails, previews, hashes 
 
 O projeto compila release x86-64 com target `x86_64-pc-windows-gnu`, e o CI deve validar runner Windows além do cross-build GNU. A escolha de Windows 10 22H2/build 19045 continua uma política de teste, não uma execução nativa realizada nesta sessão.
 
-Ainda não foram comprovados nativamente nesta sessão: Windows 10 22H2, Windows 11 em versão identificada, DPI 100/125/150/200%, múltiplos monitores, alto contraste, leitor de tela nativo, paths longos, UNC/SMB, NTFS/exFAT/FAT32 em hardware real, USB desconectado, reparse points/junctions, arquivo bloqueado, permissões Windows, manifesto PE, instalador, desinstalador, assinatura ou atualização. Esses itens permanecem pendências honestas em [`COMPATIBILITY.md`](COMPATIBILITY.md).
+Ainda não foram comprovados nativamente nesta sessão: Windows 10 22H2, Windows 11 em versão identificada, DPI 100/125/150/200%, múltiplos monitores, alto contraste, leitor de tela nativo, paths longos, UNC/SMB, NTFS/exFAT/FAT32 em hardware real, USB desconectado, reparse points/junctions, arquivo bloqueado, permissões Windows, manifesto PE, instalador, desinstalador, assinatura ou atualização. Esses itens permanecem pendências honestas em [`COMPATIBILITY.md`](../../COMPATIBILITY.md).
 
 ## Problemas ainda conhecidos
 
@@ -100,8 +100,8 @@ A primeira fatia não oferece abas, split view, pesquisa global, preview, thumbn
 
 ## Referências
 
-[1]: SECURITY.md "Política de segurança do Rovex"
-[2]: docs/performance-audit-2026-08-15.md "Auditoria de performance do Rovex"
-[3]: COMPATIBILITY.md "Matriz de compatibilidade do Rovex"
-[4]: DEPENDENCIES.md "Inventário de dependências do Rovex"
-[5]: docs/known-issues.md "Limitações conhecidas do Rovex"
+[1]: ../../SECURITY.md "Política de segurança do Rovex"
+[2]: ../audits/performance-audit-2026-08-15.md "Auditoria de performance do Rovex"
+[3]: ../../COMPATIBILITY.md "Matriz de compatibilidade do Rovex"
+[4]: ../reference/../reference/DEPENDENCIES.md "Inventário de dependências do Rovex"
+[5]: ../reference/known-issues.md "Limitações conhecidas do Rovex"

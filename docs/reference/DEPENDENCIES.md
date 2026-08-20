@@ -52,7 +52,7 @@ As 44 duplicações de nomes incluem famílias como `windows-sys`, `calloop`, `t
 
 O projeto é MIT. O Slint publica uma expressão que inclui `GPL-3.0-only` ou as referências royalty-free/software próprias; a política `deny.toml` permite as referências customizadas observadas, além das licenças SPDX necessárias na árvore. `cargo deny check` passou após o refresh.
 
-`cargo audit` não encontrou vulnerabilidades exploráveis. Permanecem quatro avisos de manutenção transitivos na cadeia do Slint — `bincode`, `paste`, `rustybuzz` e `ttf-parser` — sem atualização segura indicada pela resolução atual. Eles não foram escondidos por exceções; estão documentados em `docs/slint-research.md` e continuam visíveis no CI.
+`cargo audit` não encontrou vulnerabilidades exploráveis. Permanecem quatro avisos de manutenção transitivos na cadeia do Slint — `bincode`, `paste`, `rustybuzz` e `ttf-parser` — sem atualização segura indicada pela resolução atual. Eles não foram escondidos por exceções; estão documentados em `../research/slint-research.md` e continuam visíveis no CI.
 
 ## Alternativas avaliadas
 

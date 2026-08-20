@@ -97,7 +97,7 @@ Também falta uma matriz de testes de regressão por feature, com teste focado, 
 
 A documentação de arquitetura, testes, segurança, compatibilidade, dependências e limitações existe e é honesta. O principal gap imediato é reconciliar referências antigas à v0.1.8 no README e eventualmente em documentos de release após o refinamento visual posterior à tag v0.1.9. Também é necessário manter um roadmap vivo P0–P3 e registrar quais gates dependem de execução nativa Windows.
 
-Cada feature futura deverá atualizar README, `docs/known-issues.md`, `docs/testing.md`, `COMPATIBILITY.md`, changelog e relatório técnico quando alterar o escopo distribuído.
+Cada feature futura deverá atualizar README, `../reference/known-issues.md`, `../reference/testing.md`, `COMPATIBILITY.md`, changelog e relatório técnico quando alterar o escopo distribuído.
 
 ## 14. Dependency risks
 
@@ -134,13 +134,13 @@ A próxima alteração somente estará pronta quando houver implementação real
 
 ## Referências
 
-[1]: docs/architecture.md "Rovex — Arquitetura técnica inicial"
-[2]: src/lib.rs "Rovex core public facade"
-[3]: Cargo.toml "Rovex manifest and target-specific dependencies"
-[4]: README.md "Rovex current product status"
-[5]: SECURITY.md "Rovex security policy and threat model"
-[6]: docs/known-issues.md "Rovex known issues"
-[7]: COMPATIBILITY.md "Rovex compatibility matrix"
-[8]: docs/security-audit-research-notes-2026-08-17.md "Rovex security audit research notes"
-[9]: docs/testing.md "Rovex testing strategy"
-[10]: DEPENDENCIES.md "Rovex dependency inventory"
+[1]: ../architecture.md "Rovex — Arquitetura técnica inicial"
+[2]: ../../src/lib.rs "Rovex core public facade"
+[3]: ../../Cargo.toml "Rovex manifest and target-specific dependencies"
+[4]: ../../README.md "Rovex current product status"
+[5]: ../../SECURITY.md "Rovex security policy and threat model"
+[6]: ../reference/known-issues.md "Rovex known issues"
+[7]: ../../COMPATIBILITY.md "Rovex compatibility matrix"
+[8]: ./security-audit-research-notes-2026-08-17.md "Rovex security audit research notes"
+[9]: ../reference/testing.md "Rovex testing strategy"
+[10]: ../reference/../reference/DEPENDENCIES.md "Rovex dependency inventory"

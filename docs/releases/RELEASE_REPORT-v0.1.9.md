@@ -24,7 +24,7 @@ A regra objetiva da etapa foi atendida: nenhum arquivo de produção Rust ou Sli
 | UI Slint | `main.slint` foi reduzido a 317 linhas; tokens, controles, modelos, toolbar e overlays foram extraídos para módulos importados. |
 | Build | `build.rs` observa todos os arquivos Slint importados com `cargo:rerun-if-changed`. |
 | Windows | Corrigidos imports de helpers em `windows_backend.rs`, além de `Command` e `Stdio`, permitindo o check cruzado Windows GNU. |
-| Documentação | `CHANGELOG.md`, `docs/known-issues.md` e este relatório foram atualizados para v0.1.9. |
+| Documentação | `CHANGELOG.md`, `../reference/known-issues.md` e este relatório foram atualizados para v0.1.9. |
 
 A divisão da UI utiliza imports e componentes exportados do Slint, conforme a documentação oficial de módulos.[1] A API gerada de `MainWindow`, `LocationRow`, `FileRow` e `TabRow` foi preservada para o código Rust.
 
@@ -97,7 +97,7 @@ A release segue o padrão v0.1.8 e contém os seguintes assets:
 | `rovex-v0.1.9-linux-x86_64.tar.gz` | Binário Linux release, README, CHANGELOG, relatório, PNG do ícone e desktop entry. |
 | `rovex-v0.1.9-windows-x86_64.zip` | Executável Windows release, README, CHANGELOG, relatório, ICO e PNG do ícone. |
 | `SHA256SUMS.txt` | SHA-256 dos dois pacotes distribuíveis. |
-| `RELEASE_REPORT-v0.1.9.md` | Este relatório técnico. |
+| `./RELEASE_REPORT-v0.1.9.md` | Este relatório técnico. |
 
 Os pacotes são portáveis e não baixam executáveis em runtime. A conversão continua dependendo de `ffmpeg` e `ffprobe` disponíveis no sistema ou nos caminhos seguros de descoberta documentados.
 

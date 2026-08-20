@@ -30,4 +30,4 @@ A camada desktop precisará ser verificada em Windows 10 e 11 com teclado, foco,
 
 ## Auditoria de dependências
 
-A CI executa `cargo audit` e `cargo deny check`. A política está em [`deny.toml`](../deny.toml), o toolchain fixado está em [`rust-toolchain.toml`](../rust-toolchain.toml) e a decisão sobre recursos do Slint e avisos transitivos está em [`slint-research.md`](slint-research.md).
+A CI executa `cargo audit` e `cargo deny check`. A política está em [`deny.toml`](../../deny.toml), o toolchain fixado está em [`rust-toolchain.toml`](../../rust-toolchain.toml) e a decisão sobre recursos do Slint e avisos transitivos está em [`slint-research.md`](../research/slint-research.md).

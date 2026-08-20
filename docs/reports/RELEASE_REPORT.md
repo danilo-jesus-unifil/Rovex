@@ -79,7 +79,7 @@ O runtime continua usando Slint 1.17.1 com renderer software, acessibilidade, `c
 
 ## Hashes SHA-256
 
-Os hashes completos estão em [`SHA256SUMS-v0.1.0.txt`](SHA256SUMS-v0.1.0.txt). Os pacotes principais são:
+Os hashes completos estão em [`SHA256SUMS-v0.1.0.txt`](../../SHA256SUMS-v0.1.0.txt). Os pacotes principais são:
 
 | Arquivo | SHA-256 |
 |---|---|
@@ -94,7 +94,7 @@ A release é portable e não inclui instalador, assinatura ou atualização auto
 
 ## Referências
 
-[1]: FINAL_STABILITY_REPORT.md "Relatório final de estabilidade"
-[2]: COMPATIBILITY.md "Matriz de compatibilidade"
-[3]: DEPENDENCIES.md "Inventário de dependências"
-[4]: SECURITY.md "Política de segurança"
+[1]: ././FINAL_STABILITY_REPORT.md "Relatório final de estabilidade"
+[2]: ../../COMPATIBILITY.md "Matriz de compatibilidade"
+[3]: ../reference/../reference/DEPENDENCIES.md "Inventário de dependências"
+[4]: ../../SECURITY.md "Política de segurança"

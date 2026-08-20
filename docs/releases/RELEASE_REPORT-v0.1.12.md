@@ -28,4 +28,4 @@ A execução nativa em Windows 10/11, SmartScreen, assinatura Authenticode, ACLs
 
 ## Referências
 
-A política de processo e as fontes oficiais estão em [`docs/external-process-research-2026-08-19.md`](docs/external-process-research-2026-08-19.md). A distribuição portable, o checksum e as limitações de assinatura estão em [`RELEASE_REPORT-v0.1.11.md`](RELEASE_REPORT-v0.1.11.md) e [`docs/distribution-research-2026-08-19.md`](docs/distribution-research-2026-08-19.md).
+A política de processo e as fontes oficiais estão em [`../research/external-process-research-2026-08-19.md`](../research/external-process-research-2026-08-19.md). A distribuição portable, o checksum e as limitações de assinatura estão em [`./RELEASE_REPORT-v0.1.11.md`](././RELEASE_REPORT-v0.1.11.md) e [`../research/distribution-research-2026-08-19.md`](../research/distribution-research-2026-08-19.md).

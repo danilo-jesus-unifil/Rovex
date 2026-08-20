@@ -16,7 +16,7 @@ Cada etapa precisa produzir uma fatia real, compilável e testável. O projeto n
 | 7. Abas e UX | Abas, atalhos, tema e acessibilidade; histórico básico já concluído | Teste com teclado, DPI e múltiplos monitores em Windows |
 | 8. Conversores | Imagem, documentos e depois áudio/vídeo em workers isolados | Backend versionado, validação de saída, cancelamento e testes adversariais |
 | 9. Distribuição | MSIX ou instalador alternativo, portable, assinatura e rollback | Instalação, atualização, desinstalação e verificação de artefatos |
-| 10. Release | Auditoria final, benchmarks e relatórios | `RELEASE_REPORT.md`, `SECURITY.md` e lista de limitações atualizados |
+| 10. Release | Auditoria final, benchmarks e relatórios | `../reports/RELEASE_REPORT.md`, `SECURITY.md` e lista de limitações atualizados |
 
 ## Escopo imediato
 

@@ -70,8 +70,8 @@ Os testes regulares totalizaram **43 casos aprovados**, com dois testes ignorado
 | `assets/rovex-icon.png` | Ícone multiplataforma em PNG. |
 | `assets/rovex.ico` | Ícone Windows multirresolução. |
 | `assets/rovex.desktop` | Desktop entry Linux. |
-| `docs/ui-audit-initial.md` | Auditoria, evidências visuais e regressões encontradas. |
-| `docs/ui-refactor-plan.md` | Direção visual e critérios de aceitação. |
+| `../audits/ui-audit-initial.md` | Auditoria, evidências visuais e regressões encontradas. |
+| `../plans/ui-refactor-plan.md` | Direção visual e critérios de aceitação. |
 | `scripts/capture_tabs.sh` | Smoke test gráfico de abas. |
 
 ## Limitações conhecidas

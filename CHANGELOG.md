@@ -14,7 +14,7 @@ A versão 0.1.15 adiciona a ação contextual `Abrir Terminal aqui` com cascata 
 | Segurança | Caminhos relativos, ausentes, inválidos e diretórios symlink/reparse point são recusados; no Linux o botão fica desabilitado. |
 | UI | Menu contextual rolável e responsivo preserva tema escuro, bordas arredondadas, estados disabled e todos os conversores existentes. |
 | Testes | 94 testes host passaram; cross-check, Clippy host/cross, link de testes Windows, smoke gráfico e CI `windows-latest` passaram. |
-| Documentação | Contrato, fallback, fontes oficiais e limites de validação interativa foram registrados em `docs/terminal-research-2026-08-19.md`, README e COMPATIBILITY. |
+| Documentação | Contrato, fallback, fontes oficiais e limites de validação interativa foram registrados em `./docs/research/terminal-research-2026-08-19.md`, README e COMPATIBILITY. |
 
 ## [0.1.14] — 2026-08-19
 
@@ -71,8 +71,8 @@ A versão 0.1.10 publica a primeira etapa do master prompt do issue #2: auditori
 
 | Área | Mudança |
 |---|---|
-| Auditoria | Criado `ROVEX-ENGINEERING-AUDIT-ISSUE-2-2026-08-18.md` com arquitetura, módulos, recursos, lacunas, riscos, testes, dependências e ordem recomendada. |
-| Roadmap | Criado `docs/issue-2-execution-plan.md` com fases Foundation, Core Explorer, Search, Preview, Advanced Tools, Windows Integration e Distribution. |
+| Auditoria | Criado `./docs/audits/ROVEX-ENGINEERING-AUDIT-ISSUE-2-2026-08-18.md` com arquitetura, módulos, recursos, lacunas, riscos, testes, dependências e ordem recomendada. |
+| Roadmap | Criado `./docs/plans/issue-2-execution-plan.md` com fases Foundation, Core Explorer, Search, Preview, Advanced Tools, Windows Integration e Distribution. |
 | Documentação | README atualizado para refletir a release pública v0.1.9 e diferenciar o estado da tag dos refinamentos posteriores da branch principal. |
 | Qualidade | Auditoria, `cargo fmt`, `cargo check` e suíte de testes executados antes da publicação. |
 

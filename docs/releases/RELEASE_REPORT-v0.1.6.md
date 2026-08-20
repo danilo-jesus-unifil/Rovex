@@ -9,7 +9,7 @@ A v0.1.6 organiza a documentação do estado atual do Rovex e alinha o README co
 | Arquivo/área | Ajuste |
 |---|---|
 | `README.md` | Atualizado de v0.1.4 para v0.1.5 antes da nova versão, documentando overrides, PATH, PATH persistente, App Paths, `SearchPathW`, WinGet, Chocolatey, Scoop e `where.exe`. |
-| `README.md` | Referência do relatório atualizada para `RELEASE_REPORT-v0.1.5.md` e pesquisa de descoberta adicionada. |
+| `README.md` | Referência do relatório atualizada para `./RELEASE_REPORT-v0.1.5.md` e pesquisa de descoberta adicionada. |
 | `README.md` | Descrição dos warnings do `cargo audit` corrigida para `bincode`, `paste`, `rustybuzz` e `ttf-parser`. |
 | `CHANGELOG.md` | Nova entrada v0.1.6 com o escopo da organização e da validação repetida. |
 | `Cargo.toml` / `Cargo.lock` | Versão sincronizada para 0.1.6. |
