@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.19] — 2026-08-20
+
+A versão `0.1.19` corrige uma lacuna real no contrato de ativação Windows: `ShellExecuteExW` era chamado em worker sem message loop sem declarar `SEE_MASK_NOASYNC`, e a inicialização COM não incluía `COINIT_DISABLE_OLE1DDE`.
+
+| Área | Mudança |
+|---|---|
+| Investigação | A comparação com a documentação oficial confirmou que o worker existente não declarava o contrato necessário para concluir conversas DDE sem message loop. |
+| Windows | `SHELLEXECUTEINFOW.fMask` usa `SEE_MASK_NOASYNC`; COM usa `COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE`. |
+| Erros | Falhas preservam o código `SE_ERR_*` de `hInstApp` e `GetLastError`, com mensagens para associação inexistente, acesso negado, compartilhamento e cancelamento. |
+| Segurança | Nenhum fallback para shell, `runas` ou `Command`; reparse points continuam bloqueados no alvo e nos componentes pais. |
+| Testes | 103 testes host passaram; mapeamentos de erros e o gate estrutural de flags/COM foram adicionados. |
+| Qualidade | Check, Clippy e build release host/cross-Windows GNU passaram antes do versionamento. |
+| Documentação | Pesquisa oficial registrada em `docs/research/activation-errors-research-2026-08-20.md`. |
+
 ## [0.1.18] — 2026-08-20
 
 A versão `0.1.18` corrige uma lacuna real em que duplo clique, Enter e o menu contextual não abriam arquivos regulares com o aplicativo padrão.
