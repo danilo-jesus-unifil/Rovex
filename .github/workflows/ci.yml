@@ -90,3 +90,16 @@ jobs:
 
       - name: Check licenses and bans
         run: cargo deny check
+
+  documentation:
+    name: Documentation layout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify Markdown layout and links
+        run: python3 scripts/verify_markdown_layout.py
+
+      - name: Test Markdown validator
+        run: python3 -m unittest scripts/test_verify_markdown_layout.py -v

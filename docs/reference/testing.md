@@ -4,7 +4,7 @@
 
 O núcleo e a primeira camada desktop são verificados com `cargo fmt --all -- --check`, `cargo check --all-targets --all-features`, `cargo test --all-targets --all-features`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo build --release`, build release cruzado para Windows x64, `cargo audit` e `cargo deny check`.
 
-A suíte atual reporta **46 testes executados pelo harness: 44 aprovados, zero falhas e 2 ignorados explicitamente** — o benchmark manual e o teste que exige FFmpeg/ffprobe disponíveis. Clippy não produz diagnósticos e cargo-deny é aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
+A suíte atual reporta **97 testes aprovados, zero falhas e 2 ignorados explicitamente** — o benchmark manual e o teste que exige FFmpeg/ffprobe disponíveis. A contagem é revisada junto de cada release, em vez de manter o número histórico de 46 testes. Clippy não produz diagnósticos e cargo-deny é aprovado em advisories, bans, licenças e fontes. O cargo-audit termina com código 0 e informa quatro warnings de manutenção transitivos do Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`. Esses avisos permanecem visíveis e não são tratados como vulnerabilidades.
 
 ## Cobertura do núcleo
 
@@ -31,3 +31,9 @@ A camada desktop precisará ser verificada em Windows 10 e 11 com teclado, foco,
 ## Auditoria de dependências
 
 A CI executa `cargo audit` e `cargo deny check`. A política está em [`deny.toml`](../../deny.toml), o toolchain fixado está em [`rust-toolchain.toml`](../../rust-toolchain.toml) e a decisão sobre recursos do Slint e avisos transitivos está em [`slint-research.md`](../research/slint-research.md).
+
+## Validação documental
+
+O script `scripts/verify_markdown_layout.py` bloqueia dois regressions documentais confirmados durante a reorganização: links locais quebrados por mudanças de pasta e novos arquivos Markdown soltos na raiz. A raiz mantém apenas `README.md`, `CHANGELOG.md`, `SECURITY.md` e `COMPATIBILITY.md`; auditorias, pesquisas, planos, referências, relatórios e releases ficam sob `docs/`. O contrato do validador é exercitado por quatro testes em `scripts/test_verify_markdown_layout.py`, incluindo casos positivos, link ausente, arquivo indevido na raiz e links externos/mailto. O job `Documentation layout` executa ambos em cada push e pull request.
+
+O `scripts/audit_edge_cases.sh` também é uma validação real do CLI e passou com diretórios vazios, Unicode, espaços, pontuação, nome longo, arquivo usado como diretório, caminho inexistente e permissão negada. Esses gates complementam, mas não substituem, testes nativos Windows 10/11 de Explorer, ACL, DPI e Shell.

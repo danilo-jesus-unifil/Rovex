@@ -52,6 +52,9 @@ cargo build --release
 cargo build --release --target x86_64-pc-windows-gnu
 cargo audit
 cargo deny check
+python3 scripts/verify_markdown_layout.py
+python3 -m unittest scripts/test_verify_markdown_layout.py -v
+./scripts/audit_edge_cases.sh
 ./scripts/package_windows_portable.sh
 ./scripts/verify_windows_portable.sh dist/rovex-v0.1.15-windows-x86_64-portable.zip
 ./scripts/test_ui_jxl_separate_dirs.sh
