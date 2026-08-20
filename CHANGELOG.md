@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.17] — 2026-08-20
+
+A versão `0.1.17` fortalece a verificação da distribuição portable após confirmar uma lacuna real em um artefato adulterado.
+
+| Área | Mudança |
+|---|---|
+| Investigação | Um ZIP v0.1.16 com `version=9.9.9` no manifesto foi aceito pelo verificador antigo; o caso foi reproduzido e não tratado como hipótese. |
+| Verificador | `verify_windows_portable.sh` agora exige raiz do ZIP, `version=`, `target=x86_64-pc-windows-gnu` e nome do artefato coerentes. |
+| Testes | `test_verify_windows_portable.sh` rejeita fixtures com versão adulterada, target adulterado e raiz divergente, além de verificar o pacote original. |
+| CI | O job Windows GNU agora empacota e executa o teste adversarial do portable em cada execução. |
+| Documentação | README e guia de testes foram atualizados com o novo gate e a evidência do problema confirmado. |
+| Validação | Host, cross-Windows, Clippy, testes, auditoria, Documentation layout e Windows nativo passaram no commit corretivo. |
+
 ## [0.1.16] — 2026-08-20
 
 A versão `0.1.16` transforma a reorganização documental em uma validação contínua e corrige uma falha real encontrada no primeiro CI limpo.
