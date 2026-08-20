@@ -1,8 +1,7 @@
 use super::types::ConversionError;
 #[cfg(windows)]
 use super::windows_backend::{
-    windows_app_path_entries, windows_persistent_path_entries, windows_search_path,
-    windows_where_candidates, windows_winget_package_candidates,
+    windows_app_path_entries, windows_persistent_path_entries, windows_winget_package_candidates,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -78,9 +77,6 @@ pub(crate) fn backend_candidates(
         for candidate in windows_app_path_entries(executable) {
             push_candidate(&mut candidates, candidate);
         }
-        if let Some(candidate) = windows_search_path(executable) {
-            push_candidate(&mut candidates, candidate);
-        }
     }
 
     if let Ok(current_exe) = std::env::current_exe()
@@ -88,9 +84,8 @@ pub(crate) fn backend_candidates(
     {
         push_directory_candidates(&mut candidates, directory.to_path_buf(), executable);
     }
-    if let Ok(current_directory) = std::env::current_dir() {
-        push_directory_candidates(&mut candidates, current_directory, executable);
-    }
+    // Não adicionar o CWD implicitamente: no Windows ele pode preceder o PATH
+    // conforme SafeProcessSearchMode e permitir plantio acidental de binário.
     if let Some(directory) = adjacent_directory {
         push_directory_candidates(&mut candidates, directory.to_path_buf(), executable);
     }
@@ -206,11 +201,6 @@ pub(crate) fn backend_candidates(
         "C:\\ProgramData\\chocolatey\\bin",
     ] {
         push_directory_candidates(&mut candidates, PathBuf::from(directory), executable);
-    }
-
-    #[cfg(windows)]
-    for candidate in windows_where_candidates(executable) {
-        push_candidate(&mut candidates, candidate);
     }
 
     candidates

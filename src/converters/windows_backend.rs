@@ -1,11 +1,8 @@
-use super::backend::{
-    is_backend_file, push_candidate, push_directory_candidates, push_path_or_directory_candidates,
-};
+use super::backend::{push_directory_candidates, push_path_or_directory_candidates};
 use std::ffi::OsString;
 use std::fs;
 use std::os::windows::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 
 #[cfg(windows)]
 pub(super) fn windows_wide_null(value: &str) -> Vec<u16> {
@@ -173,42 +170,6 @@ pub(super) fn windows_app_path_entries(executable: &str) -> Vec<PathBuf> {
 }
 
 #[cfg(windows)]
-pub(super) fn windows_search_path(executable: &str) -> Option<PathBuf> {
-    use windows_sys::Win32::Storage::FileSystem::SearchPathW;
-
-    let file_name = windows_wide_null(&format!("{executable}.exe"));
-    let mut capacity = 260u32;
-    for _ in 0..4 {
-        let mut buffer = vec![0u16; capacity as usize];
-        // SAFETY: file_name é NUL-terminated, buffer é gravável e filepart é opcional/nulo.
-        let length = unsafe {
-            SearchPathW(
-                std::ptr::null(),
-                file_name.as_ptr(),
-                std::ptr::null(),
-                buffer.len() as u32,
-                buffer.as_mut_ptr(),
-                std::ptr::null_mut(),
-            )
-        };
-        if length == 0 {
-            return None;
-        }
-        if length < buffer.len() as u32 {
-            return Some(PathBuf::from(OsString::from_wide(
-                &buffer[..length as usize],
-            )));
-        }
-        let next_capacity = length.saturating_add(1);
-        if next_capacity <= capacity || next_capacity > 1024 * 1024 {
-            return None;
-        }
-        capacity = next_capacity;
-    }
-    None
-}
-
-#[cfg(windows)]
 pub(super) fn windows_winget_package_candidates(
     candidates: &mut Vec<PathBuf>,
     packages_root: &Path,
@@ -247,52 +208,4 @@ pub(super) fn windows_winget_package_candidates(
             push_directory_candidates(candidates, version_path.join("bin"), executable);
         }
     }
-}
-
-#[cfg(windows)]
-pub(super) fn windows_where_candidates(executable: &str) -> Vec<PathBuf> {
-    const MAX_OUTPUT_BYTES: usize = 64 * 1024;
-    const MAX_RESULTS: usize = 32;
-    let mut where_paths = Vec::new();
-    if let Some(root) = std::env::var_os("SystemRoot") {
-        where_paths.push(PathBuf::from(root).join("System32").join("where.exe"));
-    }
-    where_paths.push(PathBuf::from(r"C:\Windows\System32\where.exe"));
-
-    let mut candidates = Vec::new();
-    for where_path in where_paths {
-        if !is_backend_file(&where_path) {
-            continue;
-        }
-        let Ok(output) = Command::new(&where_path)
-            .arg(format!("{executable}.exe"))
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .output()
-        else {
-            continue;
-        };
-        if !output.status.success() || output.stdout.len() > MAX_OUTPUT_BYTES {
-            continue;
-        }
-        for line in String::from_utf8_lossy(&output.stdout)
-            .lines()
-            .take(MAX_RESULTS)
-        {
-            let line = line.trim();
-            let line = line
-                .strip_prefix('"')
-                .and_then(|value| value.strip_suffix('"'))
-                .unwrap_or(line)
-                .trim();
-            let candidate = PathBuf::from(line);
-            if candidate.is_absolute() {
-                push_candidate(&mut candidates, candidate);
-            }
-        }
-        if !candidates.is_empty() {
-            break;
-        }
-    }
-    candidates
 }

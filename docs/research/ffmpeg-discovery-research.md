@@ -187,3 +187,11 @@ A conversão só será considerada concluída quando o processo terminar com suc
 [14]: https://docs.rs/ffmpeg-sidecar/latest/ffmpeg_sidecar/paths/index.html "ffmpeg-sidecar paths module"
 [15]: https://github.com/HandBrake/HandBrake/pull/6548 "HandBrake — harden DLL loading"
 [16]: https://wiki.videolan.org/VLC_command-line_help/ "VideoLAN VLC command-line help"
+
+## Atualização do ciclo v0.1.24 — 2026-08-20
+
+A auditoria de follow-up confirmou que o risco não estava limitado ao `push_directory_candidates` do CWD. Mesmo após retirar a inserção explícita, `SearchPathW` com `lpPath = NULL` ainda podia retornar o diretório de trabalho conforme `SafeProcessSearchMode`, e `where.exe` também procura o diretório atual por padrão. Como o Rovex já enumera o PATH herdado e persistente, App Paths, diretório do executável, diretório adjacente explícito, raízes conhecidas e WinGet com limites, esses dois fallbacks não acrescentavam uma fonte necessária que justificasse a ambiguidade.
+
+A implementação v0.1.24 removeu `windows_search_path` e `windows_where_candidates`. `backend_candidates` não adiciona mais o CWD implicitamente; `is_backend_file` continua exigindo caminho absoluto e arquivo regular após a resolução. Overrides absolutos e o diretório adjacente passado explicitamente pelo pipeline continuam permitidos. O gate `scripts/test_ffmpeg_discovery_contract.sh` impede a reintrodução de `current_directory`, `SearchPathW` ou `windows_where_candidates`, e um teste unitário confirma a ausência do CWD implícito quando ele não está declarado no PATH.
+
+A decisão não transforma qualquer instalação em confiável: executáveis encontrados no PATH, Registro ou diretórios de usuário ainda exigem a política de confiança documentada e não são autenticados por assinatura ou hash. O próximo ciclo deve avaliar autenticação de origem, DLLs dependentes e contenção de processos descendentes.

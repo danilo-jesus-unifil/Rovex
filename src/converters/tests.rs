@@ -1,6 +1,7 @@
 use super::{
-    ConversionError, ConversionKind, convert_file, output_path, push_path_or_directory_candidates,
-    read_limited_output, resolve_backend, resolve_backend_from_candidates,
+    ConversionError, ConversionKind, backend_candidates, convert_file, output_path,
+    push_path_or_directory_candidates, read_limited_output, resolve_backend,
+    resolve_backend_from_candidates,
 };
 use std::fs;
 #[cfg(unix)]
@@ -53,6 +54,35 @@ fn saida_windows_detecta_colisao_de_extensao_com_caixa_diferente() {
     let destination = output_path(&source, ConversionKind::Png).expect("derivar saída");
     assert_eq!(destination, root.join("foto.converted.png"));
     fs::remove_dir_all(root).expect("limpar diretório do teste");
+}
+
+#[test]
+fn descoberta_nao_adiciona_cwd_implicitamente() {
+    let current = std::env::current_dir().expect("o CWD deve estar disponível");
+    let path_declares_current = std::env::var_os("PATH")
+        .into_iter()
+        .flat_map(|path| std::env::split_paths(&path).collect::<Vec<_>>())
+        .any(|directory| {
+            directory == current || (directory.as_os_str() == std::ffi::OsStr::new("."))
+        });
+    if path_declares_current {
+        return;
+    }
+
+    let executable = format!(
+        "rovex-audit-ffmpeg-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    );
+    let candidates = backend_candidates(&executable, None);
+    assert!(!candidates.contains(&current.join(&executable)));
+
+    let adjacent = current.join("explicit-adjacent-backend");
+    let candidates = backend_candidates(&executable, Some(&adjacent));
+    assert!(candidates.contains(&adjacent.join(&executable)));
 }
 
 #[test]
