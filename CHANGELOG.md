@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.22] — 2026-08-20
+
+A versão `0.1.22` fecha uma lacuna real na validação de nomes reservados de dispositivos Windows: os dígitos sobrescritos ¹, ² e ³ não eram reconhecidos para `COM` e `LPT`.
+
+| Área | Mudança |
+|---|---|
+| Investigação | A documentação oficial lista `COM¹`/`COM²`/`COM³` e `LPT¹`/`LPT²`/`LPT³` como reservados, inclusive com extensões; o predicado anterior só usava dígitos ASCII. |
+| Segurança | `is_reserved_windows_name` passou a rejeitar explicitamente os nomes ASCII e sobrescritos, preservando a comparação sem distinção de caixa e a remoção de extensão, espaços e pontos finais. |
+| Testes Windows | A fixture nativa de operações cobre os seis nomes sobrescritos e variantes `COM².txt`/`LPT².txt`. |
+| CI | `scripts/test_reserved_windows_names_contract.sh` verifica que a política, os testes e o passo do workflow permanecem conectados. |
+| Documentação | Pesquisa oficial registrada em `docs/research/reserved-device-names-2026-08-20.md`. |
+
 ## [0.1.21] — 2026-08-20
 
 A versão `0.1.21` endurece a listagem contra junctions e demais reparse points e elimina uma corrida real no teste de cancelamento do fake FFmpeg.
