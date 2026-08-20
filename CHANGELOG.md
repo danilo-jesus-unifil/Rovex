@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.18] — 2026-08-20
+
+A versão `0.1.18` corrige uma lacuna real em que duplo clique, Enter e o menu contextual não abriam arquivos regulares com o aplicativo padrão.
+
+| Área | Mudança |
+|---|---|
+| Investigação | O callback `activate(int)` existia, mas o handler retornava para qualquer linha que não fosse diretório; o menu também não oferecia uma ação Abrir explícita. |
+| Windows | Novo adapter `ShellExecuteExW` com verbo padrão, caminho em `lpFile`, `lpParameters` nulo e COM STA; nenhuma linha de comando é montada. |
+| Segurança | Caminhos relativos, ausentes, diretórios, `..`, symlinks e reparse points no arquivo ou em componentes pais são recusados. |
+| UI | Duplo clique, Enter e o botão contextual `Abrir` ativam arquivos regulares; pastas continuam navegando e `Abrir com...` permanece separado. |
+| Testes | 102 testes host passaram, incluindo fixture de arquivo dentro de pai symlinkado e rejeição de caminho ambíguo; novo `test_activation_contract.sh` foi adicionado ao CI. |
+| Qualidade | Check, Clippy host/cross-Windows GNU, build release cross, smoke gráfico e gate documental passaram; uma falha de Clippy cross foi corrigida antes da conclusão. |
+| Documentação | Pesquisa oficial sobre ShellExecute, verbos e reparse points registrada em `docs/research/activation-research-2026-08-20.md`. |
+
 ## [0.1.17] — 2026-08-20
 
 A versão `0.1.17` fortalece a verificação da distribuição portable após confirmar uma lacuna real em um artefato adulterado.
