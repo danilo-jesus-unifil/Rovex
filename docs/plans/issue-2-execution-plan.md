@@ -72,6 +72,12 @@ O erro agora preserva `hInstApp`/`SE_ERR_*` e `GetLastError`, com mensagens cont
 
 O próximo ciclo deve reproduzir em Windows nativo associação inexistente, arquivo bloqueado, junction/mounted folder, caminho UNC e path longo antes de qualquer nova mudança. Nenhum desses casos é declarado resolvido apenas por cross-build.
 
+## Atualização do ciclo v0.1.20 — 2026-08-20
+
+A auditoria confirmou uma lacuna de validação, não uma falha funcional presumida: `assets/rovex.manifest` já declara `longPathAware`, porém `verify_windows_native.ps1` não criava nem listava uma árvore acima de 260 caracteres. O smoke foi ampliado para criar quatro níveis reais, medir o caminho acima de MAX_PATH e executar o CLI nessa pasta.
+
+O gate `scripts/test_windows_native_contract.sh` foi adicionado ao CI para impedir que o fixture, a declaração `longPathAware` ou a chamada Windows sejam removidos sem detecção. A pesquisa oficial registrou as diferenças entre DOS, UNC e `\\?\\` extended-length. UNC, junctions, mounted folders, ACLs e associação inexistente continuam sem declaração de suporte até haver fixtures nativas controladas.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.

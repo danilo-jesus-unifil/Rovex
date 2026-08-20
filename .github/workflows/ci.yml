@@ -44,6 +44,10 @@ jobs:
         shell: bash
         run: ./scripts/test_activation_contract.sh
 
+      - name: Windows native smoke contract
+        shell: bash
+        run: ./scripts/test_windows_native_contract.sh
+
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 

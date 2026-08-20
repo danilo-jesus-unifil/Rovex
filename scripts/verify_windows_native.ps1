@@ -22,7 +22,27 @@ try {
         throw "saída do CLI não preservou diretório com espaço: $joined"
     }
 
-    Write-Host "Windows native CLI smoke passed: $fixture"
+    $longDirectory = $fixture
+    for ($index = 0; $index -lt 4; $index++) {
+        $segment = "segmento-$index-" + ('x' * 54)
+        $longDirectory = Join-Path $longDirectory $segment
+        New-Item -ItemType Directory -Path $longDirectory -Force | Out-Null
+    }
+    $longFile = Join-Path $longDirectory (('arquivo-' + ('y' * 40)) + '.txt')
+    Set-Content -LiteralPath $longFile -Value "Rovex long path" -NoNewline -Encoding utf8
+    if ($longFile.Length -le 260) {
+        throw "fixture de caminho longo não ultrapassou MAX_PATH: $($longFile.Length)"
+    }
+    $longOutput = & cargo run --quiet -- --cli $longDirectory 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "CLI falhou no caminho longo ($($longFile.Length) caracteres): $($longOutput -join [Environment]::NewLine)"
+    }
+    $longJoined = $longOutput -join [Environment]::NewLine
+    if ($longJoined -notmatch [regex]::Escape((Split-Path -Leaf $longFile))) {
+        throw "saída do CLI não preservou o arquivo no caminho longo: $longJoined"
+    }
+
+    Write-Host "Windows native CLI smoke passed: $fixture; long path length $($longFile.Length)"
 }
 finally {
     if (Test-Path -LiteralPath $fixture) {
