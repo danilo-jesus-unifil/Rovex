@@ -112,6 +112,18 @@ fn destination_parent(path: &Path) -> &Path {
         .unwrap_or_else(|| Path::new("."))
 }
 
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        metadata.file_attributes() & 0x400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        metadata.file_type().is_symlink()
+    }
+}
+
 #[cfg(windows)]
 fn is_reserved_windows_name(name: &OsStr) -> bool {
     let name = name.to_string_lossy();
@@ -180,10 +192,10 @@ pub fn validate_destination(
         path: parent.to_path_buf(),
         kind: error.kind(),
     })?;
-    if parent_metadata.file_type().is_symlink() {
+    if is_reparse_point(&parent_metadata) {
         return Err(ValidationError::InvalidPath {
             path: destination.to_path_buf(),
-            reason: "componente symlink no diretório pai",
+            reason: "componente reparse point no diretório pai",
         });
     }
     if !parent_metadata.is_dir() {
@@ -208,10 +220,10 @@ pub fn validate_destination(
             path: current.clone(),
             kind: error.kind(),
         })?;
-        if metadata.file_type().is_symlink() {
+        if is_reparse_point(&metadata) {
             return Err(ValidationError::InvalidPath {
                 path: destination.to_path_buf(),
-                reason: "componente symlink no diretório pai",
+                reason: "componente reparse point no diretório pai",
             });
         }
     }
@@ -388,6 +400,45 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn recusa_componente_junction_no_diretorio_pai() {
+        use std::process::Command;
+
+        let root = temporary_directory();
+        let outside = temporary_directory();
+        let junction = root.join("junction");
+        let command = format!(
+            "mklink /J \"{}\" \"{}\"",
+            junction.display(),
+            outside.display()
+        );
+        let status = Command::new("cmd.exe")
+            .args(["/D", "/C", &command])
+            .status()
+            .expect("o cmd.exe deve estar disponível no Windows");
+        if !status.success() {
+            fs::remove_dir_all(root).expect("a raiz do teste deve ser removida");
+            fs::remove_dir_all(outside).expect("o destino externo deve ser removido");
+            return;
+        }
+
+        let result = validate_destination(
+            None,
+            &junction.join("novo.txt"),
+            DestinationPolicy::default(),
+        );
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidPath {
+                reason: "componente reparse point no diretório pai",
+                ..
+            })
+        ));
+        fs::remove_dir_all(root).expect("a raiz do teste deve ser removida");
+        fs::remove_dir_all(outside).expect("o destino externo deve ser removido");
     }
 
     #[cfg(unix)]

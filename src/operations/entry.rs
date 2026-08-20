@@ -7,6 +7,21 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
+fn is_reparse_point(path: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        fs::symlink_metadata(path)
+            .map(|metadata| metadata.file_attributes() & 0x400 != 0)
+            .unwrap_or(false)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        false
+    }
+}
+
 pub fn create_directory(path: &Path) -> Result<(), OperationError> {
     let path = validate_destination(None, path, DestinationPolicy::default())?;
     fs::create_dir(&path).map_err(|error| from_io("criar diretório", &path, error))
@@ -44,7 +59,7 @@ fn ensure_directory_empty(path: &Path) -> Result<(), OperationError> {
 pub fn delete_entry(path: &Path) -> Result<(), OperationError> {
     ensure_not_root(path)?;
     let file_type = validate_source(path)?;
-    if file_type.is_symlink() || file_type.is_file() {
+    if file_type.is_symlink() || file_type.is_file() || is_reparse_point(path) {
         #[cfg(windows)]
         {
             return super::recycle::delete_to_recycle_bin(path);

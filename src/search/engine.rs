@@ -60,6 +60,7 @@ pub enum SearchError {
     EmptyQuery,
     RelativeRoot(PathBuf),
     Root(FileSystemError),
+    RootRedirected(PathBuf),
     RootNotDirectory(PathBuf),
 }
 
@@ -75,6 +76,11 @@ impl std::fmt::Display for SearchError {
             Self::Root(error) => write!(
                 formatter,
                 "não foi possível abrir a raiz da pesquisa: {error}"
+            ),
+            Self::RootRedirected(path) => write!(
+                formatter,
+                "a raiz da pesquisa é um link ou reparse point: {}",
+                path.display()
             ),
             Self::RootNotDirectory(path) => {
                 write!(
@@ -109,6 +115,9 @@ where
     }
     let root_metadata = fs::symlink_metadata(root)
         .map_err(|error| SearchError::Root(FileSystemError::from_io("abrir raiz", root, error)))?;
+    if is_reparse_point(root) {
+        return Err(SearchError::RootRedirected(root.to_path_buf()));
+    }
     if !root_metadata.is_dir() {
         return Err(SearchError::RootNotDirectory(root.to_path_buf()));
     }

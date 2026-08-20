@@ -140,6 +140,31 @@ fn hidden_entries_follow_listing_options() {
 
 #[cfg(unix)]
 #[test]
+fn symlink_root_is_rejected_without_following_target() {
+    use std::os::unix::fs::symlink;
+    let root = temp_root("symlink-root");
+    let outside = temp_root("symlink-root-outside");
+    fs::write(outside.join("secret.txt"), b"secret").expect("write outside");
+    let linked_root = root.join("linked-root");
+    symlink(&outside, &linked_root).expect("create root symlink");
+
+    let cancel = Arc::new(AtomicBool::new(false));
+    let error = search_by_name(
+        &linked_root,
+        "secret",
+        ListingOptions::default(),
+        SearchLimits::default(),
+        &cancel,
+        |_| {},
+    )
+    .expect_err("symlink root must be rejected");
+    assert!(matches!(error, SearchError::RootRedirected(_)));
+    fs::remove_dir_all(root).expect("cleanup root");
+    fs::remove_dir_all(outside).expect("cleanup outside");
+}
+
+#[cfg(unix)]
+#[test]
 fn symlink_directory_is_not_followed() {
     use std::os::unix::fs::symlink;
     let root = temp_root("symlink");

@@ -1,4 +1,6 @@
 use super::types::{ConversionError, ConversionKind};
+#[cfg(windows)]
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -32,10 +34,28 @@ pub(crate) fn output_path(source: &Path, kind: ConversionKind) -> Result<PathBuf
         })?;
     let extension = kind.extension();
     let mut destination = parent.join(format!("{stem}.{extension}"));
-    if destination == source {
+    if destination == source || same_existing_path(&source, &destination) {
         destination = parent.join(format!("{stem}.converted.{extension}"));
     }
     Ok(destination)
+}
+
+fn same_existing_path(source: &Path, destination: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        if !destination.exists() {
+            return false;
+        }
+        match (fs::canonicalize(source), fs::canonicalize(destination)) {
+            (Ok(source), Ok(destination)) => source == destination,
+            _ => false,
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (source, destination);
+        false
+    }
 }
 
 pub(crate) fn temporary_path(destination: &Path) -> Result<PathBuf, ConversionError> {

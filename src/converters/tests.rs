@@ -34,6 +34,27 @@ fn saida_usa_nome_irmao_e_evita_mesmo_caminho() {
     assert_eq!(same, root.join("foto.converted.jxl"));
 }
 
+#[cfg(windows)]
+#[test]
+fn saida_windows_detecta_colisao_de_extensao_com_caixa_diferente() {
+    let root = std::env::temp_dir().join(format!(
+        "rovex-output-case-collision-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    fs::create_dir(&root).expect("criar diretório do teste");
+    let source = root.join("foto.PNG");
+    fs::write(&source, b"imagem").expect("criar origem");
+    assert!(root.join("foto.png").exists());
+
+    let destination = output_path(&source, ConversionKind::Png).expect("derivar saída");
+    assert_eq!(destination, root.join("foto.converted.png"));
+    fs::remove_dir_all(root).expect("limpar diretório do teste");
+}
+
 #[test]
 fn resolvedor_tenta_candidatos_em_ordem_e_aceita_apenas_arquivo_regular() {
     let root = std::env::temp_dir().join(format!(
