@@ -122,6 +122,12 @@ A revisão pós-v0.1.25 identificou que `ProcessTree::terminate` ignorava falhas
 
 A suíte de processos e o contrato de contenção foram executados novamente. O próximo ciclo deve testar nativamente a associação dentro de outro Job Object, falhas induzidas de terminação, breakaway e a janela entre spawn e associação; não assumir que o fallback direto contém descendentes.
 
+## Atualização do ciclo v0.1.27 — 2026-08-20
+
+A auditoria de conversão confirmou que `temporary_path` apenas consultava `exists()` antes de devolver o nome. Essa não era uma reserva; duas conversões concorrentes poderiam iniciar FFmpeg no mesmo temporário. A implementação passou a usar `OpenOptions::create_new(true)`, cria e fecha um placeholder antes do spawn, avança somente em `AlreadyExists` e preserva erros reais de I/O. O teste `reserva_de_temporario_e_atomica_e_cria_placeholder` comprova a exclusividade de duas reservas consecutivas.
+
+A validação agora inclui o placeholder atômico, a contagem de 108 testes, dez repetições paralelas da suíte e o gate de contenção mantido. A próxima investigação deve separar reserva de caminho de proteção por handle, sem declarar TOCTOU residual como resolvido sem fixture específica.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.
