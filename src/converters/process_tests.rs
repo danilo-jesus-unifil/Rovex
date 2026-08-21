@@ -39,6 +39,30 @@ fn cleanup(path: &Path, temporary: &Path) {
 }
 
 #[test]
+fn ffmpeg_pode_sobrescrever_placeholder_temporario_reservado() {
+    let backend = fake_backend(
+        "reserved-output",
+        "for argument in \"$@\"; do\n    if [ \"$argument\" = \"-y\" ]; then\n        exit 0\n    fi\ndone\nexit 23",
+    );
+    let source = backend.with_extension("input");
+    let temporary = backend.with_extension("output");
+    fs::write(&source, b"input").expect("source");
+    let reserved = super::paths::temporary_path(&temporary).expect("reservar temporário");
+    let result = spawn_ffmpeg_with_timeout(
+        &backend,
+        &source,
+        &reserved,
+        ConversionKind::Png,
+        &AtomicBool::new(false),
+        &mut |_| {},
+        Duration::from_secs(2),
+    );
+    assert!(result.is_ok(), "o placeholder deve ser aceito: {result:?}");
+    cleanup(&backend, &source);
+    let _ = fs::remove_file(reserved);
+}
+
+#[test]
 fn ffmpeg_fake_is_killed_when_cancelled() {
     let backend_path = std::env::temp_dir().join(format!(
         "rovex-process-cancel-ready-{}-{}",

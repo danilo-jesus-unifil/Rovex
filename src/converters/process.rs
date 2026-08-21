@@ -59,7 +59,10 @@ pub(crate) fn spawn_ffmpeg_with_timeout(
         .arg("-loglevel")
         .arg("error")
         .arg("-nostdin")
-        .arg("-n")
+        // `temporary` foi reservado com `create_new`; somente o temporário
+        // privado pode ser sobrescrito, enquanto o destino final continua sem
+        // substituição na publicação atômica.
+        .arg("-y")
         .arg("-i")
         .arg(source);
     match kind {

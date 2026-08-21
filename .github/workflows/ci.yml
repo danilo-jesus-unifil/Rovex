@@ -60,6 +60,10 @@ jobs:
         shell: bash
         run: ./scripts/test_process_containment_contract.sh
 
+      - name: Converter temporary contract
+        shell: bash
+        run: ./scripts/test_converter_temporary_contract.sh
+
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 

@@ -79,7 +79,6 @@ where
                 if cancel.load(Ordering::Acquire) {
                     return Err(ConversionError::Cancelled);
                 }
-                let _ = fs::remove_file(&temporary);
                 let attempt = (|| {
                     spawn_ffmpeg(&ffmpeg, &source, &temporary, kind, cancel, &mut stage)?;
                     stage(ConversionStage::Validating);
