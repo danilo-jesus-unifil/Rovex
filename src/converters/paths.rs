@@ -1,6 +1,8 @@
 use super::types::{ConversionError, ConversionKind};
+use crate::operations::OperationError;
 #[cfg(windows)]
 use std::fs;
+use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -85,8 +87,24 @@ pub(crate) fn temporary_path(destination: &Path) -> Result<PathBuf, ConversionEr
             std::process::id(),
             timestamp + u128::from(attempt)
         ));
-        if !candidate.exists() {
-            return Ok(candidate);
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+        {
+            Ok(file) => {
+                drop(file);
+                return Ok(candidate);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(ConversionError::Operation(OperationError::FileSystem {
+                    operation: "reservar arquivo temporário",
+                    path: candidate,
+                    kind: error.kind(),
+                    raw_os_error: error.raw_os_error(),
+                }));
+            }
         }
     }
     Err(ConversionError::InvalidInput {

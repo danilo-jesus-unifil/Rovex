@@ -11,6 +11,8 @@ use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use super::paths::temporary_path;
+
 #[test]
 fn diagnostico_de_backend_tem_limite_de_tamanho() {
     let oversized = vec![b'x'; super::MAX_PROCESS_OUTPUT_BYTES + 1];
@@ -33,6 +35,28 @@ fn saida_usa_nome_irmao_e_evita_mesmo_caminho() {
     assert_eq!(jxl, root.join("foto.jxl"));
     let same = output_path(&root.join("foto.jxl"), ConversionKind::JpegXl).unwrap();
     assert_eq!(same, root.join("foto.converted.jxl"));
+}
+
+#[test]
+fn reserva_de_temporario_e_atomica_e_cria_placeholder() {
+    let root = std::env::temp_dir().join(format!(
+        "rovex-converter-temp-reservation-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    fs::create_dir(&root).expect("criar diretório do teste");
+    let destination = root.join("saida.png");
+    let first = temporary_path(&destination).expect("reservar primeiro temporário");
+    let second = temporary_path(&destination).expect("reservar segundo temporário");
+    assert_ne!(first, second);
+    assert!(first.is_file());
+    assert!(second.is_file());
+    fs::remove_file(first).expect("limpar primeira reserva");
+    fs::remove_file(second).expect("limpar segunda reserva");
+    fs::remove_dir(root).expect("limpar diretório do teste");
 }
 
 #[cfg(windows)]

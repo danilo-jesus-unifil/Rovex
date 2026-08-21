@@ -33,3 +33,9 @@ Esses pontos não foram marcados como resolvidos nesta release. TOCTOU de filesy
 ## Endurecimento adicional do ciclo v0.1.26
 
 A revisão do retorno das APIs mostrou que ignorar uma falha de `killpg` ou `TerminateJobObject` deixaria o fluxo apenas com `wait` e poderia manter o mesmo risco de descendente. O helper agora examina o resultado da terminação da árvore: quando a API falha, tenta `Child::kill` como último recurso antes de aguardar. A decisão é deliberadamente conservadora: o fallback direto não é apresentado como contenção completa, e falhas de estabelecimento do Job Object continuam fazendo a operação retornar erro.
+
+## Auditoria de temporários de conversão — ciclo v0.1.27
+
+A revisão de `temporary_path` encontrou uma segunda corrida real: o código consultava `candidate.exists()` e retornava o caminho, mas não o reservava. Duas conversões concorrentes poderiam observar o mesmo nome livre e iniciar FFmpeg no mesmo temporário; a publicação posterior era protegida, mas a entrada intermediária podia ser compartilhada ou sobrescrita.
+
+A correção substituiu a janela de consulta por `OpenOptions::create_new(true)`. O placeholder é criado e fechado atomically antes de o pipeline iniciar o backend; colisões avançam para a próxima tentativa e erros diferentes de `AlreadyExists` preservam operação, caminho, `ErrorKind` e código nativo no erro estruturado. O teste `reserva_de_temporario_e_atomica_e_cria_placeholder` confirma que duas reservas consecutivas têm caminhos diferentes e que ambos os placeholders existem.
