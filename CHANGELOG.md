@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.28] — 2026-08-20
+
+A versão `0.1.28` fecha uma corrida residual descoberta após a reserva atômica de temporários: o pipeline removia o placeholder antes de iniciar o FFmpeg, reabrindo a janela de uso concorrente; além disso, o modo `-n` recusava o placeholder recém-criado.
+
+| Área | Mudança |
+|---|---|
+| Temporário | O placeholder criado com `create_new(true)` permanece até o spawn e durante retries. |
+| FFmpeg | A saída usa `-y` somente sobre o temporário privado reservado; o destino final continua sendo publicado sem sobrescrita. |
+| Retry | O pipeline não remove mais a reserva antes da tentativa; cleanup ocorre no encerramento do pipeline ou erro. |
+| Testes | `ffmpeg_pode_sobrescrever_placeholder_temporario_reservado` prova que o backend recebe a reserva existente; o teste de reserva atômica continua cobrindo exclusividade. |
+| CI | `scripts/test_converter_temporary_contract.sh` bloqueia a remoção da reserva no retry e exige `-y`, `create_new` e as regressões. |
+| Documentação | Pesquisa, guia de testes, plano e relatório da release foram atualizados com a distinção entre temporário privado e destino final. |
+
 ## [0.1.26] — 2026-08-20
 
 A versão `0.1.26` endurece o tratamento de falhas nas APIs de terminação de árvores de processos. O Rovex não ignora mais erro de `killpg`/`TerminateJobObject` antes de aguardar o processo.

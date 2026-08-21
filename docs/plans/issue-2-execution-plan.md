@@ -128,6 +128,12 @@ A auditoria de conversão confirmou que `temporary_path` apenas consultava `exis
 
 A validação agora inclui o placeholder atômico, a contagem de 108 testes, dez repetições paralelas da suíte e o gate de contenção mantido. A próxima investigação deve separar reserva de caminho de proteção por handle, sem declarar TOCTOU residual como resolvido sem fixture específica.
 
+## Atualização do ciclo v0.1.28 — 2026-08-20
+
+A revisão pós-v0.1.27 confirmou uma corrida residual: o pipeline removia o placeholder reservado antes do spawn, desfazendo a reserva atômica. A correção mantém o placeholder durante spawn, validação e retries. Como `-n` recusava uma saída já existente, o FFmpeg passou a usar `-y` somente sobre esse temporário privado; a publicação final continua sem sobrescrita.
+
+Foram adicionados `ffmpeg_pode_sobrescrever_placeholder_temporario_reservado` e `scripts/test_converter_temporary_contract.sh`, que bloqueia a remoção no trecho de retry e exige a combinação `create_new`/placeholder/`-y`. A suíte passou com 109 testes e o próximo ciclo deve investigar proteção por handle sem confundir temporário exclusivo com destino autorizado.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.
