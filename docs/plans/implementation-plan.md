@@ -1,4 +1,4 @@
-# Rovex — Plano incremental de implementação
+# Rovex: Plano incremental de implementação
 
 ## Princípio de execução
 

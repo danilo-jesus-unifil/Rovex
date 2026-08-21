@@ -1,4 +1,4 @@
-# Notas de pesquisa — auditoria de segurança
+# Notas de pesquisa: auditoria de segurança
 
 ## OWASP Top 10:2025
 

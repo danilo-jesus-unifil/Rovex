@@ -2,7 +2,7 @@
 
 ## Direção
 
-A interface manterá o tema escuro azul-marinho existente, mas passará a usar uma hierarquia de superfícies mais clara, controles com estados consistentes, raios de 8–12 px, espaçamento baseado em múltiplos de 4 px e uma barra superior dividida semanticamente entre navegação, localização e ferramentas. A prioridade é preservar as callbacks e os workers atuais.
+A interface manterá o tema escuro azul-marinho existente, mas passará a usar uma hierarquia de superfícies mais clara, controles com estados consistentes, raios de 8-12 px, espaçamento baseado em múltiplos de 4 px e uma barra superior dividida semanticamente entre navegação, localização e ferramentas. A prioridade é preservar as callbacks e os workers atuais.
 
 ## Alterações visuais
 

@@ -1,4 +1,4 @@
-# Auditoria final de segurança, bugs, UX e UI — Rovex
+# Auditoria final de segurança, bugs, UX e UI: Rovex
 
 ## Estado da auditoria
 

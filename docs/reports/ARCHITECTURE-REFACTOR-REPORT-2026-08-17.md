@@ -1,16 +1,16 @@
 # Relatório de refatoração arquitetural do Rovex
 
-**Data:** 17 de agosto de 2026  
-**Projeto:** Rovex — explorador de arquivos nativo para Windows 10/11  
-**Autor:** Manus AI  
-**HEAD validado:** `eca6051`  
+**Data:** 17 de agosto de 2026
+**Projeto:** Rovex: explorador de arquivos nativo para Windows 10/11
+**Autor:** Manus AI
+**HEAD validado:** `eca6051`
 **Branch:** `main`
 
-## 1. Resultado executivo
+## 1. Resultado
 
-A refatoração arquitetural foi concluída com o comportamento funcional preservado. Todos os arquivos de produção em `src/` e `ui/` ficaram abaixo do limite objetivo de 400 linhas. A extração foi realizada por fronteiras de responsabilidade reais: operações de arquivo, estado de navegação e seleção, schedulers, conversores, handlers da janela, tokens visuais, controles reutilizáveis, barras de ferramentas, modelos Slint e overlays.
+A refatoração preservou o comportamento funcional e deixou todos os arquivos de produção em `src/` e `ui/` abaixo de 400 linhas. A extração separou operações de arquivo, estado de navegação e seleção, schedulers, conversores, handlers da janela, tokens visuais, controles, barras de ferramentas, modelos Slint e overlays.
 
-A interface continua usando o tema escuro, os botões de navegação e atualização, as abas, a listagem, o menu contextual com as quatro conversões e o diálogo de operação. A validação gráfica confirmou inicialização, fluxo de abas e conversão JPEG XL pela UI em uma pasta diferente da pasta do binário.
+A interface mantém o tema escuro, os botões de navegação e atualização, abas, listagem, menu contextual com quatro conversões e diálogo de operação. A validação gráfica confirmou inicialização, fluxo de abas e conversão JPEG XL com o binário e a imagem em pastas diferentes.
 
 ## 2. Comparação objetiva de tamanho
 
@@ -25,7 +25,7 @@ O baseline utilizado foi o checkpoint `4e2ccdf`, criado antes da modularização
 | `src/operations.rs` | 531 | Substituído por 5 módulos; maior módulo atual: `copy.rs` com 200 linhas |
 | `ui/main.slint` | 848 | Fachada principal com 317 linhas; UI distribuída em 6 arquivos |
 
-No estado final, o maior arquivo de produção é `src/security.rs`, com 367 linhas. Portanto, o critério objetivo de nenhum arquivo acima de 400 linhas foi satisfeito sem deixar um arquivo residual acima do limite.
+No estado final, o maior arquivo de produção é `src/security.rs`, com 367 linhas. Nenhum arquivo ultrapassa 400 linhas.
 
 ## 3. Estrutura final por responsabilidade
 
@@ -41,7 +41,7 @@ No estado final, o maior arquivo de produção é `src/security.rs`, com 367 lin
 
 A divisão da UI segue o sistema de módulos do Slint: tipos exportados podem ser importados por outros arquivos `.slint`, e componentes exportados podem ser compostos em um componente principal.[1] A fachada `main.slint` continua exportando `MainWindow`, `LocationRow`, `FileRow`, `TabRow` e `DesignTokens`, mantendo a superfície usada pelo código Rust.
 
-> “Similarly, components exported from other files may be imported.” — documentação oficial do Slint sobre módulos.[1]
+> “Similarly, components exported from other files may be imported.”: documentação oficial do Slint sobre módulos.[1]
 
 O `build.rs` também foi atualizado com `cargo:rerun-if-changed` para cada módulo Slint. Assim, uma alteração em tokens, controles, modelos, toolbar ou overlays força a recompilação apropriada da interface, em vez de depender somente da data de `main.slint`.
 
@@ -95,14 +95,14 @@ O estado estável anterior à divisão da UI está preservado na branch `backup/
 
 O working tree está limpo. A branch `main` está quatro commits à frente de `origin/main`; nenhum push foi forçado ou executado durante esta etapa.
 
-## 8. Conclusão
+## 8. Estado validado
 
-O Rovex está em um estado estável para a próxima etapa de desenvolvimento. A regra de modularização foi cumprida para Rust e Slint, os limites de responsabilidade ficaram explícitos, a API pública da janela foi preservada, a compilação Linux e Windows GNU foi validada, as verificações estáticas passaram e os fluxos gráficos essenciais foram exercitados sob Xvfb.
+A regra de modularização foi cumprida para Rust e Slint, os limites de responsabilidade estão separados, a API pública da janela foi preservada, a compilação Linux e Windows GNU foi validada, as verificações estáticas passaram e os fluxos gráficos essenciais foram exercitados sob Xvfb.
 
 ### Referências
 
-[1]: https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/ "Slint Docs — The .slint File e Modules"
-[2]: https://rustsec.org/advisories/RUSTSEC-2025-0141 "RustSec — Bincode is unmaintained"
-[3]: https://rustsec.org/advisories/RUSTSEC-2024-0436 "RustSec — paste is no longer maintained"
-[4]: https://rustsec.org/advisories/RUSTSEC-2026-0206 "RustSec — rustybuzz is unmaintained"
-[5]: https://rustsec.org/advisories/RUSTSEC-2026-0192 "RustSec — ttf-parser is unmaintained"
+[1]: https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/ "Slint Docs: The .slint File e Modules"
+[2]: https://rustsec.org/advisories/RUSTSEC-2025-0141 "RustSec: Bincode is unmaintained"
+[3]: https://rustsec.org/advisories/RUSTSEC-2024-0436 "RustSec: paste is no longer maintained"
+[4]: https://rustsec.org/advisories/RUSTSEC-2026-0206 "RustSec: rustybuzz is unmaintained"
+[5]: https://rustsec.org/advisories/RUSTSEC-2026-0192 "RustSec: ttf-parser is unmaintained"

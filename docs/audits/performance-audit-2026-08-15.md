@@ -1,4 +1,4 @@
-# Auditoria de performance e design — 15/08/2026
+# Auditoria de performance e design: 15/08/2026
 
 ## Estado observado
 

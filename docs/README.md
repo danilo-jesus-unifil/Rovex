@@ -1,6 +1,6 @@
 # Documentação do Rovex
 
-Este diretório reúne a documentação técnica do projeto por finalidade. O índice reduz a mistura entre auditorias, pesquisas, planos e relatórios de release e facilita localizar a evidência correta sem depender do histórico de commits.
+A documentação está separada por finalidade: auditorias, pesquisas, planos, referências, relatórios e releases.
 
 | Pasta | Conteúdo | Exemplos principais |
 |---|---|---|
@@ -11,8 +11,8 @@ Este diretório reúne a documentação técnica do projeto por finalidade. O í
 | [`reports/`](reports/) | Relatórios gerais de implementação, modernização, estabilidade e UI | [`MODERNIZATION_REPORT.md`](reports/MODERNIZATION_REPORT.md), [`FINAL_STABILITY_REPORT.md`](reports/FINAL_STABILITY_REPORT.md) |
 | [`releases/`](releases/) | Histórico de notas e relatórios por versão | [`RELEASE_REPORT-v0.1.15.md`](releases/RELEASE_REPORT-v0.1.15.md) |
 
-Os poucos arquivos mantidos na raiz têm finalidade operacional ou convenção de plataforma: [`README.md`](../README.md) é a entrada do repositório, [`CHANGELOG.md`](../CHANGELOG.md) é o histórico curto, [`SECURITY.md`](../SECURITY.md) é a política reconhecida pelo GitHub e [`COMPATIBILITY.md`](../COMPATIBILITY.md) é incluído pelo pacote portable como matriz canônica de compatibilidade. Evidências Markdown de smoke tests são geradas localmente em `artifacts/validation/`, separadas da documentação normativa; esse diretório é ignorado pelo Git e não é tratado como documentação versionada.
+Na raiz ficam os arquivos exigidos pelo projeto e pelas ferramentas: [`README.md`](../README.md) é a entrada, [`CHANGELOG.md`](../CHANGELOG.md) é o histórico, [`SECURITY.md`](../SECURITY.md) é a política reconhecida pelo GitHub e [`COMPATIBILITY.md`](../COMPATIBILITY.md) é a matriz incluída no pacote portable. Evidências Markdown de smoke tests ficam em `artifacts/validation/`; o diretório é ignorado pelo Git e não é documentação versionada.
 
 ## Critério de manutenção
 
-Novas auditorias devem ser salvas em `docs/audits/`, pesquisas e decisões externas em `docs/research/`, planos de execução em `docs/plans/`, contratos de operação em `docs/reference/`, relatórios consolidados em `docs/reports/` e notas específicas de versão em `docs/releases/`. Um arquivo só deve ir para a raiz quando for uma entrada do projeto, uma política reconhecida por ferramenta externa ou um arquivo distribuído deliberadamente no pacote portable.
+Salve novas auditorias em `docs/audits/`, pesquisas e decisões externas em `docs/research/`, planos em `docs/plans/`, contratos operacionais em `docs/reference/`, relatórios consolidados em `docs/reports/` e notas de versão em `docs/releases/`. Use a raiz somente para a entrada do projeto, políticas reconhecidas por ferramentas externas ou arquivos distribuídos deliberadamente no pacote portable.

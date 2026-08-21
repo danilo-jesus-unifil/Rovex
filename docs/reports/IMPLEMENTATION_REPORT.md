@@ -1,10 +1,8 @@
-# Relatório de implementação e hardening — Rovex
+# Relatório de implementação e hardening: Rovex
 
-## Estado atual reconciliado
+**Consolidação:** 17 de agosto de 2026, após a v0.1.8 e a refatoração arquitetural posterior. Relatórios versionados permanecem históricos de suas releases.
 
-Este documento foi reconciliado em 17 de agosto de 2026 com o estado publicado da v0.1.8 e com a refatoração arquitetural posterior. Relatórios explicitamente versionados continuam sendo históricos de suas respectivas releases.
-
-## Resultado atual
+## Estado atual
 
 O Rovex é um aplicativo desktop funcional em Rust/Slint. O binário abre uma janela Slint, recebe um diretório inicial, lista entradas reais, navega por caminho, sobe para a pasta pai, atualiza a listagem, oferece abas, menu contextual, operações de arquivo e quatro conversores locais, e mostra status ou erro controlado. A lista é atualizada no thread principal do Slint; filesystem, filtro, operações e conversões rodam em workers nomeados.
 
@@ -26,11 +24,13 @@ Os checkpoints `backup/before-history-selection-2026-08-14`, `backup/before-side
 
 ## Implementação e correções
 
-O núcleo mantém listagem por APIs de filesystem, classificação sem seguir links automaticamente, normalização de destinos, validação contra raiz e sobrescrita, cópia atômica, criação, renomeação e exclusão limitada a arquivos, links e diretórios vazios. Os testes de segurança incluem caminhos equivalentes, `..`, componentes finais ambíguos, links simbólicos e diretórios não vazios. As melhorias do prompt Rustora adicionam filtro local por nome, sem pesquisa recursiva, histórico de navegação com pilhas independentes de voltar/avançar, seleção múltipla por clique, Ctrl-clique, Shift-clique e Ctrl+A e uma barra lateral que apenas apresenta diretórios conhecidos e existentes. A etapa de performance adiciona um worker único latest-only para carregamento de filesystem, encerramento cooperativo dos workers e um Design System Slint local com tokens de cor, espaçamento, raio e estados. A auditoria final adiciona publicação de cópia sem sobrescrita em corrida, preservação de `PathBuf` para nomes Unicode inválidos, recusa de caminhos relativos e componentes pai symlink, mensagens humanizadas, empty states e navegação de sidebar por teclado.
+O núcleo mantém listagem por APIs de filesystem, classificação sem seguir links automaticamente, normalização de destinos, validação contra raiz e sobrescrita, cópia atômica, criação, renomeação e exclusão limitada a arquivos, links e diretórios vazios. Os testes de segurança cobrem caminhos equivalentes, `..`, componentes finais ambíguos, links simbólicos e diretórios não vazios.
+
+As iterações seguintes adicionaram filtro local por nome, histórico de navegação com pilhas independentes de voltar/avançar, seleção múltipla por clique, Ctrl-clique, Shift-clique e Ctrl+A e uma barra lateral de diretórios conhecidos e existentes. A etapa de performance adicionou um worker único latest-only para carregamento de filesystem, encerramento cooperativo dos workers e tokens locais de cor, espaçamento, raio e estados. A auditoria final adicionou publicação de cópia sem sobrescrita em corrida, preservação de `PathBuf` para nomes Unicode inválidos, recusa de caminhos relativos e componentes pai symlink, mensagens de erro, empty states e navegação de sidebar por teclado.
 
 A UI Slint 1.17.1 usa backend Winit, renderer software, acessibilidade e recursos mínimos, evitando renderizadores não utilizados. A barra de endereço dispara navegação somente ao confirmar, e não a cada tecla. O estado vazio diferencia pasta sem entradas de filtro sem resultados e nunca mascara erro de filesystem. O filtro opera sobre a pasta atual, usa fila latest-only com um worker dedicado e não cria uma thread por tecla. As linhas carregadas ficam em snapshots `Arc<[LoadedRow]>`, liberando o mutex antes da filtragem. O carregamento de filesystem usa um único `LoadScheduler` latest-only; navegações rápidas substituem pedidos pendentes, resultados obsoletos continuam protegidos por geração e o worker encerra cooperativamente quando seu scheduler é descartado. O histórico atualiza os botões voltar/avançar somente no event loop e descarta resultados de carregamentos obsoletos por geração. A seleção mantém chaves estáveis, intervalo inclusivo de Shift e estado visual por linha em `VecModel<FileRow>`, apenas no thread principal, conforme a API do Slint. A barra lateral usa um `VecModel<LocationRow>` pequeno, sem enumeração de drives, cálculo de espaço ou favoritos persistentes.
 
-Durante a revisão foram encontrados e corrigidos erros reais: sintaxe de módulo no Slint, inferência de tipos do `VecModel`, conversão de `Cow<str>` para `SharedString`, acesso incorreto ao modelo, warning do Clippy por alocação desnecessária, testes temporários frágeis, comparação Windows entre caminho estendido e caminho curto, risco de resultados obsoletos sobrescreverem navegação recente e criação de uma thread por navegação. O carregamento agora usa geração atômica, fila latest-only e um único worker; falhas do worker e do modelo viram status controlado em vez de panic.
+A revisão corrigiu sintaxe de módulo no Slint, inferência de tipos do `VecModel`, conversão de `Cow<str>` para `SharedString`, acesso ao modelo, alocação apontada pelo Clippy, fixtures frágeis, comparação Windows entre caminho estendido e caminho curto, resultados obsoletos e uma thread criada por navegação. O carregamento usa geração atômica, fila latest-only e um único worker; falhas do worker e do modelo viram status controlado em vez de panic.
 
 ## Dependências e auditoria
 
@@ -62,7 +62,9 @@ A versão do Rust está fixada em `rust-toolchain.toml` com Rust 1.97.1, rustfmt
 | Auditoria visual | Aprovada; tokens globais, estados de seleção, empty states, foco de sidebar e layout mínimo coerentes |
 | Auditoria final de segurança/UX | Aprovada; race de cópia, paths Unicode/symlink, microcopy e estados de erro cobertos |
 
-A listagem CLI foi validada com 100.000 arquivos sem crash; a UI foi validada com 10.000 arquivos e filtro local para um resultado. Os smoke tests release também confirmaram quatro linhas selecionadas, as transições voltar/avançar, a navegação pela barra lateral até `/home/ubuntu`, navegação por teclado até `/home/ubuntu/Downloads`, empty state em pasta vazia, a janela mínima 720×480 e os estados visuais do Design System. A linha de base do CLI foi `0,332518 s` e `30.356 KiB` de pico RSS; após o worker único, foi `0,348735 s` e `30.104 KiB`. O filtro manual sobre 100.000 linhas mediu `9,732455 ms` antes de qualquer mudança de normalização. A troca do loader é tratada como redução de concorrência e encerramento correto, não como ganho de tempo, pois a amostra isolada variou. O carregamento atual materializa metadados da pasta, enquanto a representação visual usa `ListView`; carregamento incremental de metadados permanece como melhoria futura para diretórios extremos.
+A listagem CLI foi validada com 100.000 arquivos sem crash. A UI foi validada com 10.000 arquivos e filtro local para um resultado. Os smoke tests release confirmaram quatro linhas selecionadas, voltar/avançar, navegação pela sidebar até `/home/ubuntu`, navegação por teclado até `/home/ubuntu/Downloads`, empty state em pasta vazia, janela mínima de 720×480 e estados visuais do Design System.
+
+A linha de base do CLI foi `0,332518 s` e `30.356 KiB` de pico RSS; após o worker único, foi `0,348735 s` e `30.104 KiB`. O filtro manual sobre 100.000 linhas mediu `9,732455 ms` no release, antes de qualquer mudança de normalização. A troca do loader é tratada como redução de concorrência e encerramento correto, não como ganho de tempo, pois a amostra isolada variou. O carregamento ainda materializa metadados da pasta, embora a representação visual use `ListView`; carregamento incremental permanece como melhoria para diretórios extremos.
 
 O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compilação e formato do artefato, mas não substitui execução nativa em Windows 10/11, testes de DPI, acessibilidade, permissões Win32, junctions, UNC/SMB, instalador e desinstalador. A CI do commit `a9e32e8` concluiu com sucesso em Linux, Windows e auditoria de dependências na execução `31857990905`; o job Ubuntu instala `pkg-config` e `libfontconfig1-dev`, exigidos pelo backend de fontes do Slint.
 
@@ -70,17 +72,19 @@ O build Windows foi realizado com MinGW no ambiente Linux. Isso confirma compila
 
 A busca por `unsafe`, `TODO`, `FIXME`, `panic!`, `unwrap` e `expect` encontrou `expect` somente em auxiliares de teste e em uma asserção de preparação de fixture. Não há `unsafe` nem caminhos de produção dependentes de `panic`. Os usos de `println!` e `eprintln!` ficam restritos ao modo CLI e ao diagnóstico de inicialização.
 
-## Próximo gate
+## Pendências
 
-A validação atual confirmou Linux nativo, check cruzado Windows GNU, build release, smokes gráficos de abas/menu/conversão e conversão JPEG XL com binário e imagem em diretórios distintos. Antes de anunciar compatibilidade nativa completa, a execução manual em Windows deve cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos, UNC/SMB e arquivos em uso. O próximo gate funcional relevante é implementar a Lixeira com semântica segura e testes multiplataforma; pesquisa global, thumbnails, previews, polling, hash, favoritos persistentes e análise de espaço continuam fora do escopo e não são iniciados automaticamente.
+A validação confirmou Linux nativo, check cruzado Windows GNU, build release, smokes gráficos de abas/menu/conversão e conversão JPEG XL com binário e imagem em diretórios distintos. A execução manual em Windows ainda precisa cobrir DPI, teclado, acessibilidade, permissões, reparse points, paths longos, UNC/SMB e arquivos em uso.
+
+A próxima etapa funcional indicada é implementar a Lixeira com semântica segura e testes multiplataforma. Pesquisa global, thumbnails, previews, polling, hash, favoritos persistentes e análise de espaço continuam fora do escopo.
 
 ## Referências técnicas
 
 A documentação oficial do Slint descreve a versão 1.17 como um passo para desktop e confirma recursos como drag and drop, tooltips e acessibilidade [1]. A API `Weak::upgrade_in_event_loop` é a forma usada para devolver resultados de workers ao event loop [2], e `ModelRc` deve ser manipulado no thread principal [3]. A documentação do cargo-deny confirma a declaração de `LicenseRef-*` e o modo `unmaintained = "workspace"` [4] [5]. A Microsoft recomenda declarar DPI awareness no manifesto do processo [6].
 
 [1]: https://slint.dev/blog/slint-1.17-released "Slint 1.17 Released"
-[2]: https://docs.slint.dev/latest/docs/rust/slint/struct.Weak "Slint Rust API — Weak"
-[3]: https://docs.slint.dev/latest/docs/rust/slint/struct.ModelRc "Slint Rust API — ModelRc"
-[4]: https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html "cargo-deny — Licenses configuration"
-[5]: https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html "cargo-deny — Advisories configuration"
-[6]: https://learn.microsoft.com/en-us/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process "Microsoft Learn — Setting the default DPI awareness for a process"
+[2]: https://docs.slint.dev/latest/docs/rust/slint/struct.Weak "Slint Rust API: Weak"
+[3]: https://docs.slint.dev/latest/docs/rust/slint/struct.ModelRc "Slint Rust API: ModelRc"
+[4]: https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html "cargo-deny: Licenses configuration"
+[5]: https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html "cargo-deny: Advisories configuration"
+[6]: https://learn.microsoft.com/en-us/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process "Microsoft Learn: Setting the default DPI awareness for a process"

@@ -1,4 +1,4 @@
-# Auditoria inicial — conversores, toolbar e locais — 2026-08-15
+# Auditoria inicial: conversores, toolbar e locais: 2026-08-15
 
 ## Prompt lido
 
@@ -30,9 +30,9 @@ A toolbar receberá largura mínima e gap explícitos, sem reduzir o espaço do 
 
 ## Referências
 
-[1]: https://learn.microsoft.com/en-us/windows/win32/shell/known-folders "Microsoft Learn — Known Folders"
-[2]: https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid "Microsoft Learn — KNOWNFOLDERID"
-[3]: https://doc.rust-lang.org/std/process/struct.Command.html "Rust standard library — std::process::Command"
+[1]: https://learn.microsoft.com/en-us/windows/win32/shell/known-folders "Microsoft Learn: Known Folders"
+[2]: https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid "Microsoft Learn: KNOWNFOLDERID"
+[3]: https://doc.rust-lang.org/std/process/struct.Command.html "Rust standard library: std::process::Command"
 
 ## Verificação intermediária
 

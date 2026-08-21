@@ -6,7 +6,7 @@
 
 ## Resultado
 
-A causa do texto de apoio ficar atrás dos controles foi identificada no próprio código reparticionado, em `ui/components.slint`. O tooltip antigo era um `Rectangle` filho do `FocusScope` do botão. Como ele fazia parte da árvore visual normal do botão, irmãos posteriores da toolbar — como campos de caminho/filtro e o botão de atualização — podiam ser pintados acima dele. A falha era de composição e stacking order, não de Linux, X11 ou Windows.
+A causa do texto de apoio ficar atrás dos controles foi identificada no próprio código reparticionado, em `ui/components.slint`. O tooltip antigo era um `Rectangle` filho do `FocusScope` do botão. Como ele fazia parte da árvore visual normal do botão, irmãos posteriores da toolbar: como campos de caminho/filtro e o botão de atualização: podiam ser pintados acima dele. A falha era de composição e stacking order, não de Linux, X11 ou Windows.
 
 A implementação foi substituída pelo elemento nativo `Tooltip` do Slint 1.17.1. O binding usa `@markdown("\{root.tooltip}")`, que é a conversão explícita exigida para o tipo `styled-text`, e o Tooltip fica dentro do mesmo `FocusScope` do botão. Isso preserva a associação com hover e foco de teclado, enquanto o toolkit administra o popup acima dos irmãos da interface.
 
@@ -22,7 +22,7 @@ As APIs condicionais do código também estão delimitadas: Registro, Known Fold
 
 O primeiro `HorizontalLayout` da toolbar continha `Rovex`, `Explorador de arquivos` e o estado `Pronto`. Esses textos repetiam a identidade da janela e não ajudavam na tarefa de navegar, selecionar ou operar arquivos. Eles foram removidos da área de conteúdo. O título nativo da janela continua definido como `Rovex`, enquanto o status funcional continua disponível na barra inferior e nos estados de operação.
 
-Essa decisão segue as diretrizes da Microsoft: tooltips devem ser usados com parcimônia, para informação suplementar, e não para substituir conteúdo essencial; controles icon-only são candidatos apropriados para tooltip.[2] A Nielsen Norman Group recomenda texto breve, não redundante e acessível tanto por mouse quanto por teclado.[3] A UI agora mantém tooltips apenas nos controles icon-only — voltar, avançar, subir, atualizar, abrir e fechar aba — e deixa as ações textuais visíveis diretamente.
+Essa decisão segue as diretrizes da Microsoft: tooltips devem ser usados com parcimônia, para informação suplementar, e não para substituir conteúdo essencial; controles icon-only são candidatos apropriados para tooltip.[2] A Nielsen Norman Group recomenda texto breve, não redundante e acessível tanto por mouse quanto por teclado.[3] A UI agora mantém tooltips apenas nos controles icon-only: voltar, avançar, subir, atualizar, abrir e fechar aba: e deixa as ações textuais visíveis diretamente.
 
 | Elemento | Antes | Depois |
 |---|---|---|
@@ -51,10 +51,10 @@ As capturas `tooltip-fix-v0.1.9/02-tooltip-new-tab.png` e `03-tooltip-refresh.pn
 
 ## Referências
 
-[1]: https://docs.slint.dev/latest/docs/slint/guide/backends-and-renderers/backend_winit/ "Slint Docs — Winit Backend"
-[2]: https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/tooltips "Microsoft Learn — Tooltips - Windows apps"
-[3]: https://www.nngroup.com/articles/tooltip-guidelines/ "Nielsen Norman Group — Tooltip Guidelines"
-[4]: https://docs.slint.dev/latest/docs/slint/reference/window/tooltip/ "Slint Docs — Tooltip"
+[1]: https://docs.slint.dev/latest/docs/slint/guide/backends-and-renderers/backend_winit/ "Slint Docs: Winit Backend"
+[2]: https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/tooltips "Microsoft Learn: Tooltips - Windows apps"
+[3]: https://www.nngroup.com/articles/tooltip-guidelines/ "Nielsen Norman Group: Tooltip Guidelines"
+[4]: https://docs.slint.dev/latest/docs/slint/reference/window/tooltip/ "Slint Docs: Tooltip"
 
 ## Correção adicional validada
 

@@ -1,15 +1,15 @@
-# Rovex — Modernization Report
+# Rovex: Modernization Report
 
 **Data:** 15 de agosto de 2026  
 **Baseline:** commit `1433e28`  
 **Checkpoint:** `backup/before-modernization-2026-08-15`  
 **Estado do relatório:** modernização local e validação CI concluídas; o run `31864602133` aprovou auditoria, Linux, Windows e cross-build Windows GNU.
 
-## Resumo executivo
+## Alterações
 
-A modernização não foi tratada como um `cargo update` cego. A auditoria verificou o Rust estável disponível, o registry, as features do Slint, a árvore transitiva, o build script, o CI, chamadas sensíveis e o target Windows. O Rust 1.97.1 já era a release estável atual e já estava fixado; portanto, não houve uma troca artificial de toolchain. A mudança estrutural segura foi migrar a crate para **edition 2024**, corrigir os dois lints que o Clippy moderno passou a exigir nesse contexto e atualizar somente os dois crates transitivos que o Cargo identificou como compatíveis.
+A auditoria verificou o Rust estável disponível, o registry, as features do Slint, a árvore transitiva, o build script, o CI, chamadas sensíveis e o target Windows. O Rust 1.97.1 já estava fixado e foi mantido. A mudança estrutural foi migrar a crate para **edition 2024**, corrigir os dois lints apontados pelo Clippy nesse contexto e atualizar somente os dois crates transitivos compatíveis identificados pelo Cargo.
 
-A versão direta do Slint permaneceu em **1.17.1**, que foi confirmada pelo registry e pelas fontes oficiais como a release adequada disponível durante a execução [1] [2]. A decisão preserva o renderer de software, acessibilidade, compatibilidade e a redução Linux X11-only obtida na etapa anterior.
+A versão direta do Slint permaneceu em **1.17.1**, confirmada pelo registry e pelas fontes oficiais como a versão disponível usada nesta execução [1] [2]. O renderer de software, a acessibilidade, a compatibilidade e a configuração Linux X11-only foram mantidos.
 
 ## Estado antes e depois
 
@@ -92,16 +92,16 @@ A modernização foi dividida em commits pequenos:
 
 Se uma atualização futura quebrar uma plataforma, o rollback deve ser seletivo: primeiro comparar a árvore e reverter apenas o grupo responsável, sem abandonar a edição 2024 ou os testes de CI sem reproduzir a causa.
 
-## Problemas ainda conhecidos
+## Pendências
 
-A stack direta não possui uma release posterior verificada à adequada. Os avisos de manutenção transitivos permanecem dependentes do upstream Slint. A execução nativa com Windows 10/11, o manifesto PE, o teste de DPI e a matriz de filesystem Windows ainda precisam de ambiente Windows identificado. Conversores, codecs, thumbnails, pesquisa global, abas e outros recursos não existem no escopo e não foram simulados.
+A stack direta não possui uma versão posterior verificada como adequada. Os avisos de manutenção transitivos dependem do upstream Slint. Execução nativa com Windows 10/11, manifesto PE, teste de DPI e matriz de filesystem Windows ainda exigem um ambiente Windows identificado. Conversores, codecs, thumbnails, pesquisa global, abas e outros recursos não faziam parte do escopo desta modernização.
 
-> **Conclusão:** a stack está modernizada dentro do que foi possível verificar com segurança: Rust 1.97.1 atual, edition 2024, Slint 1.17.1 mantido, transitivas compatíveis atualizadas, CI ampliado e sem vulnerabilidades conhecidas. A conformidade nativa completa do Windows permanece um gate separado e explicitamente não falsificado.
+O estado validado é Rust 1.97.1, edition 2024, Slint 1.17.1, transitivas compatíveis atualizadas, CI ampliado e sem vulnerabilidades conhecidas na resolução auditada. A conformidade nativa completa do Windows continua pendente.
 
 ## Referências
 
-[1]: https://crates.io/crates/slint "slint — crates.io"
-[2]: https://docs.slint.dev/latest/docs/slint/guide/platforms/desktop/ "Desktop — Slint Documentation"
-[3]: https://blog.rust-lang.org/2026/07/16/Rust-1.97.1/ "Announcing Rust 1.97.1 — Rust Blog"
-[4]: https://slint.dev/blog/slint-1.17-released "Slint 1.17 Released — Slint Blog"
-[5]: https://learn.microsoft.com/en-us/windows/release-health/release-information "Windows release information — Microsoft Learn"
+[1]: https://crates.io/crates/slint "slint: crates.io"
+[2]: https://docs.slint.dev/latest/docs/slint/guide/platforms/desktop/ "Desktop: Slint Documentation"
+[3]: https://blog.rust-lang.org/2026/07/16/Rust-1.97.1/ "Announcing Rust 1.97.1: Rust Blog"
+[4]: https://slint.dev/blog/slint-1.17-released "Slint 1.17 Released: Slint Blog"
+[5]: https://learn.microsoft.com/en-us/windows/release-health/release-information "Windows release information: Microsoft Learn"

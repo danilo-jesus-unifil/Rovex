@@ -1,4 +1,4 @@
-# CI nativo Windows — pesquisa 2026-08-19
+# CI nativo Windows: pesquisa 2026-08-19
 
 ## Decisões
 
@@ -20,10 +20,10 @@ A execução nativa do CLI comprova somente a entrada Win32 e a listagem básica
 
 ## Referências
 
-[1]: https://docs.github.com/actions/using-github-hosted-runners/about-github-hosted-runners "GitHub-hosted runners — GitHub Docs"
+[1]: https://docs.github.com/actions/using-github-hosted-runners/about-github-hosted-runners "GitHub-hosted runners: GitHub Docs"
 
-[2]: https://docs.github.com/en/actions/reference/runners/github-hosted-runners "GitHub-hosted runners reference — GitHub Docs"
+[2]: https://docs.github.com/en/actions/reference/runners/github-hosted-runners "GitHub-hosted runners reference: GitHub Docs"
 
-[3]: https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions "Workflow syntax for GitHub Actions — GitHub Docs"
+[3]: https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions "Workflow syntax for GitHub Actions: GitHub Docs"
 
-[4]: https://docs.github.com/en/actions/tutorials/store-and-share-data "Store and share data with workflow artifacts — GitHub Docs"
+[4]: https://docs.github.com/en/actions/tutorials/store-and-share-data "Store and share data with workflow artifacts: GitHub Docs"

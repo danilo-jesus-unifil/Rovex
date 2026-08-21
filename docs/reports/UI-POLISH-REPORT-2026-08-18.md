@@ -58,6 +58,6 @@ O Rovex agora apresenta uma hierarquia mais próxima de um explorador de arquivo
 
 ## Referências
 
-[1]: https://support.microsoft.com/en-us/windows/experience/fileexplorer/file-explorer-in-windows "Microsoft Support — File Explorer in Windows"
-[2]: https://developer.gnome.org/hig/patterns/nav/sidebars.html "GNOME HIG — Sidebars"
-[3]: https://docs.slint.dev/latest/docs/slint/reference/window/tooltip/ "Slint Docs — Tooltip"
+[1]: https://support.microsoft.com/en-us/windows/experience/fileexplorer/file-explorer-in-windows "Microsoft Support: File Explorer in Windows"
+[2]: https://developer.gnome.org/hig/patterns/nav/sidebars.html "GNOME HIG: Sidebars"
+[3]: https://docs.slint.dev/latest/docs/slint/reference/window/tooltip/ "Slint Docs: Tooltip"

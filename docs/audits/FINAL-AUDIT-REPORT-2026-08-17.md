@@ -1,16 +1,16 @@
-# Rovex — Relatório final de auditoria e hardening
+# Rovex: Relatório final de auditoria e hardening
 
 **Data:** 17 de agosto de 2026
 **Versão auditada:** 0.1.8
 **Escopo:** código Rust/Slint, filesystem, operações, conversores FFmpeg/ffprobe, concorrência, UI, documentação, dependências, builds e execução real.
 
-## Conclusão executiva
+## Resultado da auditoria
 
-A auditoria foi executada sobre o estado real do repositório, não apenas sobre a documentação anterior. Foram reproduzidos fluxos de filesystem, conversão JPEG XL, menu contextual, diálogo de confirmação, abas, smoke gráfico e casos extremos do CLI. Os problemas encontrados dentro do escopo exercitado foram corrigidos e submetidos novamente a compilação, testes e execução.
+Os fluxos de filesystem, conversão JPEG XL, menu contextual, diálogo de confirmação, abas, smoke gráfico e casos extremos do CLI foram reproduzidos no estado real do repositório. Os problemas encontrados no escopo exercitado foram corrigidos e validados novamente com compilação, testes e execução.
 
 > **Resultado:** não foi encontrada vulnerabilidade explorável no escopo auditado. O código de produção usa blocos `unsafe` somente nas integrações FFI Win32 de resolução de ambiente e Known Folders, com contratos de ponteiros e buffers documentados imediatamente nos call sites. Não há `panic!`, `todo!`, `unimplemented!`, `unreachable!`, `unwrap()` ou `expect()` em caminhos de produção após a separação dos módulos de teste. A execução externa usa `Command` com argumentos separados e não monta comandos por shell.
 
-A conclusão não equivale a uma certificação formal de segurança nem a uma validação nativa completa do Windows. O build Windows GNU foi confirmado por cross-build, mas ainda é necessário executar o binário em Windows 10/11 real para validar DPI, acessibilidade, permissões, junctions/reparse points, paths longos, UNC/SMB, arquivos em uso e empacotamento.
+Isso não equivale a uma certificação formal de segurança nem a uma validação nativa completa do Windows. O build Windows GNU foi confirmado por cross-build, mas ainda é necessário executar o binário em Windows 10/11 real para validar DPI, acessibilidade, permissões, junctions/reparse points, paths longos, UNC/SMB, arquivos em uso e empacotamento.
 
 ## Achados reproduzidos e correções
 
@@ -43,7 +43,7 @@ O loader, filtro, operações e conversões continuam separados em workers nomea
 
 ## Dependências e supply chain
 
-A bateria passou em `cargo audit` com código 0 e em `cargo deny check` para advisories, bans, licenças e fontes. Permanecem quatro warnings de manutenção transitivos da cadeia Slint — `bincode`, `paste`, `rustybuzz` e `ttf-parser` — sem advisory explorável ou atualização segura indicada na resolução verificada. Eles continuam visíveis e não foram mascarados por exceções.
+A bateria passou em `cargo audit` com código 0 e em `cargo deny check` para advisories, bans, licenças e fontes. Permanecem quatro warnings de manutenção transitivos da cadeia Slint: `bincode`, `paste`, `rustybuzz` e `ttf-parser`: sem advisory explorável ou atualização segura indicada na resolução verificada. Eles continuam visíveis e não foram mascarados por exceções.
 
 A auditoria não encontrou segredo versionado, download de executável em runtime ou uso de shell para conversão. A documentação, porém, ainda não implementa SBOM ou assinatura/proveniência de artefatos. Isso permanece como melhoria de distribuição, não como vulnerabilidade corrigida nesta rodada. O OWASP classifica inventário de componentes, dependências transitivas, integridade de artefatos e segurança do CI/CD como parte de falhas de cadeia de suprimentos [2].
 
@@ -75,14 +75,14 @@ O issue #1 do GitHub está parcialmente atendido: abas reais, navegação e iden
 
 ## Referências
 
-[1]: https://doc.rust-lang.org/std/process/struct.Command.html "Rust Standard Library — std::process::Command"
+[1]: https://doc.rust-lang.org/std/process/struct.Command.html "Rust Standard Library: std::process::Command"
 
-[2]: https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/ "OWASP Top 10:2025 — A03 Software Supply Chain Failures"
+[2]: https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/ "OWASP Top 10:2025: A03 Software Supply Chain Failures"
 
-[3]: https://owasp.org/Top10/2025/A05_2025-Injection/ "OWASP Top 10:2025 — A05 Injection"
+[3]: https://owasp.org/Top10/2025/A05_2025-Injection/ "OWASP Top 10:2025: A05 Injection"
 
-[4]: https://owasp.org/Top10/2025/A10_2025-Mishandling_of_Exceptional_Conditions/ "OWASP Top 10:2025 — A10 Mishandling of Exceptional Conditions"
+[4]: https://owasp.org/Top10/2025/A10_2025-Mishandling_of_Exceptional_Conditions/ "OWASP Top 10:2025: A10 Mishandling of Exceptional Conditions"
 
 [5]: https://rustsec.org/ "RustSec Advisory Database"
 
-[6]: https://anssi-fr.github.io/rust-guide/ "ANSSI — Secure Rust Guidelines"
+[6]: https://anssi-fr.github.io/rust-guide/ "ANSSI: Secure Rust Guidelines"

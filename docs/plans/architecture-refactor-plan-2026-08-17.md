@@ -67,11 +67,11 @@ A revisão final comparará número e tamanho dos arquivos, dependências entre 
 
 ## Fontes de orientação
 
-[1]: https://doc.rust-lang.org/book/ch07-02-defining-modules-to-control-scope-and-privacy.html "The Rust Programming Language — Control Scope and Privacy with Modules"
-[2]: https://doc.rust-lang.org/cargo/guide/project-layout.html "The Cargo Book — Package Layout"
+[1]: https://doc.rust-lang.org/book/ch07-02-defining-modules-to-control-scope-and-privacy.html "The Rust Programming Language: Control Scope and Privacy with Modules"
+[2]: https://doc.rust-lang.org/cargo/guide/project-layout.html "The Cargo Book: Package Layout"
 [3]: https://rust-lang.github.io/api-guidelines/about.html "Rust API Guidelines"
 [4]: https://github.com/BurntSushi/ripgrep "BurntSushi/ripgrep"
-[5]: https://github.com/sharkdp/fd/tree/master/src "sharkdp/fd — src"
+[5]: https://github.com/sharkdp/fd/tree/master/src "sharkdp/fd: src"
 
 As fontes [1] e [2] sustentam módulos por responsabilidade e convenções de layout; [3] orienta APIs pequenas, previsíveis e encapsuladas; [4] e [5] servem como referências reais de projetos Rust que separam domínios sem exigir um arquivo por função.
 

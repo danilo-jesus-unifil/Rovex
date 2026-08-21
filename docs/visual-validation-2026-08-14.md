@@ -1,4 +1,4 @@
-# Validação visual — 14/08/2026
+# Validação visual: 14/08/2026
 
 O smoke release em Xvfb abriu a janela Rovex em 1100×720, manteve os botões de navegação, a barra de endereço e o campo de filtro visíveis, e filtrou `/tmp` para cinco entradas correspondentes a `cargo` sem travar a UI. O screenshot está em `/tmp/rovex-filter-smoke.png` durante a sessão local.
 

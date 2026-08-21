@@ -17,9 +17,9 @@ Issues:
 
 ## Referências visuais consultadas
 
-A documentação da Microsoft mostra o padrão do File Explorer do Windows 11 com ações frequentes representadas por ícones no topo do menu contextual, enquanto os nomes aparecem por tooltip ao passar o cursor. Fonte: [Microsoft Support — File Explorer in Windows](https://support.microsoft.com/en-us/windows/experience/fileexplorer/file-explorer-in-windows).
+A documentação da Microsoft mostra o padrão do File Explorer do Windows 11 com ações frequentes representadas por ícones no topo do menu contextual, enquanto os nomes aparecem por tooltip ao passar o cursor. Fonte: [Microsoft Support: File Explorer in Windows](https://support.microsoft.com/en-us/windows/experience/fileexplorer/file-explorer-in-windows).
 
-A página oficial do GNOME Files destaca uma organização simples de gerenciador de arquivos, com sidebar, navegação, seleção múltipla, busca e modos de visualização distintos. Fonte: [GNOME Apps — Files](https://apps.gnome.org/Nautilus/).
+A página oficial do GNOME Files destaca uma organização simples de gerenciador de arquivos, com sidebar, navegação, seleção múltipla, busca e modos de visualização distintos. Fonte: [GNOME Apps: Files](https://apps.gnome.org/Nautilus/).
 
 Implicações para o Rovex: manter o tema escuro e a identidade azul atual, substituir o refresh textual por um botão iconográfico com label acessível, criar variantes visuais de botão sem duplicar estilos, preservar a sidebar e a lista detalhada, melhorar hierarquia, raios e espaçamento e avaliar uma camada de abas para atender o issue #1 sem remover o histórico existente.
 

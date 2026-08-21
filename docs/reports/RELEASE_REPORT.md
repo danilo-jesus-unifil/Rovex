@@ -1,4 +1,4 @@
-# Rovex v0.1.0 — Release Report
+# Rovex v0.1.0: Release Report
 
 **Pacote:** `rovex` 0.1.0  
 **Commit de código que gerou os binários:** `e7b285c`  
@@ -13,12 +13,12 @@
 
 | Item | Resultado |
 |---|---|
-| Rust | **PASS** — `rustc 1.97.1 (8bab26f4f 2026-07-14)` |
-| Cargo | **PASS** — `cargo 1.97.1 (c980f4866 2026-06-30)` |
-| Toolchain fixada | **PASS** — `1.97.1-x86_64-unknown-linux-gnu`, com `rustfmt`, `clippy` e target Windows GNU |
-| Edition | **PASS** — Rust 2024 |
-| MSRV declarado | **PASS** — `rust-version = "1.97"`, alinhado ao toolchain e ao Slint resolvido |
-| Versão Rovex | **PASS** — `0.1.0` |
+| Rust | **PASS**: `rustc 1.97.1 (8bab26f4f 2026-07-14)` |
+| Cargo | **PASS**: `cargo 1.97.1 (c980f4866 2026-06-30)` |
+| Toolchain fixada | **PASS**: `1.97.1-x86_64-unknown-linux-gnu`, com `rustfmt`, `clippy` e target Windows GNU |
+| Edition | **PASS**: Rust 2024 |
+| MSRV declarado | **PASS**: `rust-version = "1.97"`, alinhado ao toolchain e ao Slint resolvido |
+| Versão Rovex | **PASS**: `0.1.0` |
 
 ## Checks automatizados
 
@@ -42,12 +42,12 @@
 
 | Artefato | Estado | Tamanho |
 |---|---|---:|
-| `target/release/rovex` | **PASS** — build release Linux | 16.333.200 bytes |
-| `target/x86_64-pc-windows-gnu/release/rovex.exe` | **PASS** — cross-build release Windows GNU | 12.679.680 bytes |
-| PE subsystem | **PASS** — `Windows GUI`, versão de subsystem 5.2 | Verificado com `x86_64-w64-mingw32-objdump` |
-| Pacote Linux `.tar.gz` | **PASS** — conteúdo listado e extração testada | 7.658.413 bytes |
-| Pacote Windows `.zip` | **PASS** — `unzip -t` aprovado | 6.344.253 bytes |
-| Artefato Linux extraído | **PASS** — CLI e GUI executados em ambiente limpo | Xvfb 1100×720 |
+| `target/release/rovex` | **PASS**: build release Linux | 16.333.200 bytes |
+| `target/x86_64-pc-windows-gnu/release/rovex.exe` | **PASS**: cross-build release Windows GNU | 12.679.680 bytes |
+| PE subsystem | **PASS**: `Windows GUI`, versão de subsystem 5.2 | Verificado com `x86_64-w64-mingw32-objdump` |
+| Pacote Linux `.tar.gz` | **PASS**: conteúdo listado e extração testada | 7.658.413 bytes |
+| Pacote Windows `.zip` | **PASS**: `unzip -t` aprovado | 6.344.253 bytes |
+| Artefato Linux extraído | **PASS**: CLI e GUI executados em ambiente limpo | Xvfb 1100×720 |
 | Artefato Windows nativo | **NOT APPLICABLE** | Runner Windows executa build/teste; execução manual Windows 10/11 não ocorreu nesta sessão |
 
 ## Testes manuais e integrados
@@ -94,7 +94,7 @@ A release é portable e não inclui instalador, assinatura ou atualização auto
 
 ## Referências
 
-[1]: ././FINAL_STABILITY_REPORT.md "Relatório final de estabilidade"
+[1]: ./FINAL_STABILITY_REPORT.md "Relatório final de estabilidade"
 [2]: ../../COMPATIBILITY.md "Matriz de compatibilidade"
-[3]: ../reference/../reference/DEPENDENCIES.md "Inventário de dependências"
+[3]: ../reference/DEPENDENCIES.md "Inventário de dependências"
 [4]: ../../SECURITY.md "Política de segurança"

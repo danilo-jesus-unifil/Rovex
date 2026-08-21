@@ -1,7 +1,7 @@
 # Auditoria e racionalização de dependências do Rovex
 
-**Data:** 15 de agosto de 2026  
-**Projeto:** Rovex — explorador de arquivos local em Rust/Slint  
+**Data:** 15 de agosto de 2026
+**Projeto:** Rovex: explorador de arquivos local em Rust/Slint
 **Escopo:** reduzir o custo de dependências sem remover bibliotecas essenciais, sem reimplementar componentes complexos e sem alterar a compatibilidade Windows 10/11.
 
 > **Conclusão executiva:** o Rovex já possuía apenas uma dependência direta de runtime e uma dependência direta de build. Não havia crate redundante do projeto para remover com segurança. A única consolidação comprovada foi tornar a feature de backend Winit específica por plataforma: Linux usa somente X11, necessário para o CI com Xvfb; Windows 10/11 mantém o backend Winit completo. A árvore efetivamente compilada no Linux diminuiu, o binário Linux ficou menor e o caminho Windows permaneceu funcional e do mesmo tamanho.
@@ -106,9 +106,9 @@ Não removi `slint`, porque ele é a única stack de UI, event loop, modelo e ac
 
 ## 10. Referências
 
-[1]: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies "Cargo — Platform-specific dependencies"
-[2]: https://doc.rust-lang.org/cargo/reference/features.html "Cargo — Features"
-[3]: https://doc.rust-lang.org/cargo/commands/cargo-tree.html "Cargo — cargo tree"
+[1]: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#platform-specific-dependencies "Cargo: Platform-specific dependencies"
+[2]: https://doc.rust-lang.org/cargo/reference/features.html "Cargo: Features"
+[3]: https://doc.rust-lang.org/cargo/commands/cargo-tree.html "Cargo: cargo tree"
 [4]: https://docs.rs/slint/1.17.1/slint/ "Slint 1.17.1 API documentation"
 [5]: https://docs.rs/slint-build/1.17.1/slint_build/ "slint-build 1.17.1 API documentation"
-[6]: https://doc.rust-lang.org/cargo/commands/cargo-metadata.html "Cargo — cargo metadata"
+[6]: https://doc.rust-lang.org/cargo/commands/cargo-metadata.html "Cargo: cargo metadata"

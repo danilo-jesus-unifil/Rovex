@@ -1,7 +1,7 @@
 # ROVEX ENGINEERING AUDIT
 
-**Issue de origem:** [#2 — uma prompt de ajuda](https://github.com/danilo-jesus-unifil/Rovex/issues/2)  
-**Data:** 18 de agosto de 2026  
+**Issue de origem:** [#2: uma prompt de ajuda](https://github.com/danilo-jesus-unifil/Rovex/issues/2)
+**Data:** 18 de agosto de 2026
 **Escopo desta etapa:** auditoria Foundation, sem implementação de features novas.
 
 > **Conclusão executiva:** o Rovex possui uma fundação real, modular e testada para navegação local, seleção, abas, operações controladas, filtro local, menu contextual e conversões externas por workers. Ele ainda não é um Explorer completo e não deve declarar compatibilidade nativa completa com Windows 10/11 enquanto manifesto, execução nativa, DPI, acessibilidade, paths longos, UNC/SMB e reparse points não forem validados.
@@ -83,7 +83,7 @@ A próxima melhoria deve priorizar operações que reduzem esforço real do usu�
 
 ## 11. Accessibility gaps
 
-A UI já declara labels, roles e tooltips para controles icon-only, usa foco de teclado em sidebar/listagem e mantém a feature de acessibilidade do Slint. Ainda não há evidência de leitor de tela, foco completo em todas as modais, navegação por teclado em todos os comandos, alto contraste nativo, escala 100–200%, dois monitores com DPI diferente ou validação no Windows.
+A UI já declara labels, roles e tooltips para controles icon-only, usa foco de teclado em sidebar/listagem e mantém a feature de acessibilidade do Slint. Ainda não há evidência de leitor de tela, foco completo em todas as modais, navegação por teclado em todos os comandos, alto contraste nativo, escala 100-200%, dois monitores com DPI diferente ou validação no Windows.
 
 A acessibilidade é critério de aceite, não polimento posterior. Cada nova view, menu contextual, diálogo, listagem, estado vazio e operação deve possuir foco previsível, nome acessível, feedback de erro e alternativa de teclado.
 
@@ -95,7 +95,7 @@ Também falta uma matriz de testes de regressão por feature, com teste focado, 
 
 ## 13. Documentation gaps
 
-A documentação de arquitetura, testes, segurança, compatibilidade, dependências e limitações existe e é honesta. O principal gap imediato é reconciliar referências antigas à v0.1.8 no README e eventualmente em documentos de release após o refinamento visual posterior à tag v0.1.9. Também é necessário manter um roadmap vivo P0–P3 e registrar quais gates dependem de execução nativa Windows.
+A documentação de arquitetura, testes, segurança, compatibilidade, dependências e limitações existe e é honesta. O principal gap imediato é reconciliar referências antigas à v0.1.8 no README e eventualmente em documentos de release após o refinamento visual posterior à tag v0.1.9. Também é necessário manter um roadmap vivo P0-P3 e registrar quais gates dependem de execução nativa Windows.
 
 Cada feature futura deverá atualizar README, `../reference/known-issues.md`, `../reference/testing.md`, `COMPATIBILITY.md`, changelog e relatório técnico quando alterar o escopo distribuído.
 
@@ -134,7 +134,7 @@ A próxima alteração somente estará pronta quando houver implementação real
 
 ## Referências
 
-[1]: ../architecture.md "Rovex — Arquitetura técnica inicial"
+[1]: ../architecture.md "Rovex: Arquitetura técnica inicial"
 [2]: ../../src/lib.rs "Rovex core public facade"
 [3]: ../../Cargo.toml "Rovex manifest and target-specific dependencies"
 [4]: ../../README.md "Rovex current product status"

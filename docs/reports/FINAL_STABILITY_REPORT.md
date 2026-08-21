@@ -1,4 +1,4 @@
-# Rovex — Relatório Final de Estabilidade
+# Rovex: Relatório Final de Estabilidade
 
 > **Documento histórico:** este relatório descreve o baseline auditado em 15 de agosto de 2026, antes da v0.1.8. Para o estado atual, consulte `README.md`, `../reference/known-issues.md` e `./ARCHITECTURE-REFACTOR-REPORT-2026-08-17.md`.
 
@@ -7,11 +7,11 @@
 **Checkpoint de rollback:** `backup/before-final-stabilization-2026-08-15`  
 **Estado:** correções publicadas no commit `c07cff8`; CI final `31866482594` aprovado em todos os jobs.
 
-> Conclusão responsável: nenhum problema conhecido relevante foi deixado sem correção dentro do escopo executável nesta sessão. Permanecem limitações de plataforma e funcionalidades fora da primeira fatia, documentadas neste relatório; elas não são apresentadas como cobertura concluída.
+> **Resultado:** nenhum problema conhecido relevante ficou sem correção dentro do escopo executável desta auditoria. Permanecem limitações de plataforma e funcionalidades fora da primeira fatia; elas não são cobertura concluída.
 
 ## Escopo e método
 
-A auditoria tratou o estado atual como uma versão de pré-release, sem confiar apenas em compilações anteriores. Foram revisados o núcleo de filesystem, segurança de caminhos, cópia atômica, worker de operações, workers latest-only de carregamento e filtro, seleção, histórico, callbacks Slint, modal, documentação de segurança e auditoria de performance. O fluxo aplicado foi encontrar, reproduzir, identificar causa, corrigir, testar e procurar regressão.
+A auditoria revisou o núcleo de filesystem, segurança de caminhos, cópia atômica, worker de operações, workers latest-only de carregamento e filtro, seleção, histórico, callbacks Slint, modal, documentação de segurança e performance. Cada achado seguiu o fluxo encontrar, reproduzir, identificar causa, corrigir, testar e procurar regressão.
 
 A análise também verificou a ausência de processos externos de conversão e revisou os blocos `unsafe` de FFI Win32 no código próprio de produção daquele baseline. Na data da auditoria, o aplicativo não continha pesquisa global, preview, thumbnails, conversores, abas, split view, drag and drop, clipboard, instalador ou atualizador; portanto, esses itens foram tratados como **fora do escopo implementado naquela versão**, não como funcionalidades presumidas. A v0.1.8 posterior adicionou abas, menu contextual e conversores; este relatório não substitui a documentação atual.
 
