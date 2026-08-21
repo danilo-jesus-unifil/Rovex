@@ -116,6 +116,12 @@ O teste `cancelamento_encerra_descendente_que_mantem_pipe_aberto` reproduz a con
 
 A correção é contenção de árvore, não sandbox: a associação ocorre logo após o spawn e falha fechada se Job Object não puder ser criado/configurado/associado. DLLs dependentes, autenticação de executável, corrida entre spawn e associação, processos que tentam breakaway, TOCTOU de filesystem, ACLs, UNC/SMB e Windows interativo continuam exigindo validação nativa específica.
 
+## Atualização do ciclo v0.1.26 — 2026-08-20
+
+A revisão pós-v0.1.25 identificou que `ProcessTree::terminate` ignorava falhas de `killpg`/`TerminateJobObject` antes de `wait`. Isso não foi declarado como uma nova reprodução Windows; foi validado como uma lacuna de tratamento de erro no caminho recém-adicionado. O helper agora examina o resultado, tenta `Child::kill` como fallback e mantém o comportamento de falha fechada quando o Job Object não pôde ser estabelecido.
+
+A suíte de processos e o contrato de contenção foram executados novamente. O próximo ciclo deve testar nativamente a associação dentro de outro Job Object, falhas induzidas de terminação, breakaway e a janela entre spawn e associação; não assumir que o fallback direto contém descendentes.
+
 ## Workflow de cada lote
 
 Cada lote seguirá o ciclo: inspecionar o módulo existente; definir risco e critério de aceite; implementar uma mudança pequena; executar `cargo fmt`, `cargo check`, testes focados e validações de plataforma pertinentes; revisar segurança, concorrência, desempenho, UX e acessibilidade; atualizar documentação; criar commit descritivo; e somente então avançar.

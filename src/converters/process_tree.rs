@@ -33,11 +33,14 @@ impl ProcessTree {
         Ok(Self { process_group })
     }
 
-    pub(crate) fn terminate(&self) {
+    pub(crate) fn terminate(&self) -> io::Result<()> {
         // `process_group(0)` torna o PID do filho o ID do grupo, portanto o
         // sinal não alcança o processo Rovex nem grupos não relacionados.
-        unsafe {
-            let _ = libc::killpg(self.process_group, libc::SIGKILL);
+        let result = unsafe { libc::killpg(self.process_group, libc::SIGKILL) };
+        if result == 0 {
+            Ok(())
+        } else {
+            Err(io::Error::last_os_error())
         }
     }
 }
@@ -92,11 +95,14 @@ impl ProcessTree {
         Ok(Self { job })
     }
 
-    pub(crate) fn terminate(&self) {
+    pub(crate) fn terminate(&self) -> io::Result<()> {
         use windows_sys::Win32::System::JobObjects::TerminateJobObject;
         // SAFETY: `job` is owned by this instance and remains valid until Drop.
-        unsafe {
-            let _ = TerminateJobObject(self.job, 1);
+        let result = unsafe { TerminateJobObject(self.job, 1) };
+        if result != 0 {
+            Ok(())
+        } else {
+            Err(io::Error::last_os_error())
         }
     }
 }
@@ -119,5 +125,7 @@ impl ProcessTree {
         Ok(Self)
     }
 
-    pub(crate) fn terminate(&self) {}
+    pub(crate) fn terminate(&self) -> io::Result<()> {
+        Ok(())
+    }
 }

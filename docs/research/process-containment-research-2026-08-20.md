@@ -29,3 +29,7 @@ Esses pontos não foram marcados como resolvidos nesta release. TOCTOU de filesy
 [1]: https://learn.microsoft.com/en-us/windows/win32/sysinfo/handle-inheritance "Microsoft — Handle Inheritance"
 [2]: https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects "Microsoft — Job Objects"
 [3]: https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-search-order "Microsoft — Dynamic-link library search order"
+
+## Endurecimento adicional do ciclo v0.1.26
+
+A revisão do retorno das APIs mostrou que ignorar uma falha de `killpg` ou `TerminateJobObject` deixaria o fluxo apenas com `wait` e poderia manter o mesmo risco de descendente. O helper agora examina o resultado da terminação da árvore: quando a API falha, tenta `Child::kill` como último recurso antes de aguardar. A decisão é deliberadamente conservadora: o fallback direto não é apresentado como contenção completa, e falhas de estabelecimento do Job Object continuam fazendo a operação retornar erro.

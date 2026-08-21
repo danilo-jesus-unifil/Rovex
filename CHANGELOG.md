@@ -2,6 +2,18 @@
 
 Todas as mudanças relevantes do Rovex são registradas neste arquivo.
 
+## [0.1.26] — 2026-08-20
+
+A versão `0.1.26` endurece o tratamento de falhas nas APIs de terminação de árvores de processos. O Rovex não ignora mais erro de `killpg`/`TerminateJobObject` antes de aguardar o processo.
+
+| Área | Mudança |
+|---|---|
+| Falha de terminação | O helper verifica o resultado da API de grupo/job e tenta `Child::kill` como fallback antes de `wait`. |
+| Sem falsa garantia | A operação continua falhando fechada quando o Job Object não pode ser criado, configurado ou associado. |
+| Regressão preservada | O teste de descendente que mantém stderr aberto continua cobrindo o problema principal de pipes bloqueados. |
+| Contrato | O gate de contenção permanece conectado ao CI e exige grupos Unix, Job Objects Windows e terminação da árvore. |
+| Documentação | A decisão e a limitação do fallback direto foram registradas na pesquisa de contenção e no relatório da release. |
+
 ## [0.1.25] — 2026-08-20
 
 A versão `0.1.25` corrige uma falha real de cancelamento/timeout de processos externos: matar somente o FFmpeg/ffprobe direto não encerra necessariamente descendentes que mantêm os pipes de diagnóstico abertos.

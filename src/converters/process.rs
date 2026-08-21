@@ -16,7 +16,9 @@ const MAX_CONVERSION_DURATION: Duration = Duration::from_secs(5 * 60);
 
 fn terminate_child(child: &mut Child, process_tree: Option<&ProcessTree>) {
     if let Some(process_tree) = process_tree {
-        process_tree.terminate();
+        if process_tree.terminate().is_err() {
+            let _ = child.kill();
+        }
     } else {
         let _ = child.kill();
     }

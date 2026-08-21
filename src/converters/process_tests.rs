@@ -6,19 +6,16 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+static BACKEND_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 fn fake_backend(name: &str, body: &str) -> PathBuf {
-    let path = std::env::temp_dir().join(format!(
-        "rovex-process-{name}-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock")
-            .as_nanos()
-    ));
+    let id = BACKEND_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let path =
+        std::env::temp_dir().join(format!("rovex-process-{name}-{}-{id}", std::process::id()));
     let temporary = path.with_extension("tmp");
     fs::write(&temporary, format!("#!/bin/sh\n{body}\n")).expect("write fake backend");
     let mut permissions = fs::metadata(&temporary).expect("metadata").permissions();
